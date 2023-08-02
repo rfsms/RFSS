@@ -23,7 +23,7 @@ def list_directory_content_and_download_files():
 
             # Download each file in the directory (skip directories)
             if not item.endswith('/'):  # Skip directories
-                local_filename = '/home/noaa_gms/RFSS_SA/received/' + item  # Set the destination path on your PC
+                local_filename = '/home/noaa_gms/RFSS/Received/' + item  # Set the destination path on your PC
                 instrument_filename = 'c:\\R_S\\Instr\\user\\RFSS\\' + item  # Set the instrument file path
 
                 try:

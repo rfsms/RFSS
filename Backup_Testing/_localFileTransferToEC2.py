@@ -42,7 +42,7 @@ def scp_gz_files_and_delete(source_dir, remote_ip, remote_username, remote_path)
 
 
 # SCP Setup
-source_directory = "/home/noaa_gms/RFSS_SA/received"
+source_directory = "/home/noaa_gms/RFSS/Received"
 remote_ip = "noaa-gms-ec2"
 remote_username = "Administrator"
 remote_path = "/"
