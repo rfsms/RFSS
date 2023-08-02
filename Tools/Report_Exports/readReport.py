@@ -9,7 +9,7 @@ def replace_satellite(satellite):
     return replacements.get(satellite, satellite)
 
 # Read the file and extract specific columns from each row of the table
-with open("report.txt", "r") as file:
+with open("/home/noaa_gms/RFSS/Tools/Report_Exports/report.txt", "r") as file:
     lines = file.readlines()
 
 table_started = False
@@ -37,7 +37,7 @@ for i, line in enumerate(lines):
         data.append([satellite, aos, los])
 
 # Write the data to a CSV file
-with open("report.csv", "w", newline='') as csvfile:
+with open("/home/noaa_gms/RFSS/Tools/Report_Exports/report.csv", "w", newline='') as csvfile:
     csv_writer = csv.writer(csvfile)
     csv_writer.writerow(["Satellite", "AOS", "LOS"])
     csv_writer.writerows(data)
