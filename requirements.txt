@@ -1,0 +1,5 @@
+DateTime==5.2
+PyVISA==1.13.0
+PyVISA-py==0.7.0
+RsFsw==5.20.1
+RsInstrument==1.53.1
