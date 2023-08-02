@@ -19,11 +19,7 @@ import subprocess
 
 resource_string_1 = 'TCPIP::192.168.1.101::hislip0'  
 
-#Option Strings - will stick with rsVisa
-#option_string_empty = ''  # Default setting
-#option_string_force_ni_visa = 'SelectVisa=ni'  # Forcing NI VISA usage
 option_string_force_rs_visa = 'SelectVisa=rs'  # Forcing R&S VISA usage
-#option_string_force_no_visa = 'SelectVisa=SocketIo'  # Socket communication for LAN connections, no need for any VISA installation
 
 # Make sure you have the last version of the RsInstrument
 RsInstrument.assert_minimum_version('1.53.0')
@@ -34,14 +30,15 @@ remote_ip = "noaa-gms-ec2"
 remote_username = "Administrator"
 remote_path = "/"
 
-# Function to convert UTC string/UTC
+# Function to convert UTC string/UTC for scheduling/filenames/etc..
 def parse_utc_time(utc_time_str):
     return datetime.datetime.strptime(utc_time_str, '%m/%d/%Y %H:%M:%S')
 
-def get_remdir_content_and_DL_locally():
+# Function to get contents of c:\R_S\Instr\user\RFSS\ on Spectrum Analyzer download locally to /home/noaa_gms/RFSS/Received 
+# These files will be called something like "NOAA15_2023-08-02_19_00_07_UTC.iq.tar"
+# Deletion needs to be added here as it currently exists outside this function at the bottom - (instr.write('MMEM:DEL "c:\\R_S\\Instr\\user\\RFSS\\*"')) and its ugly
+def get_SpecAn_content_and_DL_locally():
     try:
-        # Open the instrument connection
-        #instr = RsInstrument(resource_string_1, False, False, option_string_force_rs_visa) #(Resource, ID Query, Reset, Options)
 
         # Set the current directory
         instr.write('MMEM:CDIR "c:\\R_S\\Instr\\user\\RFSS\\"')
@@ -79,7 +76,10 @@ def get_remdir_content_and_DL_locally():
     except Exception as e:
         print(f"Error: {str(e)}")
 
-def local_tar_gz_and_rm_IQ_tar(directory):
+# Function to tar.gz all files in /home/noaa_gms/RFSS/Received/* with a satName_timestamp and then delete all *.iq.tar.  Then scp all files to E2 using the scp function
+# These files will be called someting like "NOAA15_2023-08-02_19_00_00_UTC.tar.gz" and will be comprised of the above *.iq.tar files
+# Need to make this cleaner so SCP function isnt called internally, but leaving now for 
+def local_tgz_and_rm_IQ(directory):
     # Get a list of all files in the directory
     all_files = [os.path.join(directory, file) for file in os.listdir(directory)]
 
@@ -98,11 +98,14 @@ def local_tar_gz_and_rm_IQ_tar(directory):
     # Check if the gz_file exists before proceeding
     if os.path.exists(gz_file):
         print('Executing SCP of *.tar.gz files and removing locally')
-        scp_gz_files_and_delete(source_directory, remote_ip, remote_username, remote_path)
+        scp_tgz_files_and_delete(source_directory, remote_ip, remote_username, remote_path)
     else:
         print(f"No '{gz_file}' found. Skipping scp_gz_files_and_delete.")
 
-def scp_gz_files_and_delete(source_dir, remote_ip, remote_username, remote_path):
+# Function to scp anything called tar.gz (created by from local_tar_gz_and_rm_IQ_tar function) in /home/noaa_gms/RFSS/Received/, then delete *.tar.gz's to clean up.
+# This should probably be cleaned up as well
+# Need to also add some error control in case ec2 intance is not up we i.e dont wait and dont delete the tar.gz files.
+def scp_tgz_files_and_delete(source_dir, remote_ip, remote_username, remote_path):
     try:
         # List all tar.gz files in the source directory
         file_list = glob.glob(os.path.join(source_dir, '*tar.gz'))
@@ -114,7 +117,7 @@ def scp_gz_files_and_delete(source_dir, remote_ip, remote_username, remote_path)
         # Construct the scp command
         scp_cmd = [
             'scp',
-            '-r',  # Use -r for recursively copying directories
+            '-r', 
             *file_list,
             f'{remote_username}@{remote_ip}:{remote_path}'
         ]
@@ -130,13 +133,13 @@ def scp_gz_files_and_delete(source_dir, remote_ip, remote_username, remote_path)
         # Wait for the process to complete
         process.wait()
 
-        print("All .gz files successfully copied to the remote EC2 server.")
+        print("All .tar.gz files successfully copied to the remote EC2 server.")
 
         # Delete the files from the source directory
         for file_path in file_list:
             os.remove(file_path)
 
-        print("All .gz files deleted locally from the RFSS source directory.")
+        print("All .tar.gz files deleted locally from the RFSS source directory.")
     except subprocess.CalledProcessError as e:
         print("Error while copying files:", e)
 
@@ -146,21 +149,15 @@ if __name__ == "__main__":
     global formatted_UTC_time_str
     global satName
 
-    UTC_start_time_str = '8/02/2023 16:36:00'
-    UTC_stop_time_str = '8/02/2023 16:36:30'
-    satName = "NOAA19"
+    #This is really the only section that needs to be adjusted to run between start-stop
+    UTC_start_time_str = '8/02/2023 19:07:00'
+    UTC_stop_time_str = '8/02/2023 19:07:30'
+    satName = "NOAA15"
 
     UTC_start_time = parse_utc_time(UTC_start_time_str)
     UTC_stop_time = parse_utc_time(UTC_stop_time_str)
     formatted_UTC_time_str = UTC_start_time.strftime('%Y-%m-%d_%H_%M_%S_UTC')
 
-    # For use when we will use TLE report.txt file...
-    # with open('report.txt', 'r') as file:
-    #     lines = file.readlines()
-    #     UTC_start_time_str = lines[0].strip()  # assuming the first line is the start time
-    #     UTC_stop_time_str = lines[1].strip()  # assuming the second line is the stop time
-    #     sat_Name = lines[2].strip() # now pull satName from thrird line
- 
     try:
         print('Preparing Instrument')
         instr = RsInstrument(resource_string_1, False, False, option_string_force_rs_visa) #(Resource, ID Query, Reset, Options)
@@ -172,7 +169,6 @@ if __name__ == "__main__":
         # Instrument Setup
         instr.reset()
         instr.clear_status()
-
         instr.write("SYST:DISP:UPD ON")
         instr.write("INIT:CONT ON")
         instr.write("SENS:FREQ:CENT 1702500000")
@@ -189,13 +185,11 @@ if __name__ == "__main__":
         instr.write("DISP:WIND1:SUBW:TRAC1:Y:SCAL 100")
         instr.write("DISP:WIND1:SUBW:TRAC1:Y:SCAL:RPOS 110")
         instr.write("CALC1:SGR:STAT ON")
-                
         instr.write("INST:CRE:NEW IQ, 'IQ Analyzer'")
         instr.write("INIT:CONT OFF")
         instr.write("TRAC:IQ:SRAT 18750000")
         instr.write("SENS:SWE:TIME 0.016")
         instr.write("SENS:SWE:COUN 10")
-
         instr.write("HCOP:DEV:LANG PNG")
 
         while datetime.datetime.utcnow() < UTC_stop_time:
@@ -204,33 +198,18 @@ if __name__ == "__main__":
                 #Setup timestamps for filenames
                 current_datetime = datetime.datetime.utcnow()
                 formatted_current_datetime = current_datetime.strftime('%Y-%m-%d_%H_%M_%S_UTC') 
-                # print(f"String datetime: {formatted_current_datetime}")
-                #time_saved_Spec = f"'C:\\R_S\\Instr\\user\RFSS\{satName}_{formatted_current_datetime}'"
+
                 time_saved_IQ = f"'C:\\R_S\\Instr\\user\RFSS\{satName}_{formatted_current_datetime}'"
                 
-                # Print screenshot of Spectrum Analysis/Spectrogram
-                # Have removed the spectrum version to remove duplicates from Matlab code
-                #nstr.write(f"MMEM:NAME {time_saved_Spec}")
-                #instr.write("HCOP:IMM")
                 instr.write("INST IQ")
-                # instr.write("INIT:CONT OFF")
-
                 instr.write("INIT:IMM;*WAI")
                 print('Waiting for 10 IQ sweeps...')
-                instr.write(f"MMEM:STOR:IQ:STAT 1,{time_saved_IQ}")
 
+                instr.write(f"MMEM:STOR:IQ:STAT 1,{time_saved_IQ}")
                 instr.write("INST:SEL 'Spectrum'")
                 instr.write("INIT:CONT ON")
-
-                #idn = instr.query_str('*IDN?')
-
-                #Log collection info
-                #print(f"Hello, I am: '{idn}'")
                 print(f"Current IQ save filename is: {time_saved_IQ}")
-                #print(f'RsInstrument driver version: {instr.driver_version}')
-                #print(f'Visa manufacturer: {instr.visa_manufacturer}')
-                #print(f'Instrument full name: {instr.full_instrument_model_name}')
-                #print(f'Instrument installed options: {",".join(instr.instrument_options)}')
+
             else:
                 instr.write("INST:SEL 'Spectrum'")
                 instr.write("INIT:CONT ON")
@@ -241,8 +220,8 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("User killed it.")
 
-    get_remdir_content_and_DL_locally()
-    local_tar_gz_and_rm_IQ_tar('/home/noaa_gms/RFSS/Received/')
+    get_SpecAn_content_and_DL_locally()
+    local_tgz_and_rm_IQ('/home/noaa_gms/RFSS/Received/')
 
     
 # After succesful record and transfer, delete all remote files and close the session
