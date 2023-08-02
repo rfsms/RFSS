@@ -29,7 +29,7 @@ option_string_force_rs_visa = 'SelectVisa=rs'  # Forcing R&S VISA usage
 RsInstrument.assert_minimum_version('1.53.0')
 
 #SCP Setup - using preshared ECDSA keys with 521 bit curve (1024 bytes...for the curious 😂)
-source_directory = "/home/noaa_gms/RFSS_SA/received"
+source_directory = "/home/noaa_gms/RFSS/Received"
 remote_ip = "noaa-gms-ec2"
 remote_username = "Administrator"
 remote_path = "/"
@@ -57,7 +57,7 @@ def get_remdir_content_and_DL_locally():
 
             # Download each file in the directory (skip directories)
             if not item.endswith('/'):  # Skip directories
-                local_filename = '/home/noaa_gms/RFSS_SA/received/' + item  # Set the destination path on your PC
+                local_filename = '/home/noaa_gms/RFSS/Received/' + item  # Set the destination path on your PC
                 instrument_filename = 'c:\\R_S\\Instr\\user\\RFSS\\' + item  # Set the instrument file path
 
                 try:
@@ -146,9 +146,9 @@ if __name__ == "__main__":
     global formatted_UTC_time_str
     global satName
 
-    UTC_start_time_str = '8/01/2023 19:54:00'
-    UTC_stop_time_str = '8/01/2023 19:54:30'
-    satName = "NOAA18"
+    UTC_start_time_str = '8/02/2023 16:36:00'
+    UTC_stop_time_str = '8/02/2023 16:36:30'
+    satName = "NOAA19"
 
     UTC_start_time = parse_utc_time(UTC_start_time_str)
     UTC_stop_time = parse_utc_time(UTC_stop_time_str)
@@ -242,7 +242,7 @@ if __name__ == "__main__":
         print("User killed it.")
 
     get_remdir_content_and_DL_locally()
-    local_tar_gz_and_rm_IQ_tar('/home/noaa_gms/RFSS_SA/received/')
+    local_tar_gz_and_rm_IQ_tar('/home/noaa_gms/RFSS/Received/')
 
     
 # After succesful record and transfer, delete all remote files and close the session
