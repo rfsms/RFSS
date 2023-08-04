@@ -8,7 +8,7 @@ def your_function(label):
 
 # List of days and times when the function should run in UTC, with labels
 schedule = [
-    (4, (18, 47, 0), (18, 47, 30), "item1"),   # Monday, 10:00:00 - 10:20:00 UTC
+    (1,"(3, 16, 22)","(3, 31, 8)","METOP-B"),   # Monday, 10:00:00 - 10:20:00 UTC
     (4, (18, 48, 0), (18, 48, 30), "item2"),  # Wednesday, 15:30:00 - 15:50:00 UTC
     (4, (18, 48, 20), (18, 49, 0), "item3"),   # Friday, 12:00:00 - 12:20:00 UTC
     # (4, (16, 56, 0), (16, 57, 0), "item4"),  # Thursday, 16:56:00 - 16:57:00 UTC
