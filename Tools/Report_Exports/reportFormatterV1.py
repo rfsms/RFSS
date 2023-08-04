@@ -1,5 +1,12 @@
+# reportFormatterV1 takes report.txt from S.A.T. Tracker and converts to a csv
+# For example:
+#
+# Satellite,AOS,LOS
+# NOAA-15,7/31/2023 23:44:21,7/31/2023 23:52:55
+# NOAA-15,8/1/2023 01:19:35,8/1/2023 01:34:27
+# METOP-B,8/1/2023 01:41:03,8/1/2023 01:49:13
+
 import csv
-from datetime import datetime
 
 def replace_satellite(satellite):
     replacements = {
@@ -8,13 +15,6 @@ def replace_satellite(satellite):
         "NOAA 19": "NOAA-19"
     }
     return replacements.get(satellite, satellite)
-
-def get_day_time_tuple(date_str):
-    date_format = "%m/%d/%Y %H:%M:%S"
-    date_obj = datetime.strptime(date_str, date_format)
-    day_of_week = date_obj.weekday()  # Monday is 0, Sunday is 6
-    time_tuple = tuple(map(int, date_obj.strftime("%H %M %S").split()))
-    return day_of_week, time_tuple
 
 # Read the file and extract specific columns from each row of the table
 with open("/home/noaa_gms/RFSS/Tools/Report_Exports/report.txt", "r") as file:
@@ -42,14 +42,10 @@ for i, line in enumerate(lines):
         # Replace the satellite name if it matches the specified patterns
         satellite = replace_satellite(satellite)
 
-        # Get day of the week (numeric) and time tuple for AOS and LOS
-        aos_day, aos_time = get_day_time_tuple(aos)
-        los_day, los_time = get_day_time_tuple(los)
-
-        data.append((aos_day, aos_time, los_time, satellite))
+        data.append([satellite, aos, los])
 
 # Write the data to a CSV file
 with open("/home/noaa_gms/RFSS/Tools/Report_Exports/report.csv", "w", newline='') as csvfile:
     csv_writer = csv.writer(csvfile)
-    csv_writer.writerow(["Day of Week", "AOS", "LOS", "Satellite"])
+    csv_writer.writerow(["Satellite", "AOS", "LOS"])
     csv_writer.writerows(data)

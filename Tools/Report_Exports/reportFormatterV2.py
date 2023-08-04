@@ -1,3 +1,11 @@
+#reportFormatterV2 convert report.txt to a list for use in scheduleTest.py's schedule list
+# For example: 
+# #
+# "Day of Week","AOS","LOS","Satellite"
+# 0,"(23, 44, 21)","(23, 52, 55)","NOAA-15"
+# 1,"(1, 19, 35)","(1, 34, 27)","NOAA-15"
+# 1,"(1, 41, 3)","(1, 49, 13)","METOP-B"
+
 import csv
 from datetime import datetime
 
@@ -50,6 +58,7 @@ for i, line in enumerate(lines):
 
 # Write the data to a CSV file
 with open("/home/noaa_gms/RFSS/Tools/Report_Exports/report.csv", "w", newline='') as csvfile:
-    csv_writer = csv.writer(csvfile, quoting=csv.QUOTE_NONNUMERIC)
+    csv_writer = csv.writer(csvfile)
+    # csv_writer = csv.writer(csvfile, quoting=csv.QUOTE_NONNUMERIC)
     csv_writer.writerow(["Day of Week", "AOS", "LOS", "Satellite"])
     csv_writer.writerows(data)
