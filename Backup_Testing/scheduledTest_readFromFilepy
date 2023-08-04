@@ -51,4 +51,4 @@ while True:
         custom_print("Current time (UTC):", now)
 
     # Wait for 1 minute before checking again
-    time.sleep(10)
+    time.sleep(60)
