@@ -150,8 +150,8 @@ if __name__ == "__main__":
     global satName
 
     #This is really the only section that needs to be adjusted to run between start-stop
-    UTC_start_time_str = '8/02/2023 19:07:00'
-    UTC_stop_time_str = '8/02/2023 19:07:30'
+    UTC_start_time_str = '8/07/2023 18:15:00'
+    UTC_stop_time_str = '8/07/2023 18:15:30'
     satName = "NOAA15"
 
     UTC_start_time = parse_utc_time(UTC_start_time_str)

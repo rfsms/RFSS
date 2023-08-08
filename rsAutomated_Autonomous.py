@@ -168,13 +168,13 @@ with open(csv_file_path, newline='') as csvfile:
     next(reader)  # Skip the first line (header)
     for row in reader:
         global label
-        day = int(row[0])
+        entry = int(row[0])
         start_time_str = row[1].strip('()').split(', ')
         start_time = datetime.time(int(start_time_str[0]), int(start_time_str[1]), int(start_time_str[2]))
         end_time_str = row[2].strip('()').split(', ')
         end_time = datetime.time(int(end_time_str[0]), int(end_time_str[1]), int(end_time_str[2]))
         label = row[3]
-        utc_schedule.append((day, start_time, end_time, label))
+        utc_schedule.append((entry, start_time, end_time, label))
 
 utc_schedule.sort(key=lambda entry: entry[1])  # Sort by start_time (entry[1])
 
@@ -235,9 +235,9 @@ if __name__ == "__main__":
             current_day = now.weekday()
             # print('while true...')
 
-            for day, start_time, end_time, label in utc_schedule:
+            for entry, start_time, end_time, label in utc_schedule:
                 # print('for day...')
-                if current_day == day and start_time <= now.time() <= end_time:
+                if current_day == entry and start_time <= now.time() <= end_time:
                     # print('if start_time')
                     # Redirect output to a file inside the loop
                     with open('output_file.txt', 'a') as output_file:
