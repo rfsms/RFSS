@@ -18,6 +18,7 @@ RESOURCE_STRING_1 = 'TCPIP::192.168.1.101::hislip0'
 OPTION_STRING_FORCE_RS_VISA = 'SelectVisa=rs'
 UTC = pytz.UTC
 
+# Document me
 def parse_utc_time(utc_time_str):
     return datetime.datetime.strptime(utc_time_str, '%m/%d/%Y %H:%M:%S')
 
