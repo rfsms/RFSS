@@ -87,20 +87,30 @@ def process_schedule():
             now = datetime.datetime.utcnow()
             satellite_name = row[3]
 
-            # Create los_datetime for today
+            # Create aos_datetime and los_datetime for today
+            aos_datetime = datetime.datetime(now.year, now.month, now.day, 
+                                             int(aos_time[0]), int(aos_time[1]), int(aos_time[2]))
             los_datetime = datetime.datetime(now.year, now.month, now.day, 
                                              int(los_time[0]), int(los_time[1]), int(los_time[2]))
+
 
             # If current time has already passed the scheduled los_datetime, skip to the next schedule
             if now > los_datetime:
                 continue
                 
+            # If current time is before the scheduled aos_datetime, wait until aos_datetime is reached
+            while now < aos_datetime:
+                time.sleep(1)  # Sleep for 5 seconds to not hog the CPU
+                print('Waiting for next schedule')
+                now = datetime.datetime.utcnow()
+
             while True:
                 now = datetime.datetime.utcnow()  # Update current time at the start of each iteration
                 if now >= los_datetime:
                     break
+
                 # intrumentation happens here
-                # print(f"Current UTC time: {now.strftime('%Y-%m-%d %H:%M:%S')}")
+                #print(f"Current UTC time: {now.strftime('%Y-%m-%d %H:%M:%S')}")
                 print(f"Function with label '{satellite_name}' is running!")
                 INSTR.write("INST IQ")
                 INSTR.write("INIT:IMM;*WAI")
@@ -136,7 +146,7 @@ def main():
     INSTR.write("SENS:WIND1:DET1:FUNC RMS")
     INSTR.write("DISP:WIND1:SUBW:TRAC2:MODE MAXH")
     INSTR.write("SENS:WIND1:DET2:FUNC RMS")
-    INSTR.write("DISP:WIND1:SUBW:TRAC1:Y:SCAL 100")
+    INSTR.write("DISP:WIND1:SUBW:TRAC1:Y:SCAL 100") 
     INSTR.write("DISP:WIND1:SUBW:TRAC1:Y:SCAL:RPOS 110")
     INSTR.write("CALC1:SGR:STAT ON")
     INSTR.write("INST:CRE:NEW IQ, 'IQ Analyzer'")
@@ -150,18 +160,27 @@ def main():
         # Create schedule for debug - Will need to comment out once moved to production
         # This sets up schedule for testing where only thing to input is num_of_entries in the schedule.csv
         # For entries, you can modify start_times/end_times to reflect a larger or smaller window between "passes"
-        num_of_entries = 2
+        num_of_entries = 4
 
-        now = datetime.datetime.utcnow()
-        start_times = [(now + datetime.timedelta(seconds=10 + i*23)).time() for i in range(num_of_entries)]
-        end_times = [(now + datetime.timedelta(seconds=20 + i*23)).time() for i in range(num_of_entries)]
+        # Delay the first entry by 20 seconds (now + 20), 
+        # a pass duration of 10 seconds (event)
+        # And a wait duration between (gap) of 20 seconds
+        now = datetime.datetime.utcnow() + datetime.timedelta(seconds=20)  
+        event_duration = datetime.timedelta(seconds=10)
+        gap_duration = datetime.timedelta(seconds=20)
+        total_duration = event_duration + gap_duration
+
+        start_times = [(now + i*total_duration) for i in range(num_of_entries)]
+        end_times = [(now + i*total_duration + event_duration) for i in range(num_of_entries)]
 
         with open("/home/noaa_gms/RFSS/Backup_Testing/schedule.csv", "w") as f:
             writer = csv.writer(f)
             writer.writerow(["Day of Week", "AOS", "LOS", "Satellite"])
             for i in range(num_of_entries):
-                writer.writerow([now.weekday() + 1, str((start_times[i].hour, start_times[i].minute, start_times[i].second)), 
-                                str((end_times[i].hour, end_times[i].minute, end_times[i].second)), f"NOAA-{15 + i}"])
+                writer.writerow([now.weekday() + 1, 
+                                str((start_times[i].hour, start_times[i].minute, start_times[i].second)), 
+                                str((end_times[i].hour, end_times[i].minute, end_times[i].second)), 
+                                f"NOAA-{15 + i}"])
         # End schdule for debug 
 
         process_schedule()

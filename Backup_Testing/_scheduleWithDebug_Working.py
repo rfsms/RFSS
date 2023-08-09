@@ -50,20 +50,32 @@ def process_schedule():
 
 def main():
     try:
-        # Create schedule for debug
-        num_of_entries = 5
+        # Create schedule for debug - Will need to comment out once moved to production
+        # This sets up schedule for testing where only thing to input is num_of_entries in the schedule.csv
+        # For entries, you can modify start_times/end_times to reflect a larger or smaller window between "passes"
+        num_of_entries = 4
 
-        now = datetime.datetime.utcnow()
-        start_times = [(now + datetime.timedelta(seconds=10 + i*23)).time() for i in range(num_of_entries)]
-        end_times = [(now + datetime.timedelta(seconds=20 + i*23)).time() for i in range(num_of_entries)]
+        # Delay the first entry by 20 seconds (now + 20), 
+        # a pass duration of 10 seconds (event)
+        # And a wait duration between (gap) of 20 seconds
+        now = datetime.datetime.utcnow() + datetime.timedelta(seconds=20)  
+        event_duration = datetime.timedelta(seconds=10)
+        gap_duration = datetime.timedelta(seconds=20)
+        total_duration = event_duration + gap_duration
+
+        start_times = [(now + i*total_duration) for i in range(num_of_entries)]
+        end_times = [(now + i*total_duration + event_duration) for i in range(num_of_entries)]
 
         with open("/home/noaa_gms/RFSS/Backup_Testing/schedule.csv", "w") as f:
             writer = csv.writer(f)
             writer.writerow(["Day of Week", "AOS", "LOS", "Satellite"])
             for i in range(num_of_entries):
-                writer.writerow([now.weekday() + 1, str((start_times[i].hour, start_times[i].minute, start_times[i].second)), 
-                                str((end_times[i].hour, end_times[i].minute, end_times[i].second)), f"NOAA-{15 + i}"])
-        # End schdule for debug 
+                writer.writerow([now.weekday() + 1, 
+                                str((start_times[i].hour, start_times[i].minute, start_times[i].second)), 
+                                str((end_times[i].hour, end_times[i].minute, end_times[i].second)), 
+                                f"NOAA-{15 + i}"])
+
+        
 
         process_schedule()
         print("Script finished.")
