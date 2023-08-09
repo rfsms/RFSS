@@ -40,10 +40,10 @@ remote_username = "Administrator"
 remote_path = "/"
 
 # Document me...
-def custom_print(*args, **kwargs):
-    # Custom print function to handle both console and file output
-    output_file.write(' '.join(map(str, args)))
-    output_file.write("\n")  # Add a newline after each print
+# def custom_print(*args, **kwargs):
+#     # Custom print function to handle both console and file output
+#     output_file.write(' '.join(map(str, args)))
+#     output_file.write("\n")  # Add a newline after each print
 
 # Function to convert UTC string/UTC for scheduling/filenames/etc..
 def parse_utc_time(utc_time_str):
@@ -54,7 +54,6 @@ def parse_utc_time(utc_time_str):
 # Deletion needs to be added here as it currently exists outside this function at the bottom - (instr.write('MMEM:DEL "c:\\R_S\\Instr\\user\\RFSS\\*"')) and its ugly
 def get_SpecAn_content_and_DL_locally():
     try:
-
         # Set the current directory
         instr.write('MMEM:CDIR "c:\\R_S\\Instr\\user\\RFSS\\"')
 
@@ -63,9 +62,9 @@ def get_SpecAn_content_and_DL_locally():
 
         # Process the response and print the content
         content_list = response.replace('\'', '').split(',')
-        print("Removing captures from Spectrum Analyzer to process on RFSS server.")
+        print("Transferring captures from Spectrum Analyzer to process on RFSS server.")
         for item in content_list:
-            #print(item)
+            print(item)
 
             # Download each file in the directory (skip directories)
             if not item.endswith('/'):  # Skip directories
@@ -80,7 +79,7 @@ def get_SpecAn_content_and_DL_locally():
                     if data is not None:
                         with open(local_filename, 'wb') as f:
                             f.write(data)
-                        #print(f"Downloaded file '{item}' to '{local_filename}'")
+                        print(f"Downloaded file '{item}' to '{local_filename}'")
                     else:
                         #print('')
                         continue
@@ -88,8 +87,13 @@ def get_SpecAn_content_and_DL_locally():
                 except Exception as e:
                     print(f"Error while downloading file '{item}': {str(e)}")
 
-    except Exception as e:
-        print(f"Error: {str(e)}")
+        print('Removing files from Spectrum Analyzer')    
+        instr.write('MMEM:DEL "c:\\R_S\\Instr\\user\\RFSS\\*"')
+    
+    except RsInstrException as e:
+        if "-256," in str(e):
+            print("No files on Spectrum Analyzer to process:", e)
+            
 
 # Function to tar.gz all files in /home/noaa_gms/RFSS/Received/* with a satName_timestamp and then delete all *.iq.tar.  Then scp all files to E2 using the scp function
 # These files will be called someting like "NOAA15_2023-08-02_19_00_00_UTC.tar.gz" and will be comprised of the above *.iq.tar files
@@ -101,6 +105,11 @@ def local_tgz_and_rm_IQ(directory):
     
     # Get a list of all files in the directory
     all_files = [os.path.join(directory, file) for file in os.listdir(directory)]
+
+    # Check if there are any files to archive
+    if not all_files:
+        print(f"No files found in '{directory}'. Skipping tar.gz creation.")
+        return
 
     # Create the name of the final tar.gz file
     gz_file = os.path.join(directory, f'{label}_{formatted_current_datetime}.tar.gz')
@@ -180,27 +189,14 @@ utc_schedule.sort(key=lambda entry: entry[1])  # Sort by start_time (entry[1])
 
 if __name__ == "__main__":
 
-    #Current semi automated working sample example where start/stop/satName is defined and the code will execute only between start/stop times
-    # global formatted_UTC_time_str
-    # global label
-
-    # #This is really the only section that needs to be adjusted to run between start-stop
-    # UTC_start_time_str = '8/07/2023 18:15:00'
-    # UTC_stop_time_str = '8/07/2023 18:15:30'
-    # satName = "NOAA15"
-
-    # UTC_start_time = parse_utc_time(UTC_start_time_str)
-    # UTC_stop_time = parse_utc_time(UTC_stop_time_str)
-    # formatted_UTC_time_str = UTC_start_time.strftime('%Y-%m-%d_%H_%M_%S_UTC')
-
     try:
-        # end_flag = False
+        # end_flag = 0
         print('Preparing Instrument')
         instr = RsInstrument(resource_string_1, False, False, option_string_force_rs_visa) #(Resource, ID Query, Reset, Options)
 
         # Switch ON logging to the console for troubleshooting SpecAn config issues
-        # instr.logger.log_to_console = True
-        # instr.logger.mode = LoggingMode.On
+        instr.logger.log_to_console = True
+        instr.logger.mode = LoggingMode.On
 
         # Instrument Setup
         instr.reset()
@@ -228,21 +224,21 @@ if __name__ == "__main__":
         instr.write("SENS:SWE:COUN 10")
         instr.write("HCOP:DEV:LANG PNG")
 
-        # while datetime.datetime.utcnow() < UTC_stop_time:
-        #     if datetime.datetime.utcnow() >= UTC_start_time:
+
         while True:
             now = datetime.datetime.now(tz=utc)
             current_day = now.weekday()
-            # print('while true...')
+
 
             for entry, start_time, end_time, label in utc_schedule:
-                # print('for day...')
+
+                print(f'End Flag: {end_flag}, Entry: {entry}, schedule: {utc_schedule}')
+
                 if current_day == entry and start_time <= now.time() <= end_time:
-                    # print('if start_time')
-                    # Redirect output to a file inside the loop
+
+
                     with open('output_file.txt', 'a') as output_file:
                             
-                        sys.stdout = output_file
                         #Setup timestamps for filenames
                         current_datetime = datetime.datetime.utcnow()
                         formatted_current_datetime = current_datetime.strftime('%Y-%m-%d_%H_%M_%S_UTC') 
@@ -257,35 +253,12 @@ if __name__ == "__main__":
 
                         # instr.write("INIT:CONT ON")
                         print(f"Current IQ save filename is: {time_saved_IQ}")
-                        custom_print(f"Function with label '{label}' is running!")
-                
- 
-            # get_SpecAn_content_and_DL_locally()
-            # local_tgz_and_rm_IQ('/home/noaa_gms/RFSS/Received/')
-
-            # Redirect output to a file inside the loop
-            with open('output_file.txt', 'a') as output_file:
-                sys.stdout = output_file
-                # Print current time in UTC
-                custom_print("Current time (UTC):", now)
-                    # else:
-                    #     instr.write("INST:SEL 'Spectrum'")
-                    #     instr.write("INIT:CONT ON")
-                    #     print('Waiting for start time...')
-            
-            # if end_flag == True and end_time >= now.time():
-            #    print('Transferring files')
-            #    get_SpecAn_content_and_DL_locally()
-            #    local_tgz_and_rm_IQ('/home/noaa_gms/RFSS/Received/')
-
-
+                        print(f"Function with label '{label}' is running!")
+                    
             time.sleep(5)
 
     except KeyboardInterrupt:
         print("User killed it.")
-
-    # get_SpecAn_content_and_DL_locally()
-    # local_tgz_and_rm_IQ('/home/noaa_gms/RFSS/Received/')
 
     
 # After succesful record and transfer, delete all remote files and close the session
