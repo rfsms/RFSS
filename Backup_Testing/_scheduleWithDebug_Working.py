@@ -74,8 +74,8 @@ def main():
                                 str((start_times[i].hour, start_times[i].minute, start_times[i].second)), 
                                 str((end_times[i].hour, end_times[i].minute, end_times[i].second)), 
                                 f"NOAA-{15 + i}"])
+        # End debug section
 
-        
 
         process_schedule()
         print("Script finished.")
