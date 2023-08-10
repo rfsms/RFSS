@@ -138,7 +138,7 @@ def local_tgz_and_rm_IQ(directory, satellite):
         return
 
     # Create the name of the final tar.gz file
-    gz_file = os.path.join(directory, f'{satellite}_{formatted_current_datetime}.tar.gz')
+    gz_file = os.path.join(directory, f'{formatted_current_datetime}_{satellite}.tar.gz')
 
     # Create the tar.gz archive
     with tarfile.open(gz_file, 'w:gz') as tar:
@@ -152,14 +152,14 @@ def local_tgz_and_rm_IQ(directory, satellite):
     # Check if the gz_file exists before proceeding
     if os.path.exists(gz_file):
         print('Executing SCP of *.tar.gz files and removing locally')
-        scp_tgz_files_and_delete(TEMP_DIR, REMOTE_IP, REMOTE_USERNAME, REMOTE_PATH)
+        EC2_uploads_and_rm_tar(TEMP_DIR, REMOTE_IP, REMOTE_USERNAME, REMOTE_PATH)
     else:
         print(f"No '{gz_file}' found. Skipping scp_gz_files_and_delete.")
 
 # Function to scp anything called tar.gz (created by from local_tar_gz_and_rm_IQ_tar function) in /home/noaa_gms/RFSS/Received/, then delete *.tar.gz's to clean up.
 # This should probably be cleaned up as well
 # Need to also add some error control in case ec2 intance is not up we i.e dont wait and dont delete the tar.gz files.
-def scp_tgz_files_and_delete(source_dir, remote_ip, remote_username, remote_path):
+def EC2_uploads_and_rm_tar(source_dir, remote_ip, remote_username, remote_path):
     try:
         # List all tar.gz files in the source directory
         file_list = glob.glob(os.path.join(source_dir, '*tar.gz'))
