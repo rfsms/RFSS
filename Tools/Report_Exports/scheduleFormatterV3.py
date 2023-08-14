@@ -1,3 +1,12 @@
+#reportFormatterV3 converts report.txt to a list for use in scheduleTest.py's schedule list.  
+# Latest version uses regex instead of fixed values based on indeces for sat, aos, los  
+# For example: 
+# #
+# "Day of Week","AOS","LOS","Satellite"
+# 0,"(23, 44, 21)","(23, 52, 55)","NOAA-15"
+# 1,"(1, 19, 35)","(1, 34, 27)","NOAA-15"
+# 1,"(1, 41, 3)","(1, 49, 13)","METOP-B"
+
 import csv
 from datetime import datetime
 import re
