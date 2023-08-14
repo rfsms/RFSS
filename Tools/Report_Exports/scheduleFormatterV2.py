@@ -46,6 +46,8 @@ for i, line in enumerate(lines):
         satellite = line[5:20].strip()
         aos = line[20:43].strip()
         los = line[43:66].strip()
+        print(f"AOS: {aos}")
+        print(f"LOS: {los}") 
 
         # Replace the satellite name if it matches the specified patterns
         satellite = replace_satellite(satellite)
