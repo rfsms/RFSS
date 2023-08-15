@@ -7,7 +7,7 @@
 # 1,"(1, 41, 3)","(1, 49, 13)","METOP-B"
 
 import csv
-from datetime import datetime
+from datetime import datetime, timezone
 
 def replace_satellite(satellite):
     replacements = {
@@ -18,9 +18,9 @@ def replace_satellite(satellite):
     return replacements.get(satellite, satellite)
 
 def get_day_time_tuple(date_str):
-    date_format = "%m/%d/%Y %H:%M:%S"
-    date_obj = datetime.strptime(date_str, date_format)
-    day_of_week = date_obj.weekday()  # Monday is 0, Sunday is 6
+    date_obj = datetime.strptime(date_str, "%m/%d/%Y %H:%M:%S")
+    date_obj = date_obj.replace(tzinfo=timezone.utc)  # Attach the UTC timezone
+    day_of_week = date_obj.weekday()   # Monday is 0, Sunday is 6
     time_tuple = tuple(map(int, date_obj.strftime("%H %M %S").split()))
     return day_of_week, time_tuple
 
