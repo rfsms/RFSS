@@ -70,17 +70,14 @@ def process_schedule():
     with open(CSV_FILE_PATH, 'r') as csvfile:
         # Create a CSV reader object
         csvreader = csv.reader(csvfile)
-        
-        # Skip header
         next(csvreader)
 
         # Go through rows
         for row in csvreader:
-            aos_time = row[1][1:-1].replace(" ", "").split(",")  # Parsing (hh, mm, ss)
-            los_time = row[2][1:-1].replace(" ", "").split(",")  # Parsing (hh, mm, ss)
-            
+            aos_time = row[2][1:-1].replace(" ", "").split(",")  # Parsing (hh, mm, ss)
+            los_time = row[3][1:-1].replace(" ", "").split(",")  # Parsing (hh, mm, ss)
+            satellite_name = row[4]
             now = datetime.datetime.utcnow()
-            satellite_name = row[3]
 
             # Create aos_datetime and los_datetime for today
             aos_datetime = datetime.datetime(now.year, now.month, now.day, 
@@ -117,7 +114,7 @@ def process_schedule():
                 # print('Waiting for 10 IQ sweeps...')
                 time.sleep(1)  # Sleep for 1 second
             
-            # print_message(satellite_name)
+            # # print_message(satellite_name)
             get_SpecAn_content_and_DL_locally(INSTR)
             local_tgz_and_rm_IQ(TEMP_DIR, satellite_name)
 
@@ -152,7 +149,7 @@ def local_tgz_and_rm_IQ(directory, satellite):
     # Check if the gz_file exists before proceeding
     if os.path.exists(gz_file):
         print('Executing SCP of *.tar.gz files and removing locally')
-        EC2_uploads_and_rm_tar(TEMP_DIR, REMOTE_IP, REMOTE_USERNAME, REMOTE_PATH)
+        # EC2_uploads_and_rm_tar(TEMP_DIR, REMOTE_IP, REMOTE_USERNAME, REMOTE_PATH)
     else:
         print(f"No '{gz_file}' found. Skipping scp_gz_files_and_delete.")
 
