@@ -12,7 +12,7 @@ do
     touch "${LOCKFILE}"
 
     # rsync -avc --remove-source-files --rsync-path='c:/cygwin64/bin/rsync' --progress $WATCHED_FOLDER $REMOTE_FOLDER >    # Removed verbose and --progress in  rsync
-    rsync -avc --remove-source-files --rsync-path='c:/cygwin64/bin/rsync' $WATCHED_FOLDER $REMOTE_FOLDER >> $LOGFILE
+    rsync -ac --remove-source-files --rsync-path='c:/cygwin64/bin/rsync' $WATCHED_FOLDER $REMOTE_FOLDER >> $LOGFILE
 
     TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
     FILENAME=$(basename "$FILE")

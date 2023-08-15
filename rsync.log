@@ -11,3 +11,21 @@ sending incremental file list
 sent 64 bytes  received 19 bytes  55.33 bytes/sec
 total size is 0  speedup is 0.00
 2023-08-15 18:34:14 2023-08-15_18_30_40_UTC_METOP-C.tar.gz SENT
+sending incremental file list
+./
+2023-08-15_19_02_21_UTC_NOAA-18.tar.gz
+
+sent 211,969,253 bytes  received 46 bytes  823,181.74 bytes/sec
+total size is 211,917,340  speedup is 1.00
+2023-08-15 19:06:50 2023-08-15_19_02_21_UTC_NOAA-18.tar.gz SENT
+sending incremental file list
+./
+
+sent 63 bytes  received 19 bytes  54.67 bytes/sec
+total size is 0  speedup is 0.00
+2023-08-15 19:06:51 2023-08-15_19_02_21_UTC_NOAA-18.tar.gz SENT
+
+
+
+--- LAST CHANGE
+
