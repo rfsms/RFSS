@@ -148,8 +148,10 @@ def local_tgz_and_rm_IQ(directory, satellite):
 
     # Check if the gz_file exists before proceeding
     if os.path.exists(gz_file):
-        print('Executing SCP of *.tar.gz files and removing locally')
+        # print('Executing SCP of *.tar.gz files and removing locally')
         # EC2_uploads_and_rm_tar(TEMP_DIR, REMOTE_IP, REMOTE_USERNAME, REMOTE_PATH)
+        print('Rsyncing *.tar.gz files and removing locally')
+        mv_tar_files_to_preUpload(TEMP_DIR)
     else:
         print(f"No '{gz_file}' found. Skipping scp_gz_files_and_delete.")
 
@@ -193,6 +195,23 @@ def EC2_uploads_and_rm_tar(source_dir, remote_ip, remote_username, remote_path):
         print('All .tar.gz files deleted locally from the RFSS source directory.')
     except subprocess.CalledProcessError as e:
         print('Error while copying files:', e)
+
+def mv_tar_files_to_preUpload(source_dir):
+    file_list = glob.glob(os.path.join(source_dir, '*tar.gz'))
+    if not file_list:
+        print('No *.tar.gz files found in the source directory.')
+        return
+
+    destination_path = "/home/noaa_gms/RFSS/preUpload/"
+    process = subprocess.run(["mv", *file_list, destination_path])
+
+    if process.returncode == 0:
+        print('All .tar.gz files successfully moved to', destination_path)
+        # Removing all files in the source directory
+        subprocess.run(["rm", "-f", os.path.join(source_dir, '*')])
+        print('All files in the source directory have been removed.')
+    else:
+        print('Error while moving files.')
 
 def main():
 

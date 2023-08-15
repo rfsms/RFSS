@@ -18,3 +18,25 @@ All traffic between EC2 and RFSS is over a WireGuard based PTP VPN and public ke
 * Future modification includes only scanning between -10* and +10* elevation in a 360* azimuthal rotation.
 * ~~Additionally, more functionality will be incorporated to include autonomous scheduling so a static start/stop time does not need to be defined.~~
 * Lastly the code will include usage if an Ettus x310 SDR relacing the FSV Spectrum Analyer.
+
+NOTE:
+If SCP is removed and rsync is used instead, ensure that:
+* rsyncUpload.sh script is moved to `/usr/local/bin`.
+* A service is created in `/etc/systemd/system/rsyncUpload.service`
+    ```[Unit]
+    Description=Starts the RFSS rsync service after multi-user target
+    After=network.target
+
+    [Service]
+    Type=simple
+    ExecStart=/usr/local/bin/rsyncUpload.sh
+    Restart=on-failure
+    User=noaa_gms
+    Group=noaa_gms
+
+    [Install]
+    WantedBy=multi-user.target
+* Reload systemd with `sudo systemctl daemon-reload`
+* Enable and start the service with `sudo systemctl enable watch-and-sync`
+/`sudo systemctl start watch-and-sync`
+* you can then use normal systemd commands to check status, restart, etc. as normal.
