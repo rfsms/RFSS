@@ -7,26 +7,28 @@ import tarfile
 import glob
 import subprocess
 
-# # For development
-# CSV_FILE_PATH = '/home/noaa_gms/RFSS/Backup_Testing/schedule.csv'
-# # For production
-CSV_FILE_PATH = '/home/noaa_gms/RFSS/Tools/Report_Exports/schedule.csv'
-
-# # For development
-# TEMP_DIR = '/home/noaa_gms/RFSS/Backup_Testing/Received/'
-# For productions
-TEMP_DIR = '/home/noaa_gms/RFSS/Received/'
-
+# For development
+CSV_FILE_PATH = '/home/noaa_gms/RFSS/Backup_Testing/schedule.csv'
+TEMP_DIR = '/home/noaa_gms/RFSS/Backup_Testing/Received/'
 REMOTE_IP = 'noaa-gms-ec2'
 REMOTE_USERNAME = 'Administrator'
 REMOTE_PATH = '/'
 RESOURCE_STRING = 'TCPIP::192.168.1.101::hislip0'
 OPTION_STRING_FORCE_RS_VISA = 'SelectVisa=rs'
-# For development
-# INSTR = RsInstrument(RESOURCE_STRING, False, False, "Simulate='True'")
-# For production
 INSTR = RsInstrument(RESOURCE_STRING, False, False, OPTION_STRING_FORCE_RS_VISA)
 INSTR_DIR = 'c:\\R_S\\Instr\\user\\RFSS\\'
+
+
+# # For production
+# CSV_FILE_PATH = '/home/noaa_gms/RFSS/Tools/Report_Exports/schedule.csv'
+# TEMP_DIR = '/home/noaa_gms/RFSS/Received/'
+# REMOTE_IP = 'noaa-gms-ec2'
+# REMOTE_USERNAME = 'Administrator'
+# REMOTE_PATH = '/'
+# RESOURCE_STRING = 'TCPIP::192.168.1.101::hislip0'
+# OPTION_STRING_FORCE_RS_VISA = 'SelectVisa=rs'
+# INSTR = RsInstrument(RESOURCE_STRING, False, False, OPTION_STRING_FORCE_RS_VISA)
+# INSTR_DIR = 'c:\\R_S\\Instr\\user\\RFSS\\'
 
 # Function to get contents of c:\R_S\Instr\user\RFSS\ on Spectrum Analyzer download locally to /home/noaa_gms/RFSS/Received 
 # These files will be called something like "2023-08-02_19_00_07_UTC_NOAA-15.iq.tar"
@@ -103,7 +105,10 @@ def local_tgz_and_rm_IQ(directory, satellite):
     # Check if the gz_file exists before proceeding
     if os.path.exists(gz_file):
         print('Executing SCP of *.tar.gz files and removing locally')
-        EC2_uploads_and_rm_tar(TEMP_DIR, REMOTE_IP, REMOTE_USERNAME, REMOTE_PATH)
+        ###################
+        ### Reemeber me ###
+        ###################
+        # EC2_uploads_and_rm_tar(TEMP_DIR, REMOTE_IP, REMOTE_USERNAME, REMOTE_PATH)
     else:
         print(f"No '{gz_file}' found. Skipping scp_gz_files_and_delete.")
 
@@ -152,68 +157,29 @@ def EC2_uploads_and_rm_tar(source_dir, remote_ip, remote_username, remote_path):
 def process_schedule():
     """Process the schedule CSV."""
     with open(CSV_FILE_PATH, 'r') as csvfile:
-        csvreader = csv.reader(csvfile)
-        next(csvreader)  # Skip header
-
-        closest_aos_datetime = None
-        closest_satellite_name = None
-
-        now = datetime.datetime.utcnow()
-
-        for row in csvreader:
-            # Your parsing logic
-            scheduled_weekday = int(row[0])
-            print(now.weekday)
-            aos_time = row[1][1:-1].replace(" ", "").split(",")  # Parsing (hh, mm, ss)
-            los_time = row[2][1:-1].replace(" ", "").split(",")  # Parsing (hh, mm, ss)
-            satellite_name = row[3]
-
-            # Your datetime calculation logic
-            if scheduled_weekday < now.weekday():
-                days_difference = (scheduled_weekday + 7) - now.weekday()
-            else:
-                days_difference = scheduled_weekday - now.weekday()
-
-            target_date = now + datetime.timedelta(days=days_difference)
-            aos_datetime = datetime.datetime(target_date.year, target_date.month, target_date.day, 
-                                             int(aos_time[0]), int(aos_time[1]), int(aos_time[2]))
-            los_datetime = datetime.datetime(now.year, now.month, now.day, 
-                                    int(los_time[0]), int(los_time[1]), int(los_time[2]))
-
-            # If today's schedule is being evaluated and the AOS time is already past, skip this entry
-            if scheduled_weekday == now.weekday() and now > aos_datetime:
+        next(csv.reader(csvfile))
+        for row in csv.reader(csvfile):
+            aos_time = list(map(int, row[1][1:-1].split(", ")))
+            los_time = list(map(int, row[2][1:-1].split(", ")))
+            print(aos_time, los_time)
+            now, satellite_name = datetime.datetime.utcnow(), row[3]
+            aos_datetime, los_datetime = [datetime.datetime(now.year, now.month, now.day, *time) for time in [aos_time, los_time]]
+            
+            if now > los_datetime:
                 continue
 
-            # Find the closest upcoming AOS time
-            if closest_aos_datetime is None or (aos_datetime < closest_aos_datetime):
-                closest_aos_datetime = aos_datetime
-                closest_satellite_name = satellite_name
+            while now < aos_datetime:
+                time.sleep(1)
+                print('Waiting for next schedule')
+                now = datetime.datetime.utcnow()
 
-            if closest_aos_datetime:
-                print(f'Waiting for next schedule at {closest_aos_datetime} for {closest_satellite_name}')
-
-                while now < closest_aos_datetime:
-                    time.sleep(1)
-                    now = datetime.datetime.utcnow()
-
-            while True:
-                now = datetime.datetime.utcnow()  # Update current time at the start of each iteration
-                
-                if now >= los_datetime:
-                    break
-
-                # intrumentation happens here
-                #print(f"Current UTC time: {now.strftime('%Y-%m-%d %H:%M:%S')}")
+            while now < los_datetime:
                 print(f"Function with label '{satellite_name}' is running!")
-                INSTR.write('INST IQ')
-                INSTR.write('INIT:IMM;*WAI')
-                current_datetime = datetime.datetime.utcnow()
-                formatted_current_datetime = current_datetime.strftime('%Y-%m-%d_%H_%M_%S_UTC') 
-                time_saved_IQ = f"'{INSTR_DIR}{formatted_current_datetime}_{satellite_name}'"
-                # print(f'To Be saved: {time_saved_IQ}')
-                INSTR.write(f"MMEM:STOR:IQ:STAT 1,{time_saved_IQ}")
-                # print('Waiting for 10 IQ sweeps...')
-                time.sleep(1)  # Sleep for 1 second
+                INSTR.write('INST IQ;INIT:IMM;*WAI')
+                formatted_time = datetime.datetime.utcnow().strftime('%Y-%m-%d_%H_%M_%S_UTC')
+                INSTR.write(f"MMEM:STOR:IQ:STAT 1,'{INSTR_DIR}{formatted_time}_{satellite_name}'")
+                time.sleep(1)
+                now = datetime.datetime.utcnow()
 
             get_SpecAn_content_and_DL_locally(INSTR)
             local_tgz_and_rm_IQ(TEMP_DIR, satellite_name)
@@ -249,33 +215,33 @@ def main():
     INSTR.write('HCOP:DEV:LANG PNG')
 
     try:
-        # # Create schedule for debug - Will need to comment out once moved to production
-        # # This sets up schedule for testing where only thing to input is num_of_entries in the schedule.csv
-        # # For entries, you can modify start_times/end_times to reflect a larger or smaller window between "passes"
-        # num_of_entries = 2
+        # Create schedule for debug - Will need to comment out once moved to production
+        # This sets up schedule for testing where only thing to input is num_of_entries in the schedule.csv
+        # For entries, you can modify start_times/end_times to reflect a larger or smaller window between "passes"
+        num_of_entries = 2
 
-        # # Delay the first entry by 20 seconds (now + 20), 
-        # # a pass duration of 10 seconds (event) - (can be modified to 60s to test an overload scenario of overlapping passes))
-        # # And a wait duration between (gap) of 20 seconds (can be modified to 1s to test an overload scenario of overlapping passes)
-        # now = datetime.datetime.utcnow() + datetime.timedelta(seconds=20)  
-        # event_duration = datetime.timedelta(seconds=10)
-        # gap_duration = datetime.timedelta(seconds=20)
-        # total_duration = event_duration + gap_duration
+        # Delay the first entry by 20 seconds (now + 20), 
+        # a pass duration of 10 seconds (event) - (can be modified to 60s to test an overload scenario of overlapping passes))
+        # And a wait duration between (gap) of 20 seconds (can be modified to 1s to test an overload scenario of overlapping passes)
+        now = datetime.datetime.utcnow() + datetime.timedelta(seconds=10)  
+        event_duration = datetime.timedelta(seconds=10)
+        gap_duration = datetime.timedelta(seconds=20)
+        total_duration = event_duration + gap_duration
 
-        # start_times = [(now + i*total_duration) for i in range(num_of_entries)]
-        # end_times = [(now + i*total_duration + event_duration) for i in range(num_of_entries)]
+        start_times = [(now + i*total_duration) for i in range(num_of_entries)]
+        end_times = [(now + i*total_duration + event_duration) for i in range(num_of_entries)]
 
-        # with open("/home/noaa_gms/RFSS/Backup_Testing/schedule.csv", "w") as f:
-        #     writer = csv.writer(f)
-        #     writer.writerow(["Day of Week", "AOS", "LOS", "Satellite"])
-        #     # Corner case to add an initial entry that has already past in case the app needs to be restarted
-        #     writer.writerow([1, "(19, 59, 23)", "(20, 0, 23)", "PAST ENTRY"])
-        #     for i in range(num_of_entries):
-        #         writer.writerow([now.weekday(), 
-        #                         str((start_times[i].hour, start_times[i].minute, start_times[i].second)), 
-        #                         str((end_times[i].hour, end_times[i].minute, end_times[i].second)), 
-        #                         f"NOAA-{15 + i}"])
-        # # End debug section
+        with open("/home/noaa_gms/RFSS/Backup_Testing/schedule.csv", "w") as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(["Pass", "Day of Week", "AOS", "LOS", "Satellite"])
+            # writer.writerow([1, 1, "(19,59,23)", "(20,0,23)", "PAST ENTRY"]) # Added Pass Number 0 for past entry
+            for i in range(num_of_entries):
+                writer.writerow([i + 1, # Added Pass Number starting from 1
+                        str(now.weekday()),
+                        f"({start_times[i].hour},{start_times[i].minute},{start_times[i].second})", 
+                        f"({end_times[i].hour},{end_times[i].minute},{end_times[i].second})", 
+                        f"NOAA-{15 + i}"])
+        # End debug section
 
         process_schedule()
         print("Script finished.")
