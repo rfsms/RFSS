@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# This needs to live in /usr/local/bin with an associated serfice file definition
+# Check the /home/noaa_gms/RFSS/README.md on specifics 
+# Once a service is created, rsync will watch "WATCHED_FOLDER" and when something is dropped in there
+# from main python script, then files will be rsynced to EC2
+# Also ensure you have rights to write to /tmp for LOCKFILE
 LOCKFILE="/tmp/lockfile"
 WATCHED_FOLDER="/home/noaa_gms/RFSS/preUpload/"
 REMOTE_FOLDER="Administrator@noaa-gms-ec2:/home/Administrator/RFSS"

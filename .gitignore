@@ -1,6 +1,14 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Additional ignores
 output_file.txt
 Received/*.iq.tar
 SATTracker.pcapng
 preUpload/*tar.gz
-rsync.log
 rsync.log

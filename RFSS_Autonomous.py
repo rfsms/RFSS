@@ -6,6 +6,11 @@ import os
 import tarfile
 import glob
 import subprocess
+import logging
+
+# Setup logging
+logging.basicConfig(filename='/home/noaa_gms/RFSS/output_file.txt', level=logging.INFO, format='%(message)s')
+print = logging.info
 
 # # For development
 # CSV_FILE_PATH = '/home/noaa_gms/RFSS/Backup_Testing/schedule.csv'
@@ -158,43 +163,43 @@ def local_tgz_and_rm_IQ(directory, satellite):
 # Function to scp anything called tar.gz (created by from local_tar_gz_and_rm_IQ_tar function) in /home/noaa_gms/RFSS/Received/, then delete *.tar.gz's to clean up.
 # This should probably be cleaned up as well
 # Need to also add some error control in case ec2 intance is not up we i.e dont wait and dont delete the tar.gz files.
-def EC2_uploads_and_rm_tar(source_dir, remote_ip, remote_username, remote_path):
-    try:
-        # List all tar.gz files in the source directory
-        file_list = glob.glob(os.path.join(source_dir, '*tar.gz'))
+# def EC2_uploads_and_rm_tar(source_dir, remote_ip, remote_username, remote_path):
+#     try:
+#         # List all tar.gz files in the source directory
+#         file_list = glob.glob(os.path.join(source_dir, '*tar.gz'))
 
-        if not file_list:
-            print('No *.tar.gz files found in the source directory.')
-            return
+#         if not file_list:
+#             print('No *.tar.gz files found in the source directory.')
+#             return
 
-        # Construct the scp command
-        scp_cmd = [
-            'scp',
-            '-r', 
-            *file_list,
-            f'{remote_username}@{remote_ip}:{remote_path}'
-        ]
+#         # Construct the scp command
+#         scp_cmd = [
+#             'scp',
+#             '-r', 
+#             *file_list,
+#             f'{remote_username}@{remote_ip}:{remote_path}'
+#         ]
 
-        # Run the scp command using subprocess and capture stdout and stderr
-        process = subprocess.Popen(scp_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+#         # Run the scp command using subprocess and capture stdout and stderr
+#         process = subprocess.Popen(scp_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
 
-        # Process and print the progress
-        for line in process.stderr:
-            if line.startswith('Sending'):
-                print(line.strip())
+#         # Process and print the progress
+#         for line in process.stderr:
+#             if line.startswith('Sending'):
+#                 print(line.strip())
 
-        # Wait for the process to complete
-        process.wait()
+#         # Wait for the process to complete
+#         process.wait()
 
-        print('All .tar.gz files successfully copied to the remote EC2 server.')
+#         print('All .tar.gz files successfully copied to the remote EC2 server.')
 
-        # Delete the files from the source directory
-        for file_path in file_list:
-            os.remove(file_path)
+#         # Delete the files from the source directory
+#         for file_path in file_list:
+#             os.remove(file_path)
 
-        print('All .tar.gz files deleted locally from the RFSS source directory.')
-    except subprocess.CalledProcessError as e:
-        print('Error while copying files:', e)
+#         print('All .tar.gz files deleted locally from the RFSS source directory.')
+#     except subprocess.CalledProcessError as e:
+#         print('Error while copying files:', e)
 
 def mv_tar_files_to_preUpload(source_dir):
     file_list = glob.glob(os.path.join(source_dir, '*tar.gz'))
@@ -273,7 +278,7 @@ def main():
         # # End debug section
 
         process_schedule()
-        print("Script finished.")
+        print("Script finished.\n")
     except Exception as e:
         print(f"An error occurred: {e}")
 
