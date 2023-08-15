@@ -2,3 +2,4 @@ output_file.txt
 Received/*.iq.tar
 SATTracker.pcapng
 preUpload/*tar.gz
+rsync.log
