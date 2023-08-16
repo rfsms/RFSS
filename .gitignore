@@ -8,7 +8,8 @@ pip-delete-this-directory.txt
 
 # Additional ignores
 output_file.txt
-Received/*.iq.tar
+Received/
 SATTracker.pcapng
-preUpload/*tar.gz
+preUpload/
 rsync.log
+RFSS_SA.log

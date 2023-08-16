@@ -7,17 +7,24 @@ import RFSS_Autonomous
 import logging
 import json
 
+# Reset the Root Logger - this section is used to reset the root logger and then apply below configuration
+for handler in logging.root.handlers[:]:
+    logging.root.removeHandler(handler)
+
+# Setup logging
+logging.basicConfig(filename='/home/noaa_gms/RFSS/RFSS_SA.log', level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+
 # Change this to increase/decrease schedule based on minimum elevation
 minElevation = 5.0
 
-# Setup logging
-logging.basicConfig(filename='/home/noaa_gms/RFSS/output_file.txt', level=logging.info, format='%(message)s')
-print = logging.info
+# Check if the current time is 00:00 UTC or later, and if so, call RFSS_Autonomous.main()
+if datetime.datetime.utcnow().time() >= datetime.time(0, 0):
+    logging.info('fetchReport Script restarted. Using current schedule.')
+    RFSS_Autonomous.main()
 
 def fetchReport():
     try:
-        now = datetime.datetime.utcnow()
-        print(f"Fetching report for use at: {now}")
+        logging.info(f"Fetching report for use.")
         conn = http.client.HTTPConnection("192.168.4.1", 80)
         conn.request("GET", "/report?a=38771;43689;25338;28654;33591")
         response = conn.getresponse()
@@ -51,13 +58,13 @@ def fetchReport():
                 for index, row in enumerate(rows, start=1):
                     writer.writerow([index, row[1], row[2], row[3], row[4], row[5]])
 
-            print(f"Schedule exported to {output_path}")
+            logging.info('New schedule in use extracted and ready for use.')
             RFSS_Autonomous.main()
         
     except Exception as e:
         logging.error(f'An error occuredL {e}')
 
-schedule.every().day.at("00:01").do(fetchReport)
+schedule.every().day.at("00:00").do(fetchReport)
 
 while True:
     schedule.run_pending()

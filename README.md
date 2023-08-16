@@ -37,6 +37,6 @@ If SCP is removed and rsync is used instead, ensure that:
     [Install]
     WantedBy=multi-user.target
 * Reload systemd with `sudo systemctl daemon-reload`
-* Enable and start the service with `sudo systemctl enable watch-and-sync`
-/`sudo systemctl start watch-and-sync`
+* Enable and start the service with `sudo systemctl enable {RFSS/rsyncUpload}`
+/`sudo systemctl start {RFSS/rsyncUpload}`
 * you can then use normal systemd commands to check status, restart, etc. as normal.

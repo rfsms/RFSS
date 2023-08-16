@@ -8,9 +8,12 @@ import glob
 import subprocess
 import logging
 
+# Reset the Root Logger - this section is used to reset the root logger and then apply below configuration
+for handler in logging.root.handlers[:]:
+    logging.root.removeHandler(handler)
+
 # Setup logging
-logging.basicConfig(filename='/home/noaa_gms/RFSS/output_file.txt', level=logging.INFO, format='%(message)s')
-print = logging.info
+logging.basicConfig(filename='/home/noaa_gms/RFSS/RFSS_SA.log', level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
 # # For development
 # CSV_FILE_PATH = '/home/noaa_gms/RFSS/Backup_Testing/schedule.csv'
@@ -25,6 +28,60 @@ OPTION_STRING_FORCE_RS_VISA = 'SelectVisa=rs'
 INSTR = RsInstrument(RESOURCE_STRING, False, False, OPTION_STRING_FORCE_RS_VISA)
 INSTR_DIR = 'c:\\R_S\\Instr\\user\\RFSS\\'
 
+# Once the files are removed fromSpecAn, tar/gz'd in TEMP_DIR folder, then this function moves the file into
+# preUpload to get rsync'd when connectivity to EC2 is available.  
+# Uploads is triggered by/usr/local/bin/rsyncUpload.sh service and happens whenever a new file is placed in the dir.
+def mv_tar_files_to_preUpload(source_dir):
+    file_list = glob.glob(os.path.join(source_dir, '*tar.gz'))
+    if not file_list:
+        logging.info('No *.tar.gz files found in the source directory.')
+        return
+
+    destination_path = "/home/noaa_gms/RFSS/preUpload/"
+    process = subprocess.run(["mv", *file_list, destination_path])
+
+    if process.returncode == 0:
+        # Removing all files in the source directory
+        subprocess.run(["rm", "-f", os.path.join(source_dir, '*')])
+        logging.info('All files in the source directory have been removed.')
+    else:
+        logging.info('Error while moving files.')
+
+# Function to tar.gz all files in /home/noaa_gms/RFSS/Received/* with a satName_timestamp and then delete all *.iq.tar.  Then scp all files to E2 using the scp function
+# These files will be called someting like "NOAA15_2023-08-02_19_00_00_UTC.tar.gz" and will be comprised of the above *.iq.tar files
+# After calling, this function calls mv_tar_files_to_preUpload for rsync
+def local_tgz_and_rm_IQ(directory, satellite):
+
+    current_datetime = datetime.datetime.utcnow()
+    formatted_current_datetime = current_datetime.strftime('%Y-%m-%d_%H_%M_%S_UTC')
+    
+    # Get a list of all files in the directory
+    all_files = [os.path.join(directory, file) for file in os.listdir(directory)]
+
+    # Check if there are any files to archive
+    if not all_files:
+        logging.info(f"No files found in '{directory}'. Skipping tar.gz creation.")
+        return
+
+    # Create the name of the final tar.gz file
+    gz_file = os.path.join(directory, f'{formatted_current_datetime}_{satellite}.tar.gz')
+
+    # Create the tar.gz archive
+    with tarfile.open(gz_file, 'w:gz') as tar:
+        for file in all_files:
+            tar.add(file, arcname=os.path.basename(file))
+    
+    # Remove the original files
+    for file in all_files:
+        os.remove(file)
+
+    # Check if the gz_file exists before proceeding
+    if os.path.exists(gz_file):
+        logging.info('Rsyncing *.tar.gz files and removing locally')
+        mv_tar_files_to_preUpload(TEMP_DIR)
+    else:
+        logging.info(f"No '{gz_file}' found. Skipping scp_gz_files_and_delete.")
+
 # Function to get contents of c:\R_S\Instr\user\RFSS\ on Spectrum Analyzer download locally to /home/noaa_gms/RFSS/Received 
 # These files will be called something like "2023-08-02_19_00_07_UTC_NOAA-15.iq.tar"
 def get_SpecAn_content_and_DL_locally(INSTR):
@@ -35,16 +92,16 @@ def get_SpecAn_content_and_DL_locally(INSTR):
 
         # Process the response and print the content
         content_list = response.replace('\'', '').split(',')
-        print("Transferring captures from Spectrum Analyzer to process on RFSS server.")
+        logging.info("Transferring captures from Spectrum Analyzer to process on RFSS server.")
         for item in content_list:
-            print(item)
+            logging.info(item)
 
             # Download each file in the directory (skip directories)
             if not item.endswith('/'):  # Skip directories
                 temp_filename = TEMP_DIR + item  # Set the destination path on your PC
-                print(f'temp filename: {temp_filename}')
+                # print(f'temp filename: {temp_filename}')
                 instrument_filename = INSTR_DIR + item  # Set the SA file path
-                print(f'instrument filename: {instrument_filename}')
+                # print(f'instrument filename: {instrument_filename}')
 
                 try:
                     # Download the file
@@ -54,22 +111,26 @@ def get_SpecAn_content_and_DL_locally(INSTR):
                     if data is not None:
                         with open(temp_filename, 'wb') as f:
                             f.write(data)
-                        print(f"Downloaded file '{item}' to '{temp_filename}'")
+                            # print(f"Downloaded file '{item}' to '{temp_filename}'")
                     else:
                         #print('')
                         continue
 
                 except Exception as e:
-                    print(f"Error while downloading file '{item}': {str(e)}")
+                    logging.info(f"Error while downloading file '{item}': {str(e)}")
 
-        print('Removing files from Spectrum Analyzer')    
+        logging.info('Removing files from Spectrum Analyzer')    
         INSTR.write(f'MMEM:DEL "{INSTR_DIR}*"')
     
     except RsInstrException as e:
         if "-256," in str(e):
-            print("No files on Spectrum Analyzer to process:", e)
+            logging.info("No files on Spectrum Analyzer to process:", e)
 
-# Function needs doumentation..to be added
+
+# This function is the timing behind RFSS data capture.  Reads the CSV_FILE_PATH and goes through each row determining
+# aos/los, etc and compares against current time.  If older entries exist continue, if current time meet aos time then 
+# wait.  once current time matches an aos data is being captured until los.
+# Finally, get_SpecAn_content_and_DL_locally(INSTR) & local_tgz_and_rm_IQ(TEMP_DIR, satellite_name) are processed
 def process_schedule():
     """Process the schedule CSV."""
     with open(CSV_FILE_PATH, 'r') as csvfile:
@@ -98,7 +159,7 @@ def process_schedule():
             # If current time is before the scheduled aos_datetime, wait until aos_datetime is reached
             while now < aos_datetime:
                 time.sleep(1)  # Sleep for 5 seconds to not hog the CPU
-                print('Waiting for next schedule')
+                # print('Waiting for next schedule')
                 now = datetime.datetime.utcnow()
 
             while True:
@@ -106,9 +167,8 @@ def process_schedule():
                 if now >= los_datetime:
                     break
 
-                # intrumentation happens here
-                #print(f"Current UTC time: {now.strftime('%Y-%m-%d %H:%M:%S')}")
-                print(f"Function with label '{satellite_name}' is running!")
+                # Intrumentation happens here
+                # print(f"Function with label '{satellite_name}' is running!")
                 INSTR.write('INST IQ')
                 INSTR.write('INIT:IMM;*WAI')
                 current_datetime = datetime.datetime.utcnow()
@@ -123,105 +183,10 @@ def process_schedule():
             get_SpecAn_content_and_DL_locally(INSTR)
             local_tgz_and_rm_IQ(TEMP_DIR, satellite_name)
 
-# Function to tar.gz all files in /home/noaa_gms/RFSS/Received/* with a satName_timestamp and then delete all *.iq.tar.  Then scp all files to E2 using the scp function
-# These files will be called someting like "NOAA15_2023-08-02_19_00_00_UTC.tar.gz" and will be comprised of the above *.iq.tar files
-# Need to make this cleaner so SCP function isnt called internally, but leaving now for 
-def local_tgz_and_rm_IQ(directory, satellite):
-
-    current_datetime = datetime.datetime.utcnow()
-    formatted_current_datetime = current_datetime.strftime('%Y-%m-%d_%H_%M_%S_UTC')
-    
-    # Get a list of all files in the directory
-    all_files = [os.path.join(directory, file) for file in os.listdir(directory)]
-
-    # Check if there are any files to archive
-    if not all_files:
-        print(f"No files found in '{directory}'. Skipping tar.gz creation.")
-        return
-
-    # Create the name of the final tar.gz file
-    gz_file = os.path.join(directory, f'{formatted_current_datetime}_{satellite}.tar.gz')
-
-    # Create the tar.gz archive
-    with tarfile.open(gz_file, 'w:gz') as tar:
-        for file in all_files:
-            tar.add(file, arcname=os.path.basename(file))
-    
-    # Remove the original files
-    for file in all_files:
-        os.remove(file)
-
-    # Check if the gz_file exists before proceeding
-    if os.path.exists(gz_file):
-        # print('Executing SCP of *.tar.gz files and removing locally')
-        # EC2_uploads_and_rm_tar(TEMP_DIR, REMOTE_IP, REMOTE_USERNAME, REMOTE_PATH)
-        print('Rsyncing *.tar.gz files and removing locally')
-        mv_tar_files_to_preUpload(TEMP_DIR)
-    else:
-        print(f"No '{gz_file}' found. Skipping scp_gz_files_and_delete.")
-
-# Function to scp anything called tar.gz (created by from local_tar_gz_and_rm_IQ_tar function) in /home/noaa_gms/RFSS/Received/, then delete *.tar.gz's to clean up.
-# This should probably be cleaned up as well
-# Need to also add some error control in case ec2 intance is not up we i.e dont wait and dont delete the tar.gz files.
-# def EC2_uploads_and_rm_tar(source_dir, remote_ip, remote_username, remote_path):
-#     try:
-#         # List all tar.gz files in the source directory
-#         file_list = glob.glob(os.path.join(source_dir, '*tar.gz'))
-
-#         if not file_list:
-#             print('No *.tar.gz files found in the source directory.')
-#             return
-
-#         # Construct the scp command
-#         scp_cmd = [
-#             'scp',
-#             '-r', 
-#             *file_list,
-#             f'{remote_username}@{remote_ip}:{remote_path}'
-#         ]
-
-#         # Run the scp command using subprocess and capture stdout and stderr
-#         process = subprocess.Popen(scp_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-
-#         # Process and print the progress
-#         for line in process.stderr:
-#             if line.startswith('Sending'):
-#                 print(line.strip())
-
-#         # Wait for the process to complete
-#         process.wait()
-
-#         print('All .tar.gz files successfully copied to the remote EC2 server.')
-
-#         # Delete the files from the source directory
-#         for file_path in file_list:
-#             os.remove(file_path)
-
-#         print('All .tar.gz files deleted locally from the RFSS source directory.')
-#     except subprocess.CalledProcessError as e:
-#         print('Error while copying files:', e)
-
-def mv_tar_files_to_preUpload(source_dir):
-    file_list = glob.glob(os.path.join(source_dir, '*tar.gz'))
-    if not file_list:
-        print('No *.tar.gz files found in the source directory.')
-        return
-
-    destination_path = "/home/noaa_gms/RFSS/preUpload/"
-    process = subprocess.run(["mv", *file_list, destination_path])
-
-    if process.returncode == 0:
-        print('All .tar.gz files successfully moved to', destination_path)
-        # Removing all files in the source directory
-        subprocess.run(["rm", "-f", os.path.join(source_dir, '*')])
-        print('All files in the source directory have been removed.')
-    else:
-        print('Error while moving files.')
-
 def main():
 
     # Instrument reset/setup
-    print(f'Setting Up Instrument at {RESOURCE_STRING}')
+    logging.info(f'Setting Up Instrument at {RESOURCE_STRING}')
     # INSTR = RsInstrument(RESOURCE_STRING, False, False, OPTION_STRING_FORCE_RS_VISA)
     INSTR.reset()
     INSTR.clear_status()
@@ -278,9 +243,9 @@ def main():
         # # End debug section
 
         process_schedule()
-        print("Script finished.\n")
+        logging.info("Schedule finished for the day.\n")
     except Exception as e:
-        print(f"An error occurred: {e}")
+        logging.info(f"An error occurred: {e}")
 
 if __name__ == "__main__":
     main()
