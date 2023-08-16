@@ -19,7 +19,7 @@ while true; do
     rsync -ac --remove-source-files --rsync-path='c:/cygwin64/bin/rsync' $WATCHED_FOLDER $REMOTE_FOLDER >> $LOGFILE
 
     TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
-    echo "$TIMESTAMP PERIODIC SYNC" >> $LOGFILE
+    # echo "$TIMESTAMP PERIODIC SYNC" >> $LOGFILE
 
     rm -f "${LOCKFILE}"
   else
@@ -29,7 +29,7 @@ while true; do
 done &
 
 # Start inotifywait loop to sync on changes
-inotifywait -m -r -e modify,move,create,delete --format '%w%f' "${WATCHED_FOLDER}" | while read FILE
+inotifywait -m -r -e modify,move,create --format '%w%f' "${WATCHED_FOLDER}" | while read FILE
 do
   if [ ! -e "${LOCKFILE}" ]; then
     touch "${LOCKFILE}"
