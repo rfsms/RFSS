@@ -16,7 +16,8 @@ print = logging.info
 
 def fetchReport():
     try:
-        print("Fetching tomorrow's report for use")
+        now = datetime.datetime.utcnow()
+        print(f"Fetching report for use at: {now}")
         conn = http.client.HTTPConnection("192.168.4.1", 80)
         conn.request("GET", "/report?a=38771;43689;25338;28654;33591")
         response = conn.getresponse()
@@ -25,7 +26,7 @@ def fetchReport():
             data = json.loads(response.read().decode())["list"][:-1]
 
             # Get the current day of the week and add 1 for tomorrow
-            tomorrow = (datetime.datetime.utcnow().weekday() + 1) % 7
+            today = datetime.datetime.utcnow().weekday()
 
             rows = []
 
@@ -36,7 +37,7 @@ def fetchReport():
                 day_of_week = aos_time.weekday()
                 max_elevation = entry[7]
 
-                if day_of_week == tomorrow and max_elevation > minElevation:
+                if day_of_week == today and max_elevation > minElevation:
                     formatted_aos = f"({aos_time.hour},{aos_time.minute},{aos_time.second})"
                     formatted_los = f"({los_time.hour},{los_time.minute},{los_time.second})"
                     rows.append((aos_time, day_of_week, formatted_aos, formatted_los, satellite, max_elevation))
@@ -56,7 +57,7 @@ def fetchReport():
     except Exception as e:
         logging.error(f'An error occuredL {e}')
 
-schedule.every().day.at("00:00").do(fetchReport)
+schedule.every().day.at("00:01").do(fetchReport)
 
 while True:
     schedule.run_pending()
