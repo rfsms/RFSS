@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import schedule
 import time
 import http.client

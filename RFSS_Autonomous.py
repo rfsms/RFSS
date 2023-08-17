@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from RsInstrument import RsInstrument, RsInstrException, LoggingMode
 import csv
 import time
