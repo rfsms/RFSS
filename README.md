@@ -59,4 +59,11 @@ For rsync, ensure that:
 /`sudo systemctl start {RFSS/rsyncUpload}`
 * you can then use normal systemd commands to check status, restart, etc. as normal.
 
-Side note: Instead of setting up quota's for preUpload folder when EC2 is not up, you can use `find preUpload/ -type f ! -newermt "2023-08-17 19:00" | xargs rm -rf` to remove files in preUpload newer than date (test it without teh pipe to xargs first, unless you're daring)
+Logging:</br>
+* To check current satellite schedule you can read: `/home/noaa_gms/RFSS/Tools/Report_Exports/schedule.csv`
+* For rsync logs: `/home/noaa_gms/RFSS/rsync.log`
+* For RFSS logs: `/home/noaa_gms/RFSS/RFSS_SA.log`
+
+Side note:</br> 
+Instead of setting up quota's for preUpload folder when EC2 is not up, you can use `find preUpload/ -type f ! -newermt "2023-08-17 19:00" | xargs rm -rf` to remove files in preUpload newer than date (test it without teh pipe to xargs first, unless you're daring)
+
