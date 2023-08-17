@@ -15,12 +15,29 @@ All traffic between EC2 and RFSS is over a WireGuard based PTP VPN and public ke
 
 ![Alt text](image.png)
 
+## The following defines the architecture of the repository:
+
+* RFSS.py: Main module for the RFSS system:
+    - Functions for initialization, configuration, and operation.
+    - Interfaces with hardware components.
+    - Manages data processing and communication.
+* RFSS_Autonomous.py: 
+    - Autonomous operation module.
+    - Scheduling and automation for RFSS operations.
+    - Interfaces with RFSS.py for core functionalities.
+
+* Tools/tleUpdate.py: 
+    - Tool for updating TLE (Two-Line Element) data.
+    - Fetches and updates satellite tracking data.
+    - Utilized by the main RFSS system.
+
+## Future Updates
 * Future modification includes only scanning between -10* and +10* elevation in a 360* azimuthal rotation.
 * ~~Additionally, more functionality will be incorporated to include autonomous scheduling so a static start/stop time does not need to be defined.~~
 * Lastly the code will include usage if an Ettus x310 SDR relacing the FSV Spectrum Analyer.
 
-NOTE:
-For rsync, ensure that:
+## Notes:
+For rsync ensure that:
 * rsyncUpload.sh script is moved to `/usr/local/bin`.
 * A service is created in `/etc/systemd/system/rsyncUpload.service`
     ```
