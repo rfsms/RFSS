@@ -1,0 +1,46 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+}
+
+.dashboard {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* Adjust as needed */
+    grid-gap: 20px;
+}
+
+.entry {
+    padding: 10px;
+    border: 1px solid #ddd;
+    background-color: #f9f9f9;
+}
+
+.label {
+    font-weight: bold;
+}
+
+.status-row {
+    display: flex; /* Use flexbox layout */
+    justify-content: space-between; /* Space the containers evenly */
+    flex-wrap: nowrap; /* Prevent wrapping to the next line */
+}
+
+.status-container {
+    width: 49%; /* Adjust the width to make the containers fit side by side */
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.chart-container {
+    display: inline-block; /* Make the chart container an inline element */
+    max-width: 800px; /* Adjust as needed */
+    text-align: left; /* Align the chart to the left within the container */
+}
+
+#schedChart,
+#flippedChart {
+    height: 200px; /* Adjust height as needed */
+    display: block; /* Make the canvas a block element */
+    margin-left: auto; /* Center the canvas */
+    margin-right: auto;
+}
