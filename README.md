@@ -17,24 +17,42 @@ All traffic between EC2 and RFSS is over a WireGuard based PTP VPN and public ke
 
 ## The following defines the architecture of the repository:
 
-* RFSS.py: Main module for the RFSS system:
+* RFSS.py (service): Main module for the RFSS system:
     - Functions for initialization, configuration, and operation.
     - Interfaces with hardware components.
     - Manages data processing and communication.
-* RFSS_Autonomous.py: 
+    - Mongo write to keep a record of daily schedules
+* Tools/Reports_Exports/schedule.csv: 
+    - Created by RFSS.py once daily at 00:00UTC
+    - Uploaded to mongodB for tracking and historical purposes
+* RFSS_Autonomous.py (script called by RFSS.service): 
     - Autonomous operation module.
     - Scheduling and automation for RFSS operations.
     - Interfaces with RFSS.py for core functionalities.
-
-* Tools/tleUpdate.py: 
+    - Mongo write to include processed schedules rows
+* Tools/tleUpdate.py (cron):
+    - Executed every saturday at 23:50UTC 
+        - (50 23 * * 6 /usr/bin/python3 /home/noaa_gms/RFSS/Tools/tleUpdate.py)
     - Tool for updating TLE (Two-Line Element) data.
     - Fetches and updates satellite tracking data.
     - Utilized by the main RFSS system.
-
+* Received: 
+    - Transition folder to collect all files on Spectrum Analyzer and archives/compresses (tar.gz) them
+    - RFSS_Autonomous then deletes originals from system and moves tar.gz to preUpload
+* preUpload: 
+    - Watched by rsyncUpload
+    - If files, upload to AWS EC2 for MATLAB processing.  If no connection exists hold the files and wait for connection.
+* Tools/rsyncUpload.sh: 
+    - Used by rsyncUpload.service for tar.gz uploads
+* StatusGUI:
+    - Working dir for dashboard updates 
+    - Includes flask, mongo connections, js, css, etc. for dahboard       
 ## Future Updates
-* Future modification includes only scanning between -10* and +10* elevation in a 360* azimuthal rotation.
+* Modification to only scanning between -10* and +10* elevation in a 360* azimuthal rotation.
 * ~~Additionally, more functionality will be incorporated to include autonomous scheduling so a static start/stop time does not need to be defined.~~
-* Lastly the code will include usage if an Ettus x310 SDR relacing the FSV Spectrum Analyer.
+* ~~Future code may include usage if an Ettus x310 SDR relacing the FSV Spectrum Analyer.~~ Will be done as another repo
+* ~~Add database connection info for logging and additional future capabilities.~~
+* Add additional scan data from SAT controller, like AZ/EL/voltage, etc.
 
 ## Notes:
 For rsync ensure that:
@@ -55,7 +73,7 @@ For rsync ensure that:
     [Install]
     WantedBy=multi-user.target
 
-* A service is created in `/etc/systemd/system/rsyncUpload.service`
+* A service is created in `/etc/systemd/system/RFSSrsyncUpload.service`
     ```
     [Unit]
     Description=RFSS service after multi-user target
@@ -74,7 +92,10 @@ For rsync ensure that:
 * Reload systemd with `sudo systemctl daemon-reload`
 * Enable and start the service with `sudo systemctl enable {RFSS/rsyncUpload}`
 /`sudo systemctl start {RFSS/rsyncUpload}`
-* you can then use normal systemd commands to check status, restart, etc. as normal.
+* You can then use normal systemd commands to check status, restart, etc. as normal.
+
+Code modification</br>
+* If there is a need to change any portion of the code, you simple need to restart the RFSS service with `sudo systemctl restart RFSS.service` and code will start automatically from RFSS, while preserving current daily schedule.
 
 Logging:</br>
 * To check current satellite schedule you can read: `/home/noaa_gms/RFSS/Tools/Report_Exports/schedule.csv`
