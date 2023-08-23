@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.0.4/dist/tailwind.min.css" rel="stylesheet">
+    <title>Calendar</title>
+</head>
+<body>
+    <body class="text-base">
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+          var today = new Date().toISOString().split('T')[0];
+          document.getElementsByName("date")[0].setAttribute('max', today);
+        });
+    </script>
+    <h1 class="text-center text-lg mb-4">Today's Events - {{ current_time }}</h1>
+    <center><form action="/events" method="post">
+        <input type="date" name="date">
+        <input type="submit" value="Show Events for Selected Date">
+    </form></center>
+    {% if event %}
+    <table class="mx-auto max-w-full text-center border border-gray-300">
+        <thead class="bg-gray-100">
+            <tr>
+                <th class="py-1 px-2 border whitespace-nowrap text-xs"">Pass</th>
+                <th class="py-1 px-2 border whitespace-nowrap text-xs"">DayofWeek</th>
+                <th class="py-1 px-2 border whitespace-nowrap text-xs"">AOS</th>
+                <th class="py-1 px-2 border whitespace-nowrap text-xs"">LOS</th>
+                <th class="py-1 px-2 border whitespace-nowrap text-xs"">AOS (EST)</th>
+                <th class="py-1 px-2 border whitespace-nowrap text-xs"">LOS (EST)</th>
+                <th class="py-1 px-2 border whitespace-nowrap text-xs"">Satellite</th>
+                <th class="py-1 px-2 border whitespace-nowrap text-xs"">MaxElevation</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in event %}
+                <tr>
+                    <td class="py-1 px-2 border whitespace-nowrap text-xs"">{{ item.Pass }}</td>
+                    <td class="py-1 px-2 border whitespace-nowrap text-xs"">{{ item.DayofWeek }}</td>
+                    <td class="py-1 px-2 border whitespace-nowrap text-xs"">{{ item.AOS }}</td>
+                    <td class="py-1 px-2 border whitespace-nowrap text-xs"">{{ item.LOS }}</td>
+                    <td class="py-1 px-2 border whitespace-nowrap text-xs"">{{ item.AOS_EST }}</td>
+                    <td class="py-1 px-2 border whitespace-nowrap text-xs"">{{ item.LOS_EST }}</td>
+                    <td class="py-1 px-2 border whitespace-nowrap text-xs"">{{ item.Satellite }}</td>
+                    <td class="py-1 px-2 border whitespace-nowrap text-xs"">{{ item.MaxElevation }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <p>No events today</p>
+    {% endif %}
+</body>
+</html>
