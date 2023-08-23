@@ -8,6 +8,12 @@ import tarfile
 import glob
 import subprocess
 import logging
+from pymongo import MongoClient
+
+# Connection for MongoDB
+client = MongoClient('localhost', 27017)
+db = client['status_db']
+schedule_run = db['schedule_run']
 
 # Reset the Root Logger - this section is used to reset the root logger and then apply below configuration
 for handler in logging.root.handlers[:]:
@@ -45,6 +51,7 @@ def mv_tar_files_to_preUpload(source_dir):
         # Removing all files in the source directory
         subprocess.run(["rm", "-f", os.path.join(source_dir, '*')])
         logging.info('All files in the source directory have been removed.')
+        logging.info('----------------------------------------------------')
     else:
         logging.info('Error while moving files.')
 
@@ -52,7 +59,6 @@ def mv_tar_files_to_preUpload(source_dir):
 # These files will be called someting like "NOAA15_2023-08-02_19_00_00_UTC.tar.gz" and will be comprised of the above *.iq.tar files
 # After calling, this function calls mv_tar_files_to_preUpload for rsync
 def local_tgz_and_rm_IQ(directory, satellite):
-
     current_datetime = datetime.datetime.utcnow()
     formatted_current_datetime = current_datetime.strftime('%Y-%m-%d_%H_%M_%S_UTC')
     
@@ -133,7 +139,7 @@ def get_SpecAn_content_and_DL_locally(INSTR):
 # wait.  once current time matches an aos data is being captured until los.
 # Finally, get_SpecAn_content_and_DL_locally(INSTR) & local_tgz_and_rm_IQ(TEMP_DIR, satellite_name) are processed
 def process_schedule():
-    """Process the schedule CSV."""
+    """Process the CSV schedule."""
     with open(CSV_FILE_PATH, 'r') as csvfile:
         # Create a CSV reader object
         csvreader = csv.reader(csvfile)
@@ -163,10 +169,24 @@ def process_schedule():
                 # print('Waiting for next schedule')
                 now = datetime.datetime.utcnow()
 
+            # Adding a trigger to provide single hit log and start running
+            triggered = False
             while True:
                 now = datetime.datetime.utcnow()  # Update current time at the start of each iteration
                 if now >= los_datetime:
                     break
+
+                # Lets see if this works...
+                if not triggered:
+                    logging.info(f'Current scheduled row under test: {row}')
+                    triggered = True
+
+                                    # Insert the data into MongoDB as a single document
+                    document = {
+                        "timestamp": datetime.datetime.utcnow(),
+                        "row": row,
+                        }
+                    schedule_run.insert_one(document)
 
                 # Intrumentation happens here
                 # print(f"Function with label '{satellite_name}' is running!")

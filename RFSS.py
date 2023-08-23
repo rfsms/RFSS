@@ -12,7 +12,7 @@ from pymongo import MongoClient
 # Connect to MongoDB
 client = MongoClient('localhost', 27017)
 db = client['status_db']
-schedule_collection = db['schedule_log']
+schedule_collection = db['schedule_daily']
 
 # Reset the Root Logger - this section is used to reset the root logger and then apply below configuration
 for handler in logging.root.handlers[:]:
@@ -26,7 +26,8 @@ minElevation = 5.0
 
 # Check if the current time is 00:00 UTC or later, and if so, call RFSS_Autonomous.main()
 if datetime.datetime.utcnow().time() >= datetime.time(0, 0):
-    logging.info('fetchReport Script restarted. Using current schedule.')
+    logging.info('-----------------------------------------------------')
+    logging.info('RFSS service restarted. Using current schedule.')
     RFSS_Autonomous.main()
 
 def fetchReport():
