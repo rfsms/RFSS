@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.0.4/dist/tailwind.min.css" rel="stylesheet">
     <title>Calendar</title>
+    <style>
+        .highlight-row {
+            background-color: blue;
+            color: white;
+            }
+    </style>
 </head>
 <body>
     <body class="text-base">
@@ -14,7 +20,7 @@
           document.getElementsByName("date")[0].setAttribute('max', today);
         });
     </script>
-    <h1 class="text-center text-lg mb-4">Today's Events - {{ current_time }}</h1>
+    <h1 class="text-center text-lg mb-4">Today's Events - {{ current_utc_time }} UTC</h1>
     <center><form action="/events" method="post">
         <input type="date" name="date">
         <input type="submit" value="Show Events for Selected Date">
@@ -25,9 +31,9 @@
         <thead class="bg-gray-100">
             <tr>
                 <th class="py-1 px-2 border whitespace-nowrap text-xs"">Pass</th>
-                <th class="py-1 px-2 border whitespace-nowrap text-xs"">DayofWeek</th>
-                <th class="py-1 px-2 border whitespace-nowrap text-xs"">AOS</th>
-                <th class="py-1 px-2 border whitespace-nowrap text-xs"">LOS</th>
+                <th class="py-1 px-2 border whitespace-nowrap text-xs">Date</th>
+                <th class="py-1 px-2 border whitespace-nowrap text-xs"">AOS (UTC)</th>
+                <th class="py-1 px-2 border whitespace-nowrap text-xs"">LOS (UTC)</th>
                 <th class="py-1 px-2 border whitespace-nowrap text-xs"">AOS (EST)</th>
                 <th class="py-1 px-2 border whitespace-nowrap text-xs"">LOS (EST)</th>
                 <th class="py-1 px-2 border whitespace-nowrap text-xs"">Satellite</th>
@@ -36,18 +42,18 @@
         </thead>
         <tbody>
             {% for item in event %}
-                <tr>
-                    <td class="py-1 px-2 border whitespace-nowrap text-xs"">{{ item.Pass }}</td>
-                    <td class="py-1 px-2 border whitespace-nowrap text-xs"">{{ item.DayofWeek }}</td>
-                    <td class="py-1 px-2 border whitespace-nowrap text-xs"">{{ item.AOS }}</td>
-                    <td class="py-1 px-2 border whitespace-nowrap text-xs"">{{ item.LOS }}</td>
-                    <td class="py-1 px-2 border whitespace-nowrap text-xs"">{{ item.AOS_EST }}</td>
-                    <td class="py-1 px-2 border whitespace-nowrap text-xs"">{{ item.LOS_EST }}</td>
-                    <td class="py-1 px-2 border whitespace-nowrap text-xs"">{{ item.Satellite }}</td>
-                    <td class="py-1 px-2 border whitespace-nowrap text-xs"">{{ item.MaxElevation }}</td>
+                <tr class="{{ 'highlight-row' if item.highlight else '' }}">
+                    <td class="py-1 px-2 border whitespace-nowrap text-xs">{{ item.Pass }}</td>
+                    <td class="py-1 px-2 border whitespace-nowrap text-xs">{{ date_from_db }}</td>
+                    <td class="py-1 px-2 border whitespace-nowrap text-xs">{{ item.AOS }}</td>
+                    <td class="py-1 px-2 border whitespace-nowrap text-xs">{{ item.LOS }}</td>
+                    <td class="py-1 px-2 border whitespace-nowrap text-xs">{{ item.AOS_EST }}</td>
+                    <td class="py-1 px-2 border whitespace-nowrap text-xs">{{ item.LOS_EST }}</td>
+                    <td class="py-1 px-2 border whitespace-nowrap text-xs">{{ item.Satellite }}</td>
+                    <td class="py-1 px-2 border whitespace-nowrap text-xs">{{ item.MaxElevation }}</td>
                 </tr>
             {% endfor %}
-        </tbody>
+        </tbody>        
     </table>
     {% else %}
         <p>No events today</p>
