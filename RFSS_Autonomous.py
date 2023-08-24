@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from RsInstrument import RsInstrument, RsInstrException, LoggingMode
+from RsInstrument import RsInstrument, RsInstrException
 import csv
 import time
 import datetime
@@ -22,8 +22,6 @@ for handler in logging.root.handlers[:]:
 # Setup logging
 logging.basicConfig(filename='/home/noaa_gms/RFSS/RFSS_SA.log', level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
-# # For development
-# CSV_FILE_PATH = '/home/noaa_gms/RFSS/Backup_Testing/schedule.csv'
 # For production
 CSV_FILE_PATH = '/home/noaa_gms/RFSS/Tools/Report_Exports/schedule.csv'
 TEMP_DIR = '/home/noaa_gms/RFSS/Received/'
@@ -101,14 +99,12 @@ def get_SpecAn_content_and_DL_locally(INSTR):
         content_list = response.replace('\'', '').split(',')
         logging.info("Transferring captures from Spectrum Analyzer to process on RFSS server.")
         for item in content_list:
-            logging.info(item)
+            # logging.info(item)
 
             # Download each file in the directory (skip directories)
             if not item.endswith('/'):  # Skip directories
                 temp_filename = TEMP_DIR + item  # Set the destination path on your PC
-                # print(f'temp filename: {temp_filename}')
                 instrument_filename = INSTR_DIR + item  # Set the SA file path
-                # print(f'instrument filename: {instrument_filename}')
 
                 try:
                     # Download the file
@@ -118,9 +114,8 @@ def get_SpecAn_content_and_DL_locally(INSTR):
                     if data is not None:
                         with open(temp_filename, 'wb') as f:
                             f.write(data)
-                            # print(f"Downloaded file '{item}' to '{temp_filename}'")
+
                     else:
-                        #print('')
                         continue
 
                 except Exception as e:
@@ -166,7 +161,6 @@ def process_schedule():
             # If current time is before the scheduled aos_datetime, wait until aos_datetime is reached
             while now < aos_datetime:
                 time.sleep(1)  # Sleep for 5 seconds to not hog the CPU
-                # print('Waiting for next schedule')
                 now = datetime.datetime.utcnow()
 
             # Adding a trigger to provide single hit log and start running
@@ -195,9 +189,7 @@ def process_schedule():
                 current_datetime = datetime.datetime.utcnow()
                 formatted_current_datetime = current_datetime.strftime('%Y-%m-%d_%H_%M_%S_UTC') 
                 time_saved_IQ = f"'{INSTR_DIR}{formatted_current_datetime}_{satellite_name}'"
-                # print(f'To Be saved: {time_saved_IQ}')
                 INSTR.write(f"MMEM:STOR:IQ:STAT 1,{time_saved_IQ}")
-                # print('Waiting for 10 IQ sweeps...')
                 time.sleep(1)  # Sleep for 1 second
             
             # # print_message(satellite_name)
@@ -208,7 +200,6 @@ def main():
 
     # Instrument reset/setup
     logging.info(f'Setting Up Instrument at {RESOURCE_STRING}')
-    # INSTR = RsInstrument(RESOURCE_STRING, False, False, OPTION_STRING_FORCE_RS_VISA)
     INSTR.reset()
     INSTR.clear_status()
     INSTR.write('SYST:DISP:UPD ON')
@@ -235,34 +226,6 @@ def main():
     INSTR.write('HCOP:DEV:LANG PNG')
 
     try:
-        # # Create schedule for debug - Will need to comment out once moved to production
-        # # This sets up schedule for testing where only thing to input is num_of_entries in the schedule.csv
-        # # For entries, you can modify start_times/end_times to reflect a larger or smaller window between "passes"
-        # num_of_entries = 2
-
-        # # Delay the first entry by 20 seconds (now + 20), 
-        # # a pass duration of 10 seconds (event) - (can be modified to 60s to test an overload scenario of overlapping passes))
-        # # And a wait duration between (gap) of 20 seconds (can be modified to 1s to test an overload scenario of overlapping passes)
-        # now = datetime.datetime.utcnow() + datetime.timedelta(seconds=20)  
-        # event_duration = datetime.timedelta(seconds=10)
-        # gap_duration = datetime.timedelta(seconds=20)
-        # total_duration = event_duration + gap_duration
-
-        # start_times = [(now + i*total_duration) for i in range(num_of_entries)]
-        # end_times = [(now + i*total_duration + event_duration) for i in range(num_of_entries)]
-
-        # with open("/home/noaa_gms/RFSS/Backup_Testing/schedule.csv", "w") as f:
-        #     writer = csv.writer(f)
-        #     writer.writerow(["Day of Week", "AOS", "LOS", "Satellite"])
-        #     # Corner case to add an initial entry that has already past in case the app needs to be restarted
-        #     writer.writerow([1, "(19, 59, 23)", "(20, 0, 23)", "PAST ENTRY"])
-        #     for i in range(num_of_entries):
-        #         writer.writerow([now.weekday() + 1, 
-        #                         str((start_times[i].hour, start_times[i].minute, start_times[i].second)), 
-        #                         str((end_times[i].hour, end_times[i].minute, end_times[i].second)), 
-        #                         f"NOAA-{15 + i}"])
-        # # End debug section
-
         process_schedule()
         logging.info("Schedule finished for the day.\n")
     except Exception as e:
