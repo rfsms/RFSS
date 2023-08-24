@@ -212,7 +212,10 @@ def process_schedule():
 def main():
 
     # Instrument reset/setup
-    logging.info(f'Setting Up Instrument at {RESOURCE_STRING}')
+    idn = INSTR.query('*IDN?')
+    instrument = idn.replace("Hello, I am: ", "")
+    logging.info(f"Setting Up '{instrument}' at {RESOURCE_STRING}")
+    
     INSTR.reset()
     INSTR.clear_status()
     INSTR.write('SYST:DISP:UPD ON')
