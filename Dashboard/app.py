@@ -39,6 +39,7 @@ def calendar():
 
             if AOS_datetime <= current_utc_time <= LOS_datetime:
                 item['highlight'] = "blue"
+            # Check if the current time is after the current LOS and before the next AOS
             elif AOS_datetime > current_utc_time and not next_event_found:
                 item['highlight'] = "yellow"
                 next_event_found = True
