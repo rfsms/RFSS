@@ -6,7 +6,7 @@ from pytz import timezone
 app = Flask(__name__)
 client = pymongo.MongoClient("mongodb://localhost:27017/")
 db = client["status_db"]
-collection = db["schedule_log"]
+collection = db["schedule_daily"]
 
 def format_time(time_tuple):
     return f"{time_tuple[0]:02d}:{time_tuple[1]:02d}:{time_tuple[2]:02d}"
