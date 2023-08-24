@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# This tool provides capabilities to douwnload the CSN weather TLE since SATTracker may not have access to
+# the internet. This is done weekly at Sat 23:59 as a cron job (50 23 * * 6 /usr/bin/python3 /home/noaa_gms/RFSS/Tools/tleUpdate.py)
+# Once downloaded, this script  uploads to the SATTracker for use.
 import requests
 import os
 
