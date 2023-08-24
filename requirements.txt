@@ -4,3 +4,4 @@ PyVISA-py==0.7.0
 RsFsw==5.20.1
 RsInstrument==1.53.1
 schedule==1.2.0
+gunicorn==21.2.0
