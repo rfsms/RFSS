@@ -6,10 +6,13 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.0.4/dist/tailwind.min.css" rel="stylesheet">
     <title>Calendar</title>
     <style>
-        .highlight-row {
+        .blue {
             background-color: blue;
             color: white;
             }
+        .yellow {
+            background-color: yellow;
+        }
     </style>
 </head>
 <body>
@@ -42,7 +45,7 @@
         </thead>
         <tbody>
             {% for item in event %}
-                <tr class="{{ 'highlight-row' if item.highlight else '' }}">
+                <tr class="{{ item.highlight }}">
                     <td class="py-1 px-2 border whitespace-nowrap text-xs">{{ item.Pass }}</td>
                     <td class="py-1 px-2 border whitespace-nowrap text-xs">{{ date_from_db }}</td>
                     <td class="py-1 px-2 border whitespace-nowrap text-xs">{{ item.AOS }}</td>
@@ -55,6 +58,19 @@
             {% endfor %}
         </tbody>        
     </table>
+    <div class="mt-4">
+        <h4 class="text-center text-xs mb-2">Legend:</h4>
+        <div class="flex justify-center">
+            <div class="flex items-center mr-4">
+                <div style="width: 24px; height: 24px; background-color: blue; border: 1px solid black;"></div>
+                <span class="ml-2 text-xs">Current Schedule</span>
+            </div>
+            <div class="flex items-center">
+                <div style="width: 24px; height: 24px; background-color: yellow; border: 1px solid black;"></div>
+                <span class="ml-2 text-xs">Next Schedule</span>
+            </div>
+        </div>
+    </div>
     {% else %}
         <p>No events today</p>
     {% endif %}
