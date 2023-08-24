@@ -43,7 +43,7 @@ def events():
             "$lt": next_day_date_obj
         }
     })
-    print(event)
+
     if event:
         for item in event['schedule']:
             item['AOS'] = format_time(item['AOS'])
