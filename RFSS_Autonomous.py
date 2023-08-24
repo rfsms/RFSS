@@ -66,7 +66,7 @@ def local_tgz_and_rm_IQ(directory, satellite):
     # Check if there are any files to archive
     if not all_files:
         logging.info(f"No files found in '{directory}'. Skipping tar.gz creation.")
-        return
+        return "false"
 
     # Create the name of the final tar.gz file
     gz_file = os.path.join(directory, f'{formatted_current_datetime}_{satellite}.tar.gz')
@@ -84,8 +84,10 @@ def local_tgz_and_rm_IQ(directory, satellite):
     if os.path.exists(gz_file):
         logging.info('Rsyncing *.tar.gz files and removing locally')
         mv_tar_files_to_preUpload(TEMP_DIR)
+        return "true"
     else:
         logging.info(f"No '{gz_file}' found. Skipping scp_gz_files_and_delete.")
+        return "false"
 
 # Function to get contents of c:\R_S\Instr\user\RFSS\ on Spectrum Analyzer download locally to /home/noaa_gms/RFSS/Received 
 # These files will be called something like "2023-08-02_19_00_07_UTC_NOAA-15.iq.tar"
@@ -175,7 +177,7 @@ def process_schedule():
                     logging.info(f'Current scheduled row under test: {row}')
                     triggered = True
 
-                                    # Insert the data into MongoDB as a single document
+                    # Insert the data into MongoDB as a single document
                     document = {
                         "timestamp": datetime.datetime.utcnow(),
                         "row": row,
@@ -195,6 +197,17 @@ def process_schedule():
             # # print_message(satellite_name)
             get_SpecAn_content_and_DL_locally(INSTR)
             local_tgz_and_rm_IQ(TEMP_DIR, satellite_name)
+
+            
+            success = local_tgz_and_rm_IQ(TEMP_DIR, satellite_name)
+            
+            # Assuming local_tgz_and_rm_IQ function is successful, update the MongoDB document
+            document_update = {
+                "$set": {
+                    "processed": success  # Assuming success is either "true" or "false"
+                }
+            }
+            schedule_run.update_one({"timestamp": document["timestamp"]}, document_update)
 
 def main():
 
