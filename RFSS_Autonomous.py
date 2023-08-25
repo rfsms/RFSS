@@ -63,11 +63,6 @@ def local_tgz_and_rm_IQ(directory, satellite):
     # Get a list of all files in the directory
     all_files = [os.path.join(directory, file) for file in os.listdir(directory)]
 
-    # Check if there are any files to archive
-    if not all_files:
-        logging.info(f"No files found in '{directory}'. Skipping tar.gz creation.")
-        return "false"
-
     # Create the name of the final tar.gz file
     gz_file = os.path.join(directory, f'{formatted_current_datetime}_{satellite}.tar.gz')
 
@@ -196,9 +191,7 @@ def process_schedule():
             
             # # print_message(satellite_name)
             get_SpecAn_content_and_DL_locally(INSTR)
-            local_tgz_and_rm_IQ(TEMP_DIR, satellite_name)
-
-            
+            local_tgz_and_rm_IQ(TEMP_DIR, satellite_name)        
             success = local_tgz_and_rm_IQ(TEMP_DIR, satellite_name)
             
             # Assuming local_tgz_and_rm_IQ function is successful, update the MongoDB document
