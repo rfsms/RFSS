@@ -7,7 +7,7 @@
     <title>Events</title>
 </head>
 <body>
-    <body class="text-xs">
+    <body class="text-xs"> <!-- could be text-base to make all text bigger-->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
           var today = new Date().toISOString().split('T')[0];
@@ -18,7 +18,7 @@
     <div class="flex justify-center items-center mb-8">
         <a href="/">
             <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-4">
-                View Calendar
+                Current Schedule
             </button>
         </a>
         <form action="/events" method="post" class="flex">
@@ -29,29 +29,27 @@
     <table class="mx-auto max-w-full text-center border border-gray-300">
         <thead class="bg-gray-100">
             <tr>
-                <th class="py-1 px-2 border whitespace-nowrap text-xs">Pass</th>
-                <!-- <th class="py-1 px-2 border whitespace-nowrap text-xs">DayofWeek</th> -->
-                <th class="py-1 px-2 border whitespace-nowrap text-xs">Date</th>
-                <th class="py-1 px-2 border whitespace-nowrap text-xs">AOS (UTC)</th>
-                <th class="py-1 px-2 border whitespace-nowrap text-xs">LOS (UTC)</th>
-                <th class="py-1 px-2 border whitespace-nowrap text-xs">AOS (EST)</th>
-                <th class="py-1 px-2 border whitespace-nowrap text-xs">LOS (EST)</th>
-                <th class="py-1 px-2 border whitespace-nowrap text-xs">Satellite</th>
-                <th class="py-1 px-2 border whitespace-nowrap text-xs">MaxElevation</th>
+                <th class="py-1 px-2 border whitespace-nowrap text-m">Pass</th>
+                <th class="py-1 px-2 border whitespace-nowrap text-m">Date</th>
+                <th class="py-1 px-2 border whitespace-nowrap text-m">AOS (UTC)</th>
+                <th class="py-1 px-2 border whitespace-nowrap text-m">LOS (UTC)</th>
+                <th class="py-1 px-2 border whitespace-nowrap text-m">AOS (EST)</th>
+                <th class="py-1 px-2 border whitespace-nowrap text-m">LOS (EST)</th>
+                <th class="py-1 px-2 border whitespace-nowrap text-m">Satellite</th>
+                <th class="py-1 px-2 border whitespace-nowrap text-m">MaxElevation</th>
             </tr>
         </thead>
         <tbody>
             {% for item in event['schedule'] %}
                 <tr>
-                    <td class="py-1 px-2 border">{{ item.Pass }}</td>
-                    <!-- <td class="py-1 px-2 border">{{ item.DayofWeek }}</td> -->
-                    <td class="py-1 px-2 border whitespace-nowrap text-xs">{{ date_from_db }}</td>
-                    <td class="py-1 px-2 border">{{ item.AOS }}</td>
-                    <td class="py-1 px-2 border">{{ item.LOS }}</td>
-                    <td class="py-1 px-2 border">{{ item.AOS_EST }}</td>
-                    <td class="py-1 px-2 border">{{ item.LOS_EST }}</td>
-                    <td class="py-1 px-2 border">{{ item.Satellite }}</td>
-                    <td class="py-1 px-2 border">{{ item.MaxElevation }}</td>
+                    <td class="py-1 px-2 border whitespace-nowrap text-m">{{ item.Pass }}</td>
+                    <td class="py-1 px-2 border whitespace-nowrap text-m">{{ date_from_db }}</td>
+                    <td class="py-1 px-2 border whitespace-nowrap text-m">{{ item.AOS }}</td>
+                    <td class="py-1 px-2 border whitespace-nowrap text-m">{{ item.LOS }}</td>
+                    <td class="py-1 px-2 border whitespace-nowrap text-m">{{ item.AOS_EST }}</td>
+                    <td class="py-1 px-2 border whitespace-nowrap text-m">{{ item.LOS_EST }}</td>
+                    <td class="py-1 px-2 border whitespace-nowrap text-m">{{ item.Satellite }}</td>
+                    <td class="py-1 px-2 border whitespace-nowrap text-m">{{ item.MaxElevation }}</td>
                 </tr>
             {% endfor %}
         </tbody>
