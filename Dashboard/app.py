@@ -41,9 +41,9 @@ def calendar():
             # Creating a row representation to match the schedule_daily collection
             row_representation = [
                 str(item['Pass']),
-                "4",
-                f"({AOS_time_str.replace(':', ',')})",
-                f"({LOS_time_str.replace(':', ',')})",
+                str(item['DayofWeek']),
+                f"({','.join(map(str, item['AOS']))})",
+                f"({','.join(map(str, item['LOS']))})",
                 str(item['Satellite']),
                 str(item['MaxElevation'])
             ]
