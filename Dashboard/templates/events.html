@@ -14,12 +14,18 @@
           document.getElementsByName("date")[0].setAttribute('max', today);
         });
     </script>
-    <h1 class="text-center text-lg mb-4">Events for {{ selected_date }}</h1>
-    <center><form action="/events" method="post">
-        <input type="date" name="date">
-        <input type="submit" value="Show Events for Selected Date">
-    </form></center>
-    <br>
+    <h1 class="flex justify-center text-lg mb-8">Events for {{ selected_date }}</h1>
+    <div class="flex justify-center items-center mb-8">
+        <a href="/">
+            <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-4">
+                View Calendar
+            </button>
+        </a>
+        <form action="/events" method="post" class="flex">
+            <input type="date" name="date" class="mr-4">
+            <input type="submit" value="Show Events for Selected Date" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+        </form>
+    </div>
     <table class="mx-auto max-w-full text-center border border-gray-300">
         <thead class="bg-gray-100">
             <tr>

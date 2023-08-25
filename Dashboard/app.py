@@ -29,8 +29,8 @@ def calendar():
         date_from_db_str = date_from_db.strftime('%Y-%m-%d')
         next_event_found = False
         for item in event['schedule']:
-            AOS_time_str = ":".join(map(str, item['AOS']))
-            LOS_time_str = ":".join(map(str, item['LOS']))
+            AOS_time_str = ":".join(map(lambda x: str(x).zfill(2), item['AOS']))
+            LOS_time_str = ":".join(map(lambda x: str(x).zfill(2), item['LOS']))
             AOS_time = datetime.datetime.strptime(AOS_time_str, '%H:%M:%S')
             LOS_time = datetime.datetime.strptime(LOS_time_str, '%H:%M:%S')
 
