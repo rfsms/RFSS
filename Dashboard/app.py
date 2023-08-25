@@ -7,6 +7,7 @@ app = Flask(__name__)
 client = pymongo.MongoClient("mongodb://localhost:27017/")
 db = client["status_db"]
 collection = db["schedule_daily"]
+schedule_run = db['schedule_run']
 
 def format_time(time_tuple):
     return f"{time_tuple[0]:02d}:{time_tuple[1]:02d}:{time_tuple[2]:02d}"
@@ -37,6 +38,17 @@ def calendar():
             AOS_datetime = date_from_db.replace(hour=AOS_time.hour, minute=AOS_time.minute, second=AOS_time.second)
             LOS_datetime = date_from_db.replace(hour=LOS_time.hour, minute=LOS_time.minute, second=LOS_time.second)
 
+            # Creating a row representation to match the schedule_daily collection
+            row_representation = [
+                str(item['Pass']),
+                "4",
+                f"({AOS_time_str.replace(':', ',')})",
+                f"({LOS_time_str.replace(':', ',')})",
+                str(item['Satellite']),
+                str(item['MaxElevation'])
+            ]
+            print(f'Row Rep: {row_representation}')
+
             if AOS_datetime <= current_utc_time <= LOS_datetime:
                 item['highlight'] = "blue"
             # Check if the current time is after the current LOS and before the next AOS
@@ -45,6 +57,13 @@ def calendar():
                 next_event_found = True
             else:
                 item['highlight'] = ""
+
+            # Query the schedule_run collection based on the row
+            schedule_run_entry = schedule_run.find_one({"row": row_representation})
+            print(f'schedule_run_entry: {schedule_run_entry}')  # Debugging
+
+            if schedule_run_entry and 'processed' in schedule_run_entry and schedule_run_entry['processed'] == "true":
+                item['highlight'] = "grey"
 
             item['AOS'] = AOS_time_str
             item['LOS'] = LOS_time_str
