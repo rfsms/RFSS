@@ -191,7 +191,7 @@ def process_schedule():
             
             # # print_message(satellite_name)
             get_SpecAn_content_and_DL_locally(INSTR)
-            local_tgz_and_rm_IQ(TEMP_DIR, satellite_name)        
+            # local_tgz_and_rm_IQ(TEMP_DIR, satellite_name)        
             success = local_tgz_and_rm_IQ(TEMP_DIR, satellite_name)
             
             # Assuming local_tgz_and_rm_IQ function is successful, update the MongoDB document
