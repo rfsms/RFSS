@@ -47,7 +47,6 @@ def calendar():
                 str(item['Satellite']),
                 str(item['MaxElevation'])
             ]
-            print(f'Row Rep: {row_representation}')
 
             if AOS_datetime <= current_utc_time <= LOS_datetime:
                 item['highlight'] = "blue"
@@ -60,7 +59,6 @@ def calendar():
 
             # Query the schedule_run collection based on the row
             schedule_run_entry = schedule_run.find_one({"row": row_representation})
-            print(f'schedule_run_entry: {schedule_run_entry}')  # Debugging
 
             if schedule_run_entry and 'processed' in schedule_run_entry and schedule_run_entry['processed'] == "true":
                 item['highlight'] = "grey"
