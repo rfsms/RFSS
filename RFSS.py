@@ -30,11 +30,12 @@ if datetime.datetime.utcnow().time() >= datetime.time(0, 0):
     logging.info('RFSS service restarted. Using current schedule.')
     RFSS_Autonomous.main()
 
+# Fetch report is done daily using schedule at 00:00 UTC
 def fetchReport():
     try:
         logging.info(f"Fetching report for use.")
         conn = http.client.HTTPConnection("192.168.4.1", 80)
-        conn.request("GET", "/report?a=38771;43689;25338;28654;33591")
+        conn.request("GET", "/report?a=38771;43689;28654;33591")
         response = conn.getresponse()
 
         if response.status == 200:
