@@ -4,7 +4,7 @@ from datetime import datetime
 
 # Load satellite TLE data
 stations_url = 'http://celestrak.com/NORAD/elements/weather.txt'
-satellites = load.tle_file(stations_url)
+satellites = load.tle_file(stations_url, filename='/home/noaa_gms/RFSS/Tools/Report_Exports/weather.txt')
 by_name = {sat.name: sat for sat in satellites}
 all_passes = []
 
