@@ -95,4 +95,4 @@ def events():
     return render_template('events.html', event=event if event else None, selected_date=selected_date, date_from_db=date_from_db_str)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)
