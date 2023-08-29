@@ -29,4 +29,4 @@ def fetch_data_from_mongo():
     return json.loads(dumps(cursor))
 
 if __name__ == '__main__':
-    app.run(debug=True, port=3000)
+    app.run(debug=False, port=3000)
