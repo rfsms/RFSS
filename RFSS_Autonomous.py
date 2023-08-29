@@ -157,7 +157,7 @@ def process_schedule():
                 
             # If current time is before the scheduled aos_datetime, wait until aos_datetime is reached
             while now < aos_datetime:
-                time.sleep(1)  # Sleep for 5 seconds to not hog the CPU
+                time.sleep(1)
                 now = datetime.datetime.utcnow()
 
             # Adding a trigger to provide single hit log and start running
