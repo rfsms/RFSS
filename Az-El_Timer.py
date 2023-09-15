@@ -34,7 +34,24 @@ start_time = time.time()
 # Tolerance value
 tolerance = 1
 
+# # Loop through each target azimuth in 5-degree increments
+# for target_az in range(0, 361, 5):
+#     # Send GET request to set the target azimuth and elevation
+#     conn.request("GET", f"/cmd?a=P|{target_az}|{target_el}|")
+#     response = conn.getresponse()
+#     response.read()
+#     response.close()
+
+#     # Poll the current azimuth and elevation until they reach the target within the tolerance
+#     while True:
+#         current_az, current_el = get_current_azimuth(conn)
+#         print(f"Azimuth: {current_az}, Elevation: {current_el}")
+#         if within_tolerance(current_az, target_az, tolerance) and within_tolerance(current_el, target_el, tolerance):
+#             break
+#         time.sleep(1)  # Polling interval
+
 # Poll the current azimuth and elevation until it reaches the target within the tolerance
+# Remove if using for loop to send 5* increments on AZ
 while True:
     current_az, current_el = get_current_azimuth(conn)
     print(f"Azimuth: {current_az}, Elevation: {current_el}")
