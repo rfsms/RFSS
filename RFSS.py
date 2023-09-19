@@ -93,36 +93,64 @@ def fetchReport():
 
             logging.info('New schedule extracted, logged and ready for use.')
             RFSS_Autonomous.main()
-        
+
+            logging.info("Attempting check_and_set_rotator function")
+            conn = http.client.HTTPConnection("192.168.4.1", 80)
+                    
+            def get_track_data():
+                conn.request("GET", "/track")
+                response = conn.getresponse()
+                logging.info(f"Response status: {response.status}")
+                return json.loads(response.read()) if response.status == 200 else None
+
+            data = get_track_data()
+            logging.info(f"Data received: {data}")
+                    
+            if data and data['sched'] == -1:
+                logging.info('Rotator Unengaged - Turning on Now')
+                conn.request("GET", "/cmd?a=B|E")
+                conn.getresponse()
+                
+                # Double-checking the 'sched' value after sending the GET request
+                data = get_track_data()
+                if data and data['sched'] == 1:
+                    logging.info('Rotator Engaged')
+                else:
+                    logging.error('Failed to Engage Rotator')
+
     except Exception as e:
         logging.error(f'An error occuredL {e}')
 
-def check_and_set_rotator():
-    try:
-        conn = http.client.HTTPConnection("192.168.4.1", 80)
+# def check_and_set_rotator():
+#     logging.info("Attempting check_and_set_rotator function")
+#     try:
+#         conn = http.client.HTTPConnection("192.168.4.1", 80)
         
-        def get_track_data():
-            conn.request("GET", "/track")
-            response = conn.getresponse()
-            return json.loads(response.read()) if response.status == 200 else None
+#         def get_track_data():
+#             conn.request("GET", "/track")
+#             response = conn.getresponse()
+#             logging.info(f"Response status: {response.status}")
+#             return json.loads(response.read()) if response.status == 200 else None
 
-        data = get_track_data()
-        if data and data['sched'] == -1:
-            logging.info('Rotator Unengaged - Turning on Now')
-            conn.request("GET", "/cmd?a=B|E")
-            conn.getresponse()
+#         data = get_track_data()
+#         logging.info(f"Data received: {data}")
+        
+#         if data and data['sched'] == -1:
+#             logging.info('Rotator Unengaged - Turning on Now')
+#             conn.request("GET", "/cmd?a=B|E")
+#             conn.getresponse()
             
-            # Double-checking the 'sched' value after sending the GET request
-            data = get_track_data()
-            if data and data['sched'] == 1:
-                logging.info('Rotator Engaged')
-            else:
-                logging.info('Failed to Engage Rotator')
-    except Exception as e:
-        logging.error(f'An error occurred checking or setting the rotor: {e}')
+#             # Double-checking the 'sched' value after sending the GET request
+#             data = get_track_data()
+#             if data and data['sched'] == 1:
+#                 logging.info('Rotator Engaged')
+#             else:
+#                 logging.info('Failed to Engage Rotator')
+#     except Exception as e:
+#         logging.error(f'An error occurred checking or setting the rotor: {e}')
 
 schedule.every().day.at("00:00").do(fetchReport)
-schedule.every().day.at("00:01").do(check_and_set_rotator)
+# schedule.every().day.at("00:05").do(check_and_set_rotator)
 
 while True:
     schedule.run_pending()
