@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from RsInstrument import RsInstrument, RsInstrException
+import pyvisa
 import csv
 import time
 import datetime
@@ -9,6 +10,7 @@ import glob
 import subprocess
 import logging
 from pymongo import MongoClient
+import re
 
 # Connection for MongoDB
 client = MongoClient('localhost', 27017)
@@ -187,7 +189,7 @@ def process_schedule():
                 formatted_current_datetime = current_datetime.strftime('%Y-%m-%d_%H_%M_%S_UTC') 
                 time_saved_IQ = f"'{INSTR_DIR}{formatted_current_datetime}_{satellite_name}'"
                 INSTR.write(f"MMEM:STOR:IQ:STAT 1,{time_saved_IQ}")
-                time.sleep(1)  # Sleep for 1 second
+                time.sleep(2)  # Sleep for 2 second
             
             # # print_message(satellite_name)
             get_SpecAn_content_and_DL_locally(INSTR)
