@@ -1,0 +1,33 @@
+SSH:
+	sudo apt install openssh-server
+	sudo nano /etc/ssh/sshd_config
+		PubkeyAuthentication yes
+		PermitRootLogin prohibit-password
+		PasswordAuthentication no - need to add keys first
+		X11Forwarding yes
+		
+tailscale:
+	curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/jammy.noarmor.gpg | sudo tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null
+	curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/jammy.tailscale-keyring.list | sudo tee /etc/apt/sources.list.d/tailscale.list
+	sudo apt-get install tailscale
+	sudo tailscale up
+
+sudo apt install xrdp
+sudo systemctl disable xrdp
+sudo systemctl stop xrdp
+
+date:
+.bashrc
+	alias date='date "+%D %T"'
+/etc/systemd/timesyncd.conf
+	NTP=time.nist.gov
+sudo systemctl restart systemd-timesyncd.service
+timedatectl set-timezone UTC
+
+ufw:
+	sudo ufw allow in on tailscale0
+	sudo ufw default deny incoming
+	sudo ufw default allow outgoing
+	sudo ufw enable
+	
+mongo 
