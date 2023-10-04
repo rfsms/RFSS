@@ -30,4 +30,13 @@ ufw:
 	sudo ufw default allow outgoing
 	sudo ufw enable
 	
-mongo 
+mongo:
+    wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc |  gpg --dearmor | sudo tee /usr/share/keyrings/mongodb.gpg > /dev/null
+    sudo apt install mongodb-org
+    sudo systemctl start mongod
+    sudo systemctl enable  mongod
+    mongosh
+        use status_db
+        db.createCollection("schedule_daily")
+        db.createCollection("schedule_run")
+        exit
