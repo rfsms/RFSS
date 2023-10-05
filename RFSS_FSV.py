@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 from RsInstrument import RsInstrument, RsInstrException
-import pyvisa
 import csv
 import time
 import datetime
@@ -10,7 +9,6 @@ import glob
 import subprocess
 import logging
 from pymongo import MongoClient
-import re
 
 # Connection for MongoDB
 client = MongoClient('localhost', 27017)

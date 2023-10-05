@@ -4,7 +4,8 @@ import time
 import http.client
 import datetime
 import csv
-import RFSS_Autonomous
+import RFSS_FSV # 'Rohde&Schwarz,FSV3004,1330.5000K04/101157,1.50SP1'
+# import RFSS_PXA # 'Keysight Technologies,N9030B,SG56320513,A.25.08' 
 import logging
 import json
 from pymongo import MongoClient
@@ -24,11 +25,12 @@ logging.basicConfig(filename='/home/noaa_gms/RFSS/RFSS_SA.log', level=logging.IN
 # Change this to increase/decrease schedule based on minimum elevation
 minElevation = 5.0
 
-# Check if the current time is 00:00 UTC or later, and if so, call RFSS_Autonomous.main()
+# Check if the current time is 00:00 UTC or later, and if so, call RFSS_{SPECAN}.main()
 if datetime.datetime.utcnow().time() >= datetime.time(0, 0):
     logging.info('-----------------------------------------------------')
     logging.info('RFSS service restarted. Using current schedule.')
-    RFSS_Autonomous.main()
+    RFSS_FSV.main()
+    # RFSS_PXA.main()
 
 # Fetch report is done daily using schedule at 00:00 UTC
 def fetchReport():
@@ -64,7 +66,7 @@ def fetchReport():
             # Sort the schedule list
             rows.sort(key=lambda x: x[0])
 
-            # Write the scehdule to csv to use in RFSS_Autonomous.main()
+            # Write the scehdule to csv to use in RFSS_{SPECAN}.main()
             output_path = "/home/noaa_gms/RFSS/Tools/Report_Exports/schedule.csv"
             with open(output_path, 'w', newline='') as file:
                 writer = csv.writer(file)
@@ -96,7 +98,8 @@ def fetchReport():
             logging.info("Attempting check_and_set_rotator function")
             check_and_set_rotator()
 
-            RFSS_Autonomous.main()
+            RFSS_FSV.main()
+            # RFSS_PXA.main()
 
     except Exception as e:
         logging.error(f'An error occuredL {e}')
