@@ -40,3 +40,8 @@ mongo:
         db.createCollection("schedule_daily")
         db.createCollection("schedule_run")
         exit
+	
+mkdir:
+	/home/noaa_gms/RFSS/preUpload
+	/home/noaa_gms/RFSS/Received
+	/home/noaa_gms/RFSS/Tools/Report_Exports
