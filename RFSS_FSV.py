@@ -211,6 +211,7 @@ def main():
     
     INSTR.reset()
     INSTR.clear_status()
+    INSTR.visa_timeout = 20000
     INSTR.write('SYST:DISP:UPD ON')
     INSTR.write('INIT:CONT ON')
     INSTR.write('SENS:FREQ:CENT 1702500000')
