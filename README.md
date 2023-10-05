@@ -22,11 +22,14 @@ All traffic between EC2 and RFSS is over a WireGuard based PTP VPN and public ke
     - Interfaces with hardware components.
     - Manages data processing and communication.
     - Mongo write to keep a record of daily schedules
+    - Calls RFSS_{FSV/PXA}
+        - <b>DEFAULT IS FSV</b>
 * Tools/Reports_Exports/schedule.csv: 
     - Created by RFSS.py once daily at 00:00UTC
     - Uploaded to mongodB for tracking and historical purposes
 * RFSS_{FSV/PXA}}.py (script called by RFSS.service): 
     - Dependant on wheter an R&S FSV or Keysight PXA is installed
+        - <b>DEFAULT IS FSV</b>
     - Autonomous operation module.
     - Scheduling and automation for RFSS operations.
     - Interfaces with RFSS.py for core functionalities.
@@ -99,7 +102,7 @@ Code modification</br>
 * If there is a need to change any portion of the code, you simple need to restart the RFSS service with `sudo systemctl restart RFSS.service` and code will start automatically from RFSS, while preserving current daily schedule.
 
 Logging:</br>
-* ~~~To check current satellite schedule you can read: `/home/noaa_gms/RFSS/Tools/Report_Exports/schedule.csv`~~~
+* ~~To check current satellite schedule you can read: `/home/noaa_gms/RFSS/Tools/Report_Exports/schedule.csv`~~
 * To check current satellite schedule you can go to FQDN:8080 for each instance
 * For rsync logs: `/home/noaa_gms/RFSS/rsync.log`
 * For RFSS logs: `/home/noaa_gms/RFSS/RFSS_SA.log`
