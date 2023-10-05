@@ -59,7 +59,6 @@ All traffic between EC2 and RFSS is over a WireGuard based PTP VPN and public ke
 * ~~Add database connection info for logging and additional future capabilities.~~
 * ~~Add functionality to allow for either R&S FSV or Keysight PXA~~ 
     - Added but needs to be re-factored for a single RFSS_Autonomous script to allow either instrument with no change.
-* 
 * Add additional scan data from SAT controller, like AZ/EL/voltage, etc.
 
 ## Notes:
