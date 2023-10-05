@@ -96,6 +96,22 @@ For rsync ensure that:
     [Install]
     WantedBy=multi-user.target
 
+* A service is created in `/etc/systemd/system/gunicorn.service` to run the webserver 
+    ```
+    [Unit]
+    Description=gunicorn daemon
+    After=network.target
+
+    [Service]
+    User=noaa_gms
+    Group=noaa_gms
+    WorkingDirectory=/home/noaa_gms/RFSS/Dashboard/
+    ExecStart=/home/noaa_gms/.local/bin/gunicorn -w 4 -b :8080 app:app
+    Restart=always
+
+    [Install]
+    WantedBy=multi-user.target
+
 * Reload systemd with `sudo systemctl daemon-reload`
 * Enable and start the service with `sudo systemctl enable {RFSS/rsyncUpload}`
 /`sudo systemctl start {RFSS/rsyncUpload}`
