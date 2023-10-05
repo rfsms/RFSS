@@ -10,6 +10,7 @@ import subprocess
 import logging
 from pymongo import MongoClient
 import re
+from scipy.io import savemat
 
 # Connection for MongoDB
 client = MongoClient('localhost', 27017)
@@ -85,38 +86,34 @@ def local_tgz_and_rm_IQ(directory, satellite):
         logging.info(f"No '{gz_file}' found. Skipping scp_gz_files_and_delete.")
         return "false"
 
-# Function to get contents of c:\R_S\Instr\user\RFSS\ on Spectrum Analyzer download locally to /home/noaa_gms/RFSS/Received 
-# These files will be called something like "2023-08-02_19_00_07_UTC_NOAA-15.iq.tar"
-def get_SpecAn_content_and_DL_locally(INSTR):
-    try:
-        INSTR.write(f'MMEM:CDIR "{INSTR_DIR}"')
-        response = INSTR.query('MMEM:CAT?')
-        # print(response)
+# # Function to get contents of c:\R_S\Instr\user\RFSS\ on Spectrum Analyzer download locally to /home/noaa_gms/RFSS/Received 
+# # These files will be called something like "2023-08-02_19_00_07_UTC_NOAA-15.iq.tar"
+# def get_SpecAn_content_and_DL_locally(INSTR):
+#     try:
+#         INSTR.write(f'MMEM:CDIR "{INSTR_DIR}"')
+#         response = INSTR.query('MMEM:CAT?')
 
-        # Corrected the parsing
-        content_list = [re.split(',,', item)[0] for item in re.findall(r'"(.*?)"', response)]
-        # print("Content list:", content_list)
+#         # Correct the parsing
+#         content_list = [re.split(',,', item)[0] for item in re.findall(r'"(.*?)"', response)]
         
-        for item in content_list:
-            temp_filename = TEMP_DIR + item
-            instrument_filename = INSTR_DIR + item
-            # logging.info(f"Downloading {item}")
+#         for item in content_list:
+#             temp_filename = TEMP_DIR + item
+#             instrument_filename = INSTR_DIR + item
 
-            try:
-                INSTR.write(f'MMEM:DATA? "{instrument_filename}"')
-                # INSTR.write(f'MMEM:DATA? "{instrument_filename}";*WAI')
-                data = INSTR.read_raw()
-                if data:
-                    with open(temp_filename, 'wb') as f:
-                        f.write(data)
-            except Exception as e:
-                logging.info(f"Error while downloading file '{item}': {str(e)}")
+#             try:
+#                 INSTR.write(f'MMEM:DATA? "{instrument_filename}"')
+#                 data = INSTR.read_raw()
+#                 if data:
+#                     with open(temp_filename, 'wb') as f:
+#                         f.write(data)
+#             except Exception as e:
+#                 logging.info(f"Error while downloading file '{item}': {str(e)}")
 
-            INSTR.write(f'MMEM:DEL "{item}"')
+#             INSTR.write(f'MMEM:DEL "{item}"')
 
-    except pyvisa.errors.VisaIOError as e:
-        if "-256," in str(e):
-            logging.info("No files on Spectrum Analyzer to process:", e)
+#     except pyvisa.errors.VisaIOError as e:
+#         if "-256," in str(e):
+#             logging.info("No files on Spectrum Analyzer to process:", e)
 
 
 # This function is the timing behind RFSS data capture.  Reads the CSV_FILE_PATH and goes through each row determining
@@ -173,18 +170,24 @@ def process_schedule():
                     schedule_run.insert_one(document)
 
                 # Intrumentation happens here
-                # print(f"Function with label '{satellite_name}' is running!")
+                # CAptuee on SpecAn and then transfer....too inefficient
                 INSTR.write('INIT:IMM;*WAI')
-                INSTR.write('DISP:WAV:VIEW:WIND:TRAC:Y:COUP ON')
+                # INSTR.write('DISP:WAV:VIEW:WIND:TRAC:Y:COUP ON')
+                data = INSTR.query_binary_values(":FETCH:WAV0?")
+
+                # Convert to separate I and Q arrays
+                i_data = data[::2]
+                q_data = data[1::2]
+
                 current_datetime = datetime.datetime.utcnow()
                 formatted_current_datetime = current_datetime.strftime('%Y-%m-%d_%H_%M_%S_UTC') 
-                time_saved_IQ = f"'{INSTR_DIR}{formatted_current_datetime}_{satellite_name}'"
-                INSTR.write(f'MMEM:STOR:RES "{time_saved_IQ}"')
-                time.sleep(10)  # Sleep for 5 second
+                # time_saved_IQ = f"'{INSTR_DIR}{formatted_current_datetime}_{satellite_name}'"
+                # INSTR.write(f'MMEM:STOR:RES "{time_saved_IQ}"')
+                # Save I/Q data to MAT file
+                savemat(f'{TEMP_DIR}{formatted_current_datetime}_{satellite_name}.mat', {'I_Data': i_data, 'Q_Data': q_data})
+                time.sleep(5)  # Sleep for 5 second for PXA
             
-            # # print_message(satellite_name)
-            get_SpecAn_content_and_DL_locally(INSTR)
-            # local_tgz_and_rm_IQ(TEMP_DIR, satellite_name)        
+            # get_SpecAn_content_and_DL_locally(INSTR)    
             success = local_tgz_and_rm_IQ(TEMP_DIR, satellite_name)
             
             # Assuming local_tgz_and_rm_IQ function is successful, update the MongoDB document
@@ -207,44 +210,44 @@ def main():
     INSTR.write('*CLS')
     INSTR.write('SYST:DEF SCR')
 
-    # Configure Swept SA
-    INSTR.write('DISP:ENAB OFF')
-    INSTR.write('INIT:CONT ON')
-    INSTR.write('DISP:VIEW SPEC')
-    INSTR.write('SENS:FREQ:SPAN 20000000')
-    INSTR.write('SENS:FREQ:CENT 1702500000')
-    INSTR.write('SENS:BAND:RES 10000')
-    INSTR.write('SENS:BAND:VID:AUTO OFF')
-    INSTR.write('SENS:BAND:VID 10000')
-    INSTR.write('POW:ATT:AUTO OFF')
-    INSTR.write('POW:ATT 0')    
-    INSTR.write('POW:GAIN ON')
-    INSTR.write('TRAC1:DISP ON')
-    INSTR.write('TRAC1:TYPE WRIT')
-    INSTR.write('DET:TRACE1 AVER')
-    INSTR.write('AVER:COUN 1')
-    INSTR.write('TRAC2:DISP ON')
-    INSTR.write('TRAC2:TYPE MAXH')
-    INSTR.write('DET:TRACE2 AVER')
-    INSTR.write('DISP:WIND:TRAC:Y:RLEV -50')
-    INSTR.write('DISP:VIEW:SPEC:HUE 10')
-    INSTR.write('DISP:VIEW:SPEC:REF 75')
-    INSTR.write('DISP:VIEW:SPEC:BOTT 0')
+    # # Configure Swept SA
+    # INSTR.write('DISP:ENAB OFF')
+    # INSTR.write('INIT:CONT ON')
+    # INSTR.write('DISP:VIEW SPEC')
+    # INSTR.write('SENS:FREQ:SPAN 20000000')
+    # INSTR.write('SENS:FREQ:CENT 1702500000')
+    # INSTR.write('SENS:BAND:RES 10000')
+    # INSTR.write('SENS:BAND:VID:AUTO OFF')
+    # INSTR.write('SENS:BAND:VID 10000')
+    # INSTR.write('POW:ATT:AUTO OFF')
+    # INSTR.write('POW:ATT 0')    
+    # INSTR.write('POW:GAIN ON')
+    # INSTR.write('TRAC1:DISP ON')
+    # INSTR.write('TRAC1:TYPE WRIT')
+    # INSTR.write('DET:TRACE1 AVER')
+    # INSTR.write('AVER:COUN 1')
+    # INSTR.write('TRAC2:DISP ON')
+    # INSTR.write('TRAC2:TYPE MAXH')
+    # INSTR.write('DET:TRACE2 AVER')
+    # INSTR.write('DISP:WIND:TRAC:Y:RLEV -50')
+    # INSTR.write('DISP:VIEW:SPEC:HUE 10')
+    # INSTR.write('DISP:VIEW:SPEC:REF 75')
+    # INSTR.write('DISP:VIEW:SPEC:BOTT 0')
 
     # Setup IQ Analyzer
-    INSTR.write('INST:SCR:CRE')
-    INSTR.write('INST:SEL BASIC')
-    INSTR.write('CONF:WAV')
+    INSTR.write(":INST:NSEL 8")
+    INSTR.write(":CONF:WAV")
+    INSTR.write(":INIT:CONT OFF")
     INSTR.write('SENS:FREQ:CENT 1702500000')
     INSTR.write('POW:ATT:AUTO OFF')
-    INSTR.write('POW:ATT 0')    
-    INSTR.write('POW:GAIN ON')
+    INSTR.write('POW:ATT 0')
     INSTR.write('DISP:WAV:VIEW:NSEL 1')
     INSTR.write('POW:GAIN ON')
     INSTR.write('WAV:SRAT 18.75MHz')
     INSTR.write('WAV:SWE:TIME 16ms')
-    INSTR.write('INIT:IMM;*WAI')
     INSTR.write('DISP:WAV:VIEW:WIND:TRAC:Y:COUP ON')
+    INSTR.write(":FORM:BORD SWAP")
+    INSTR.write(":FORM REAL,32")
 
     try:
         process_schedule()
