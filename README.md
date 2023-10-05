@@ -54,9 +54,11 @@ All traffic between EC2 and RFSS is over a WireGuard based PTP VPN and public ke
 ## Future Updates
 * Modification to only scanning between -10* and +10* elevation in a 360* azimuthal rotation.
 * ~~Additionally, more functionality will be incorporated to include autonomous scheduling so a static start/stop time does not need to be defined.~~
-* ~~Future code may include usage if an Ettus x310 SDR relacing the FSV Spectrum Analyer.~~ Will be done as a seperate repo
+* ~~Future code may include usage if an Ettus x310 SDR relacing the FSV Spectrum Analyer.~~ 
+    - Will be done as a seperate repo
 * ~~Add database connection info for logging and additional future capabilities.~~
-* ~~Add functionality to allow for either R&S FSV or Keysight PXA~~ Added but needs to be re-factored for a single RFSS_Autonomous script to allow either instrument with no change.
+* ~~Add functionality to allow for either R&S FSV or Keysight PXA~~ 
+    - Added but needs to be re-factored for a single RFSS_Autonomous script to allow either instrument with no change.
 * 
 * Add additional scan data from SAT controller, like AZ/EL/voltage, etc.
 
