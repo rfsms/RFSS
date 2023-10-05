@@ -27,7 +27,7 @@ All traffic between EC2 and RFSS is over a WireGuard based PTP VPN and public ke
 * Tools/Reports_Exports/schedule.csv: 
     - Created by RFSS.py once daily at 00:00UTC
     - Uploaded to mongodB for tracking and historical purposes
-* RFSS_{FSV/PXA}}.py (script called by RFSS.service): 
+* RFSS_{FSV/PXA}.py (script called by RFSS.service): 
     - Dependant on wheter an R&S FSV or Keysight PXA is installed
         - <b>DEFAULT IS FSV</b>
     - Autonomous operation module.
@@ -48,7 +48,7 @@ All traffic between EC2 and RFSS is over a WireGuard based PTP VPN and public ke
     - If files, upload to AWS EC2 for MATLAB processing.  If no connection exists hold the files and wait for connection.
 * Tools/rsyncUpload.sh: 
     - Used by rsyncUpload.service for tar.gz uploads
-* StatusGUI:
+* Dashboard:
     - Working dir for dashboard updates 
     - Includes flask, mongo connections, js, css, etc. for dahboard       
 ## Future Updates
@@ -56,6 +56,8 @@ All traffic between EC2 and RFSS is over a WireGuard based PTP VPN and public ke
 * ~~Additionally, more functionality will be incorporated to include autonomous scheduling so a static start/stop time does not need to be defined.~~
 * ~~Future code may include usage if an Ettus x310 SDR relacing the FSV Spectrum Analyer.~~ Will be done as a seperate repo
 * ~~Add database connection info for logging and additional future capabilities.~~
+* ~~Add functionality to allow for either R&S FSV or Keysight PXA~~ Added but needs to be re-factored for a single RFSS_Autonomous script to allow either instrument with no change.
+* 
 * Add additional scan data from SAT controller, like AZ/EL/voltage, etc.
 
 ## Notes:
@@ -103,7 +105,7 @@ Code modification</br>
 
 Logging:</br>
 * ~~To check current satellite schedule you can read: `/home/noaa_gms/RFSS/Tools/Report_Exports/schedule.csv`~~
-* To check current satellite schedule you can go to FQDN:8080 for each instance
+* To check current satellite schedule you can go to FQDN:8080 to reach the Dashboard
 * For rsync logs: `/home/noaa_gms/RFSS/rsync.log`
 * For RFSS logs: `/home/noaa_gms/RFSS/RFSS_SA.log`
 
