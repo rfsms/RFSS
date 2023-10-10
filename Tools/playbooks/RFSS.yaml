@@ -216,6 +216,7 @@
     - name: Add cron job for tleUpdate.py
       cron:
         name: "Run tleUpdate.py every Saturday at 23:50"
+        user: "noaa_gms"
         minute: "50"
         hour: "23"
         day: "*"
