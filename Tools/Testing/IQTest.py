@@ -1,8 +1,9 @@
 import pyvisa
-import numpy as np
+# import numpy as np
 import time
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 from scipy.io import savemat, loadmat
+import datetime
 
 
 # Record the start time
@@ -16,7 +17,6 @@ INSTR = RM.open_resource(RESOURCE_STRING, timeout=20000)
 # Clear and reset the instrument
 INSTR.write("*CLS")
 INSTR.write("*RST")
-
 
 # Setup the analyzer for capturing I/Q data
 INSTR.write(":INST:NSEL 8")
@@ -33,16 +33,32 @@ INSTR.write('DISP:WAV:VIEW:WIND:TRAC:Y:COUP ON')
 INSTR.write(":FORM:BORD SWAP")
 INSTR.write(":FORM REAL,32")
 
-# Capture and read I/Q data
-INSTR.write(":INIT:IMM;*WAI")
+# # Capture and read I/Q data
+# INSTR.write(":INIT:IMM;*WAI")
+# data = INSTR.query_binary_values(":FETCH:WAV0?")
+
+# # Convert to separate I and Q arrays
+# i_data = data[::2]
+# q_data = data[1::2]
+
+# # Save I/Q data to MAT file
+# savemat('/home/noaa_gms/RFSS/preUpload/iq_data.mat', {'I_Data': i_data, 'Q_Data': q_data})
+
+INSTR.write('INIT:IMM;*WAI')
+# INSTR.write('DISP:WAV:VIEW:WIND:TRAC:Y:COUP ON')
 data = INSTR.query_binary_values(":FETCH:WAV0?")
 
 # Convert to separate I and Q arrays
 i_data = data[::2]
 q_data = data[1::2]
 
+current_datetime = datetime.datetime.utcnow()
+formatted_current_datetime = current_datetime.strftime('%Y-%m-%d_%H_%M_%S_UTC') 
+# time_saved_IQ = f"'{INSTR_DIR}{formatted_current_datetime}_{satellite_name}'"
+# INSTR.write(f'MMEM:STOR:RES "{time_saved_IQ}"')
 # Save I/Q data to MAT file
-savemat('/home/noaa_gms/RFSS_PXA/iq_data.mat', {'I_Data': i_data, 'Q_Data': q_data})
+savemat(f'/home/noaa_gms/RFSS/Received/{formatted_current_datetime}_test.mat', {'I_Data': i_data, 'Q_Data': q_data})
+time.sleep(5)  # Sleep for 5 second for PXA
 
 # Close the instrument connection
 INSTR.close()
