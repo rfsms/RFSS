@@ -25,6 +25,7 @@ def calendar():
     today_date_obj = datetime.datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
     next_day_date_obj = today_date_obj + datetime.timedelta(days=1)
     event = collection.find_one({"timestamp": {"$gte": today_date_obj, "$lt": next_day_date_obj}})
+    date_from_db_str = None  # Initialize to a default value
     if event:
         date_from_db = event['timestamp']
         date_from_db_str = date_from_db.strftime('%Y-%m-%d')
