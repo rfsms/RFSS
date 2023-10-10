@@ -1,0 +1,313 @@
+---
+- hosts: 127.0.0.1
+  become: yes
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Upgrade all packages
+      apt:
+        upgrade: dist
+
+    - name: Upgrade all packages
+      apt:
+        upgrade: dist
+      register: apt_upgrade
+
+    - name: Reboot the machine if needed
+      reboot:
+        msg: "Rebooting because of package upgrade"
+        connect_timeout: 5
+        reboot_timeout: 600
+        pre_reboot_delay: 0
+        post_reboot_delay: 30
+      when: apt_upgrade is changed
+
+    - name: Add Tailscale GPG key
+      command:
+        cmd: curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/jammy.noarmor.gpg | sudo tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null
+    
+    - name: Add Tailscale to APT sources
+      command:
+        cmd: curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/jammy.tailscale-keyring.list | sudo tee /etc/apt/sources.list.d/tailscale.list
+
+    - name: Install Tailscale
+      apt:
+        name: tailscale
+        state: present
+        update_cache: yes
+
+    - name: Bring tailscale up
+      command:
+        cmd: sudo tailscale up
+        
+    - name: Install openssh-server
+      apt:
+        name: openssh-server
+        state: present
+        update_cache: yes
+
+    - name: Enable openssh-server
+      systemd:
+        name: sshd
+        enabled: yes
+
+    - name: Start openssh-server
+      systemd:
+        name: sshd
+        state: started
+
+    - name: Prompt user to send SSH key
+      pause:
+        prompt: "Send your SSH key now. Press enter to continue once done.  You can use: `ssh-copy-id noaa_gms@noaa-gms-server{n}`"
+
+    - name: Set PubkeyAuthentication to yes
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PubkeyAuthentication'
+        line: 'PubkeyAuthentication yes'
+        backrefs: yes
+
+    - name: Set PermitRootLogin to prohibit-password
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PermitRootLogin'
+        line: 'PermitRootLogin prohibit-password'
+        backrefs: yes
+
+    - name: Disable PasswordAuthentication
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PasswordAuthentication'
+        line: 'PasswordAuthentication no'
+        backrefs: yes
+
+    - name: Set X11Forwarding to yes
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^X11Forwarding'
+        line: 'X11Forwarding yes'
+        backrefs: yes
+
+    - name: Restart SSH service for changes to take effect
+      systemd:
+        name: sshd
+        state: restarted
+
+    - name: Prompt user to send SSH key
+      pause:
+        prompt: "Log back on and ensure you aren't using passwords."
+    
+    - name: Install xrdp
+      apt:
+        name: xrdp
+        state: present
+        update_cache: yes
+
+    - name: Disable xrdp server
+      systemd:
+        name: xrdp
+        enabled: no
+
+    - name: Stop xrdp server
+      systemd:
+        name: xrdp
+        state: stopped
+
+    - name: Add alias to .bashrc
+      lineinfile:
+        path: "{{ ansible_env.HOME }}/.bashrc"
+        line: 'alias date=''date "+%D %T"'''
+
+    - name: Update /etc/systemd/timesyncd.conf
+      lineinfile:
+        path: /etc/systemd/timesyncd.conf
+        regexp: '^NTP='
+        line: 'NTP=time.nist.gov'
+      become: yes
+
+    - name: Restart systemd-timesyncd
+      systemd:
+        name: systemd-timesyncd
+        state: restarted
+      become: yes
+
+    - name: Set time zone to UTC
+      command:
+        cmd: timedatectl set-timezone UTC
+      become: yes
+
+    - name: Allow incoming on tailscale0 in UFW
+      ufw:
+        rule: allow
+        direction: in
+        interface: tailscale0
+
+    - name: Set UFW default deny incoming
+      ufw:
+        direction: incoming
+        policy: deny
+
+    - name: Set UFW default allow outgoing
+      ufw:
+        direction: outgoing
+        policy: allow
+
+    - name: Enable UFW
+      ufw:
+        state: enabled
+
+    - name: Import the MongoDB public GPG key
+      apt_key:
+        url: "https://www.mongodb.org/static/pgp/server-6.0.asc"
+        state: present
+
+    - name: Add MongoDB APT repository
+      apt_repository:
+        repo: "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu {{ ansible_distribution_release }}/mongodb-org/6.0 multiverse"
+        state: present
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install MongoDB
+      apt:
+        name: mongodb-org
+        state: present
+
+    - name: Start mongod service
+      systemd:
+        name: mongod
+        state: started
+
+    - name: Enable mongod service
+      systemd:
+        name: mongod
+        enabled: yes
+
+    - name: Create MongoDB database and collections
+      shell:
+        cmd: |
+          mongosh <<EOF
+          use status_db
+          db.createCollection("schedule_daily")
+          db.createCollection("schedule_run")
+          exit
+          EOF
+
+    - name: Git clone RFSS repository
+      git:
+        repo: 'https://github.com/noaa-rfss/RFSS.git'
+        dest: '/home/noaa_gms/RFSS'
+
+    - name: Create specified directories
+      file:
+        path: "{{ item }}"
+        state: directory
+      loop:
+        - /home/noaa_gms/RFSS/preUpload
+        - /home/noaa_gms/RFSS/Received
+        - /home/noaa_gms/RFSS/Tools/Report_Exports
+
+    - name: Add cron job for tleUpdate.py
+      cron:
+        name: "Run tleUpdate.py every Saturday at 23:50"
+        minute: "50"
+        hour: "23"
+        day: "*"
+        month: "*"
+        weekday: "6"
+        job: "/usr/bin/python3 /home/noaa_gms/RFSS/Tools/tleUpdate.py"
+
+    - name: Create RFSS.service in /etc/systemd/system/
+      copy:
+        content: |
+          [Unit]
+          Description=RFSS service after multi-user target
+          After=network.target
+
+          [Service]
+          Type=simple
+          ExecStart=/usr/bin/python3 /home/noaa_gms/RFSS/RFSS.py
+          Restart=on-failure
+          User=noaa_gms
+          Group=noaa_gms
+
+          [Install]
+          WantedBy=multi-user.target
+        dest: /etc/systemd/system/RFSS.service
+
+    - name: Create rsyncUpload.service in /etc/systemd/system/
+      copy:
+        content: |
+          [Unit]
+          Description=Starts the RFSS rsync service after multi-user target
+          After=network.target
+
+          [Service]
+          Type=simple
+          ExecStart=/usr/local/bin/rsyncUpload.sh
+          Restart=on-failure
+          User=noaa_gms
+          Group=noaa_gms
+
+          [Install]
+          WantedBy=multi-user.target
+        dest: /etc/systemd/system/rsyncUpload.service
+
+    - name: Copy rsyncUpload.sh to /usr/local/bin
+      copy:
+        src: /home/noaa_gms/RFSS/Tools/rsyncUpload.sh
+        dest: /usr/local/bin/rsyncUpload.sh
+        mode: '0775'
+
+    - name: Install Python packages from requirements file
+      pip:
+        requirements: /home/noaa_gms/RFSS/requirements.txt
+
+    - name: Create gunicorn.service in /etc/systemd/system/
+      copy:
+        content: |
+          [Unit]
+          Description=gunicorn daemon
+          After=network.target
+
+          [Service]
+          User=noaa_gms
+          Group=noaa_gms
+          WorkingDirectory=/home/noaa_gms/RFSS/Dashboard/
+          ExecStart=/home/noaa_gms/.local/bin/gunicorn -w 4 -b :8080 app:app
+          Restart=always
+
+          [Install]
+          WantedBy=multi-user.target
+        dest: /etc/systemd/system/gunicorn.service
+
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
+
+    - name: Enable and start RFSS.service
+      systemd:
+        name: RFSS.service
+        enabled: yes
+        state: started
+
+    - name: Enable and start rsyncUpload.service
+      systemd:
+        name: rsyncUpload.service
+        enabled: yes
+        state: started
+
+    - name: Enable and start gunicorn.service
+      systemd:
+        name: gunicorn.service
+        enabled: yes
+        state: started
+
+
+
+
