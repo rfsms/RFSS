@@ -9,7 +9,7 @@ import glob
 import subprocess
 import logging
 from pymongo import MongoClient
-import re
+# import re
 from scipy.io import savemat
 
 # Connection for MongoDB
