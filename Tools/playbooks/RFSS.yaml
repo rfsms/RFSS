@@ -27,11 +27,11 @@
       when: apt_upgrade is changed
 
     - name: Add Tailscale GPG key
-      command:
+      shell:
         cmd: curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/jammy.noarmor.gpg | sudo tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null
     
     - name: Add Tailscale to APT sources
-      command:
+      shell:
         cmd: curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/jammy.tailscale-keyring.list | sudo tee /etc/apt/sources.list.d/tailscale.list
 
     - name: Install Tailscale
