@@ -2,12 +2,30 @@ from flask import Flask, render_template, request
 import pymongo
 import datetime
 from pytz import timezone
+import http.client
+import json
 
 app = Flask(__name__)
 client = pymongo.MongoClient("mongodb://localhost:27017/")
 db = client["status_db"]
 collection = db["schedule_daily"]
 schedule_run = db['schedule_run']
+
+def get_location():
+    try:
+        conn = http.client.HTTPConnection("192.168.4.1", 80)
+        
+        def get_track_data():
+            conn.request("GET", "/track")
+            response = conn.getresponse()
+            return json.loads(response.read()) if response.status == 200 else None
+
+        data = get_track_data()
+        
+        return data['gpsgr']
+            
+    except Exception as e:
+        return (f'An error occurred checking the location: {e}')
 
 def format_time(time_tuple):
     return f"{time_tuple[0]:02d}:{time_tuple[1]:02d}:{time_tuple[2]:02d}"
@@ -26,6 +44,7 @@ def calendar():
     next_day_date_obj = today_date_obj + datetime.timedelta(days=1)
     event = collection.find_one({"timestamp": {"$gte": today_date_obj, "$lt": next_day_date_obj}})
     date_from_db_str = None  # Initialize to a default value
+    location_data = get_location()
     if event:
         date_from_db = event['timestamp']
         date_from_db_str = date_from_db.strftime('%Y-%m-%d')
@@ -70,7 +89,7 @@ def calendar():
             item['LOS_EST'] = convert_to_EST(item['LOS'])
 
     current_utc_time_str = current_utc_time.strftime("%m/%d/%Y %H:%M")
-    return render_template('calendar.html', current_utc_time=current_utc_time_str, event=event['schedule'] if event else None, date_from_db=date_from_db_str)
+    return render_template('calendar.html', current_utc_time=current_utc_time_str, event=event['schedule'] if event else None, date_from_db=date_from_db_str, location=location_data)
 
 
 @app.route('/events', methods=['POST'])
