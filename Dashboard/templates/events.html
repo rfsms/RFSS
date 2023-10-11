@@ -14,7 +14,10 @@
           document.getElementsByName("date")[0].setAttribute('max', today);
         });
     </script>
-    <h1 class="flex justify-center text-lg mb-8">Events for {{ selected_date }}</h1>
+    <h1 class="flex justify-center text-lg mb-8">
+        Events for {{ selected_date }} for GridID:&emsp;
+        <a href="https://www.karhukoti.com/maidenhead-grid-square-locator-desktop-map/?grid={{ location }}" target="_blank" style="color: blue; text-decoration: underline; font-weight: bold;">{{ location }}</a>
+    </h1>
     <div class="flex justify-center items-center mb-8">
         <a href="/">
             <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-4">

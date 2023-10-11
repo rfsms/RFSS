@@ -97,6 +97,8 @@ def events():
     selected_date = request.form['date']
     selected_date_obj = datetime.datetime.strptime(selected_date, '%Y-%m-%d')
     next_day_date_obj = selected_date_obj + datetime.timedelta(days=1)
+    date_from_db_str = None  # Initialize to a default value
+    location_data = get_location()
     event = collection.find_one({
         "timestamp": {
             "$gte": selected_date_obj,
@@ -112,7 +114,7 @@ def events():
             item['AOS_EST'] = convert_to_EST(item['AOS'])
             item['LOS_EST'] = convert_to_EST(item['LOS'])
     current_utc_time = datetime.datetime.utcnow().strftime("%m/%d/%Y %H:%M")
-    return render_template('events.html', event=event if event else None, selected_date=selected_date, date_from_db=date_from_db_str)
+    return render_template('events.html', event=event if event else None, selected_date=selected_date, date_from_db=date_from_db_str, location=location_data)
 
 if __name__ == '__main__':
     app.run(debug=False)
