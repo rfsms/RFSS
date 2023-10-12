@@ -4,11 +4,14 @@ import time
 import http.client
 import datetime
 import csv
-import RFSS_FSV # 'Rohde&Schwarz,FSV3004,1330.5000K04/101157,1.50SP1'
-# import RFSS_PXA # 'Keysight Technologies,N9030B,SG56320513,A.25.08' 
 import logging
 import json
 from pymongo import MongoClient
+
+## Dependant on which hardware is installed, modify only the below two imports
+import RFSS_FSV # 'Rohde&Schwarz,FSV3004,1330.5000K04/101157,1.50SP1'
+# import RFSS_PXA # 'Keysight Technologies,N9030B,SG56320513,A.25.08' 
+
 
 # Connect to MongoDB
 client = MongoClient('localhost', 27017)
