@@ -88,7 +88,7 @@
     {% else %}
         <p><center>No events received today - Wait unitl 00:00 UTC for next schedule</p></center>
     {% endif %}
-    <!-- Placeholder for the actual azimuth and elevation -->
+    <!-- For elements for displaying azimuth and elevation -->
     <div class="flex justify-center items-center mt-8 mb-8">
         <div id="actualAzimuth" class="mr-4 py-2 px-4 bg-white border text-black rounded text-center"></div>
         <div id="actualElevation" class="py-2 px-4 bg-white border text-black rounded text-center"></div>
@@ -103,19 +103,35 @@
             <input type="submit" value="Submit AZ" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
         </form>
     </div>
-
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Function to handle form submission
             document.getElementById('azForm').addEventListener('submit', function(e) {
                 e.preventDefault();
                 const formData = new FormData(this);
+        
+                // Extract the startingAZ value
+                let startingAZ = formData.get('startingAZ');
+                let endingAZ = formData.get('endingAZ');
+        
+                if(!endingAZ) {
+                    endingAZ = startingAZ;
+                    // Update ending value to match starting value if no ending value is entered
+                    document.getElementById('endingAZ'.value = endingAZ);
+
+                    // Update formData to include the new endingAZ value
+                    formData.set('endingAZ', endingAZ);
+                }
+                // Log to the console
+                console.log("Starting AZ:", startingAZ, "Ending AZ:", endingAZ);
+        
+                // Send POST request to your Flask app
                 fetch('/set_az', {
                     method: 'POST',
                     body: formData
                 });
             });
-      
+        
             // Function to get and update the actual azimuth and elevation
             function updateActualAzEl() {
                 fetch('/get_actual_AzEl')
@@ -125,11 +141,11 @@
                         document.getElementById('actualElevation').innerText = `Actual Elevation: ${data.actual_el}`;
                 });
             }
-      
-          // Read the actual azimuth/elevation every second
-          setInterval(updateActualAzEl, 1000);
+        
+            // Read the actual azimuth/elevation every second
+            setInterval(updateActualAzEl, 1000);
         });
-    </script>
+    </script>    
 
 </body>
 </html>
