@@ -7,11 +7,21 @@ import csv
 import logging
 import json
 from pymongo import MongoClient
+import sys
 
-## Dependant on which hardware is installed, modify only the below two imports
-import RFSS_FSV # 'Rohde&Schwarz,FSV3004,1330.5000K04/101157,1.50SP1'
-# import RFSS_PXA # 'Keysight Technologies,N9030B,SG56320513,A.25.08' 
+if len(sys.argv) < 2:
+    raise ValueError("Please provide either 'RFSS_FSV' or 'RFSS_PXS' as an argument.")
 
+runningModule = None
+
+if sys.argv[1] == "RFSS_FSV":
+    import RFSS_FSV
+    runningModule = RFSS_FSV
+elif sys.argv[1] == "RFSS_PXA":
+    import RFSS_PXA
+    runningModule = RFSS_PXA
+else:
+    raise ValueError("Invalid argument. Only 'RFSS_FSV' or 'RFSS_PXA' are accepted.")
 
 # Connect to MongoDB
 client = MongoClient('localhost', 27017)
@@ -32,8 +42,7 @@ minElevation = 5.0
 if datetime.datetime.utcnow().time() >= datetime.time(0, 0):
     logging.info('-----------------------------------------------------')
     logging.info('RFSS service restarted. Using current schedule.')
-    RFSS_FSV.main()
-    # RFSS_PXA.main()
+    runningModule.main()
 
 # Fetch report is done daily using schedule at 00:00 UTC
 def fetchReport():
