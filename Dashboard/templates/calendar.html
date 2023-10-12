@@ -32,8 +32,9 @@
         Today's Events - {{ current_utc_time }} UTC for GridID:&emsp;
         <a href="https://www.karhukoti.com/maidenhead-grid-square-locator-desktop-map/?grid={{ location }}" target="_blank" style="color: blue; text-decoration: underline; font-weight: bold;">{{ location }}</a>
     </h1>
+    <!-- Date selection form elements -->
     <div class="flex justify-center items-center mb-8">
-        <form action="/events" method="post" class="flex">
+        <form action="/events" method="post" class="flex justify-center">
             <input type="date" name="date" class="mr-4">
             <input type="submit" value="Show Events for Selected Date" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
         </form>
@@ -87,5 +88,48 @@
     {% else %}
         <p><center>No events received today - Wait unitl 00:00 UTC for next schedule</p></center>
     {% endif %}
+    <!-- Placeholder for the actual azimuth and elevation -->
+    <div class="flex justify-center items-center mt-8 mb-8">
+        <div id="actualAzimuth" class="mr-4 py-2 px-4 bg-white border text-black rounded text-center"></div>
+        <div id="actualElevation" class="py-2 px-4 bg-white border text-black rounded text-center"></div>
+    </div>
+    <!-- Form elements for manual scanning -->
+    <div class="flex justify-center items-center mt-8 mb-8">
+        <form id="azForm" action="/set_az" method="post" class="flex justify-center">
+            <label for="startingAZ" class="mr-4">Starting AZ:</label>
+            <input type="text" id="startingAZ" name="startingAZ" class="border bg-white text-black py-2 px-4 rounded text-center mr-4">
+            <label for="endingAZ" class="mr-4">Ending AZ:</label>
+            <input type="text" id="endingAZ" name="endingAZ" class="border bg-white text-black py-2 px-4 rounded text-center mr-4">
+            <input type="submit" value="Submit AZ" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+        </form>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Function to handle form submission
+            document.getElementById('azForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const formData = new FormData(this);
+                fetch('/set_az', {
+                    method: 'POST',
+                    body: formData
+                });
+            });
+      
+            // Function to get and update the actual azimuth and elevation
+            function updateActualAzEl() {
+                fetch('/get_actual_AzEl')
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('actualAzimuth').innerText = `Actual Azimuth: ${data.actual_az}`;
+                        document.getElementById('actualElevation').innerText = `Actual Elevation: ${data.actual_el}`;
+                });
+            }
+      
+          // Read the actual azimuth/elevation every second
+          setInterval(updateActualAzEl, 1000);
+        });
+    </script>
+
 </body>
 </html>

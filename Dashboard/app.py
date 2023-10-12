@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, Response
 import pymongo
 import datetime
 from pytz import timezone
@@ -26,6 +26,13 @@ def get_location():
             
     except Exception as e:
         return (f'An error occurred checking the location: {e}')
+
+def get_current_AzEl(conn):
+    conn.request("GET", "/track")
+    response = conn.getresponse()
+    data = json.loads(response.read())
+    response.close()
+    return round(data['az'], 2), round(data['el'], 2)
 
 def format_time(time_tuple):
     return f"{time_tuple[0]:02d}:{time_tuple[1]:02d}:{time_tuple[2]:02d}"
@@ -115,6 +122,20 @@ def events():
             item['LOS_EST'] = convert_to_EST(item['LOS'])
     current_utc_time = datetime.datetime.utcnow().strftime("%m/%d/%Y %H:%M")
     return render_template('events.html', event=event if event else None, selected_date=selected_date, date_from_db=date_from_db_str, location=location_data)
+
+@app.route('/set_az', methods=['POST'])
+def set_az():
+    starting_az = float(request.form['startingAZ'])
+    ending_az = float(request.form['endingAZ'])
+    # Your existing code to handle the Starting and Ending AZ
+    return '', 204  # Return 'No Content' status
+
+@app.route('/get_actual_AzEl')
+def get_actual_AzEl():
+    conn = http.client.HTTPConnection("192.168.4.1", 80)
+    current_az, current_el = get_current_AzEl(conn)
+    json_data = json.dumps({'actual_az': current_az, 'actual_el': current_el})
+    return Response(json_data, content_type='application/json')
 
 if __name__ == '__main__':
     app.run(debug=False)
