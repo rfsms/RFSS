@@ -18,7 +18,7 @@ def get_location():
         def get_track_data():
             conn.request("GET", "/track")
             response = conn.getresponse()
-            request.close()
+            conn.close()
             return json.loads(response.read()) if response.status == 200 else None
 
         data = get_track_data()
@@ -31,7 +31,7 @@ def get_current_AzEl(conn):
     conn.request("GET", "/min")
     response = conn.getresponse()
     data = json.loads(response.read())
-    response.close()
+    conn.close()
     return round(data['az'], 1), round(data['el'], 1)
 
 def format_time(time_tuple):
@@ -138,6 +138,22 @@ def set_az():
     conn = http.client.HTTPConnection("192.168.4.1", 80)
     conn.request("GET", f"/cmd?a=P|{set_az}|{0}|")
     response = conn.getresponse()
+    return '', response.status
+
+@app.route('/pause_schedule', methods=['POST'])
+def pause_schedule():
+    conn = http.client.HTTPConnection("192.168.4.1", 80)
+    conn.request("GET", f"/cmd?a=S")
+    response = conn.getresponse()
+    conn.close()
+    return '', response.status
+
+@app.route('/unpause_schedule', methods=['POST'])
+def unpause_schedule():
+    conn = http.client.HTTPConnection("192.168.4.1", 80)
+    conn.request("GET", f"/cmd?a=B|E")
+    response = conn.getresponse()
+    conn.close()
     return '', response.status
 
 if __name__ == '__main__':
