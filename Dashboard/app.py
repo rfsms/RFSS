@@ -130,19 +130,10 @@ def get_actual_AzEl():
     json_data = json.dumps({'actual_az': current_az, 'actual_el': current_el})
     return Response(json_data, content_type='application/json')
 
-@app.route('/set_az', methods=['POST'])
-def set_az():
-    starting_az = request.form['startingAZ']
-    ending_az = float(request.form['endingAZ'])
-    set_az = starting_az
-    conn = http.client.HTTPConnection("192.168.4.1", 80)
-    conn.request("GET", f"/cmd?a=P|{set_az}|{0}|")
-    response = conn.getresponse()
-    return '', response.status
-
 @app.route('/pause_schedule', methods=['POST'])
 def pause_schedule():
     conn = http.client.HTTPConnection("192.168.4.1", 80)
+    # Send a stop command to the rotor (which also commands SAT Tracker to unschedule)
     conn.request("GET", f"/cmd?a=S")
     response = conn.getresponse()
     conn.close()
@@ -151,9 +142,46 @@ def pause_schedule():
 @app.route('/unpause_schedule', methods=['POST'])
 def unpause_schedule():
     conn = http.client.HTTPConnection("192.168.4.1", 80)
-    conn.request("GET", f"/cmd?a=B|E")
-    response = conn.getresponse()
+
+    # Re-enable scheduler
+    conn.request("GET", "/cmd?a=B|E")
+    conn.getresponse()
+
+    # Get schedule to determine if there is an ongoing pass
+    conn.request("GET", "/future?a=28654;33591;38771;43698;")
+    response_content = conn.getresponse().read()
+    data = json.loads(response_content.decode('utf-8'))
+
+    # Getting the current time in epoch and 
+    # Determine which satellite is currently between AOS and LOS
+    current_time = int(datetime.datetime.utcnow().timestamp())
+
+    sorted_list = sorted(data['list'], key=lambda x: x[2] if len(x) > 9 else float('inf'))
+
+    if sorted_list:
+        entry = sorted_list[0]
+        if len(entry) > 9:
+            aos, los, sat_id = entry[2], entry[3], entry[9]
+        print(f"Satellite ID: {sat_id}, AOS: {datetime.datetime.utcfromtimestamp(aos).strftime('%Y-%m-%d %H:%M:%S')} UTC, LOS: {datetime.datetime.utcfromtimestamp(los).strftime('%Y-%m-%d %H:%M:%S')} UTC")
+
+        # If there is an ongoing pass, then send the command to track it
+        # Otherwise SATTracker is an idiot and will wait until the next pass
+        if aos <= current_time <= los:
+            print(f"Updating satellite with ID {sat_id}")
+            conn.request("GET", f"/cmd?a=U|{sat_id}")
+            conn.getresponse()
+    
     conn.close()
+    return '', 200
+
+@app.route('/set_az', methods=['POST'])
+def set_az():
+    starting_az = request.form['startingAZ']
+    ending_az = float(request.form['endingAZ'])
+    set_az = starting_az
+    conn = http.client.HTTPConnection("192.168.4.1", 80)
+    conn.request("GET", f"/cmd?a=P|{set_az}|{0}|")
+    response = conn.getresponse()
     return '', response.status
 
 if __name__ == '__main__':
