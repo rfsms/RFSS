@@ -90,60 +90,76 @@
     {% endif %}
     <!-- For elements for displaying azimuth and elevation -->
     <div class="flex justify-center items-center mt-8 mb-8">
-        <div id="actualAzimuth" class="mr-4 py-2 px-4 bg-white border text-black rounded text-center"></div>
-        <div id="actualElevation" class="py-2 px-4 bg-white border text-black rounded text-center"></div>
+        <div id="actualAzimuth" class="mr-4 py-2 px-4 bg-blue-200 p-2 rounded"></div>
+        <div id="actualElevation" class="mr-4 py-2 px-4 bg-blue-200 rounded"></div>
     </div>
     <!-- Form elements for manual scanning -->
-    <div class="flex justify-center items-center mt-8 mb-8">
+    <div id="azFormDiv" class="flex justify-center items-center mt-8 mb-8">
         <form id="azForm" action="/set_az" method="post" class="flex justify-center">
             <label for="startingAZ" class="mr-4">Starting AZ:</label>
-            <input type="text" id="startingAZ" name="startingAZ" class="border bg-white text-black py-2 px-4 rounded text-center mr-4">
+            <input type="text" id="startingAZ" name="startingAZ" class="border bg-white text-black py-2 px-4 rounded text-center mr-4" style="opacity: 0.5">
             <label for="endingAZ" class="mr-4">Ending AZ:</label>
-            <input type="text" id="endingAZ" name="endingAZ" class="border bg-white text-black py-2 px-4 rounded text-center mr-4">
-            <input type="submit" value="Submit AZ" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+            <input type="text" id="endingAZ" name="endingAZ" class="border bg-white text-black py-2 px-4 rounded text-center mr-4" style="opacity: 0.5">
+            <input type="submit" value="Submit AZ" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mr-4">
         </form>
+        <input type="checkbox" id="pauseSchedule" class="ml-4"> Pause Schedule
     </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Function to handle form submission
-            document.getElementById('azForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                const formData = new FormData(this);
-        
-                // Extract the startingAZ value
-                let startingAZ = formData.get('startingAZ');
-                let endingAZ = formData.get('endingAZ');
-        
-                if(!endingAZ) {
-                    endingAZ = startingAZ;
-                    // Update ending value to match starting value if no ending value is entered
-                    document.getElementById('endingAZ'.value = endingAZ);
 
-                    // Update formData to include the new endingAZ value
-                    formData.set('endingAZ', endingAZ);
-                }
-        
-                // Send POST request to your Flask app
-                fetch('/set_az', {
-                    method: 'POST',
-                    body: formData
-                });
-            });
-        
-            // Function to get and update the actual azimuth and elevation
-            function updateActualAzEl() {
-                fetch('/get_actual_AzEl')
-                    .then(response => response.json())
-                    .then(data => {
-                        document.getElementById('actualAzimuth').innerText = `Actual Azimuth: ${data.actual_az}\u00B0`;
-                        document.getElementById('actualElevation').innerText = `Actual Elevation: ${data.actual_el}\u00B0`;
-                });
-            }
-        
-            // Read the actual azimuth/elevation every second
-            setInterval(updateActualAzEl, 1000);
+        const checkbox = document.getElementById('pauseSchedule');
+        const azFormDiv = document.getElementById('azFormDiv');
+        const startingAZ = document.getElementById('startingAZ');
+        const endingAZ = document.getElementById('endingAZ');
+
+        // Set initial state based on checkbox state
+        azFormDiv.style.opacity = checkbox.checked ? "1" : "0.5";
+        startingAZ.disabled = !checkbox.checked;
+        endingAZ.disabled = !checkbox.checked;
+
+        // Update state when checkbox changes
+        checkbox.addEventListener('change', function() {
+            azFormDiv.style.opacity = this.checked ? "1" : "0.5";
+            startingAZ.disabled = !this.checked;
+            endingAZ.disabled = !this.checked;
         });
-    </script>    
+
+        // Function to handle form submission
+        document.getElementById('azForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            let extractedStartingAZ = formData.get('startingAZ');
+            let extractedEndingAZ = formData.get('endingAZ');
+
+            if (!extractedEndingAZ) {
+                extractedEndingAZ = extractedStartingAZ;
+                endingAZ.value = extractedEndingAZ;
+                formData.set('endingAZ', extractedEndingAZ);
+            }
+
+            fetch('/set_az', {
+                method: 'POST',
+                body: formData
+            });
+        });
+
+        // Function to update the actual azimuth and elevation
+        function updateActualAzEl() {
+            fetch('/get_actual_AzEl')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('actualAzimuth').innerText = `Actual Azimuth: ${data.actual_az}\u00B0`;
+                    document.getElementById('actualElevation').innerText = `Actual Elevation: ${data.actual_el}\u00B0`;
+                    console.log("Actual AZ: ", data.actual_az, "Actual EL: ", data.actual_el)
+                });
+        }
+
+        // Update the actual azimuth and elevation every second
+        setInterval(updateActualAzEl, 1000);
+        });
+    </script>
 
 </body>
 </html>
