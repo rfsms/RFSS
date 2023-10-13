@@ -94,6 +94,8 @@
         <div id="actualElevation" class="py-2 px-4 bg-white border text-black rounded text-center"></div>
     </div>
     <!-- Form elements for manual scanning -->
+    <input type="checkbox" id="pauseSchedule" name="pauseSchedule">
+    <label for="pauseSchedule">Pause Schedule</label>
     <div class="flex justify-center items-center mt-8 mb-8">
         <form id="azForm" action="/set_az" method="post" class="flex justify-center">
             <label for="startingAZ" class="mr-4">Starting AZ:</label>
@@ -122,8 +124,6 @@
                     // Update formData to include the new endingAZ value
                     formData.set('endingAZ', endingAZ);
                 }
-                // Log to the console
-                console.log("Starting AZ:", startingAZ, "Ending AZ:", endingAZ);
         
                 // Send POST request to your Flask app
                 fetch('/set_az', {
@@ -137,8 +137,8 @@
                 fetch('/get_actual_AzEl')
                     .then(response => response.json())
                     .then(data => {
-                        document.getElementById('actualAzimuth').innerText = `Actual Azimuth: ${data.actual_az}`;
-                        document.getElementById('actualElevation').innerText = `Actual Elevation: ${data.actual_el}`;
+                        document.getElementById('actualAzimuth').innerText = `Actual Azimuth: ${data.actual_az}\u00B0`;
+                        document.getElementById('actualElevation').innerText = `Actual Elevation: ${data.actual_el}\u00B0`;
                 });
             }
         

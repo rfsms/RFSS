@@ -18,21 +18,21 @@ def get_location():
         def get_track_data():
             conn.request("GET", "/track")
             response = conn.getresponse()
+            request.close()
             return json.loads(response.read()) if response.status == 200 else None
 
         data = get_track_data()
-        
         return data['gpsgr']
             
     except Exception as e:
         return (f'An error occurred checking the location: {e}')
 
 def get_current_AzEl(conn):
-    conn.request("GET", "/track")
+    conn.request("GET", "/min")
     response = conn.getresponse()
     data = json.loads(response.read())
     response.close()
-    return round(data['az'], 2), round(data['el'], 2)
+    return round(data['az'], 1), round(data['el'], 1)
 
 def format_time(time_tuple):
     return f"{time_tuple[0]:02d}:{time_tuple[1]:02d}:{time_tuple[2]:02d}"
@@ -134,8 +134,9 @@ def get_actual_AzEl():
 def set_az():
     starting_az = request.form['startingAZ']
     ending_az = float(request.form['endingAZ'])
+    set_az = starting_az
     conn = http.client.HTTPConnection("192.168.4.1", 80)
-    conn.request("GET", f"/cmd?a=P|{starting_az}|0|")
+    conn.request("GET", f"/cmd?a=P|{set_az}|{0}|")
     response = conn.getresponse()
     return '', response.status
 
