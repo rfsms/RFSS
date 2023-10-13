@@ -30,7 +30,7 @@ TEMP_DIR = '/home/noaa_gms/RFSS/Received/'
 REMOTE_IP = 'noaa-gms-ec2'
 REMOTE_USERNAME = 'Administrator'
 REMOTE_PATH = '/'
-RESOURCE_STRING = 'TCPIP::192.168.2.101::hislip0' 
+RESOURCE_STRING = 'TCPIP::192.168.0.101::hislip0' 
 RM = pyvisa.ResourceManager()
 INSTR = RM.open_resource(RESOURCE_STRING, timeout = 20000)
 INSTR_DIR = 'D:\\Users\\Instrument\\Documents\\BASIC\\data\\WAV\\results\\RFSS\\'

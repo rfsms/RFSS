@@ -31,6 +31,7 @@ REMOTE_PATH = '/'
 RESOURCE_STRING = 'TCPIP::192.168.1.101::hislip0'
 OPTION_STRING_FORCE_RS_VISA = 'SelectVisa=rs'
 INSTR = RsInstrument(RESOURCE_STRING, False, False, OPTION_STRING_FORCE_RS_VISA)
+# INSTR = RsInstrument(RESOURCE_STRING, False, False, 'simulate=True')
 INSTR_DIR = 'c:\\R_S\\Instr\\user\\RFSS\\'
 
 # Once the files are removed fromSpecAn, tar/gz'd in TEMP_DIR folder, then this function moves the file into
@@ -215,12 +216,13 @@ def main():
     INSTR.write('SYST:DISP:UPD ON')
     INSTR.write('INIT:CONT ON')
     INSTR.write('SENS:FREQ:CENT 1702500000')
-    INSTR.write('SENS:FREQ:SPAN 20000000')
+    INSTR.write('SENS:FREQ:SPAN 8000000')
     INSTR.write('SENS:BAND:RES 5000')
     INSTR.write('SENS:BAND:VID:AUTO OFF')
     INSTR.write('SENS:BAND:VID 5000')
     INSTR.write('INP:ATT:AUTO OFF')
     INSTR.write('INP:ATT 0')
+    INSTR.write('DISP:WIND:SUBW:TRAC:Y:SCAL:RLEV -30')
     INSTR.write('DISP:WIND1:SUBW:TRAC1:MODE AVER')
     INSTR.write('SENS:WIND1:DET1:FUNC RMS')
     INSTR.write('DISP:WIND1:SUBW:TRAC2:MODE MAXH')
@@ -231,7 +233,7 @@ def main():
     INSTR.write('CALC2:SGR:COL RAD')
     INSTR.write("INST:CRE:NEW IQ, 'IQ Analyzer'")
     INSTR.write('INIT:CONT OFF')
-    INSTR.write('TRAC:IQ:SRAT 18750000')
+    INSTR.write('TRAC:IQ:SRAT 6250000')
     INSTR.write('SENS:SWE:TIME 0.016')
     INSTR.write('SENS:SWE:COUN 10')
     INSTR.write('HCOP:DEV:LANG PNG')

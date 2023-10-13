@@ -4,6 +4,12 @@ import json
 
 # Takes about 55s for full 360* azmuthal rotation ~7*/s.  
 # Takes about 66s for a full 180* elevated rise ~3*/s.
+# Target azimuth and elevation
+target_az = 0
+target_el = 0
+
+# Tolerance value
+tolerance = 1
 
 def get_current_azimuth(conn):
     conn.request("GET", "/track")
@@ -15,9 +21,15 @@ def get_current_azimuth(conn):
 def within_tolerance(value, target, tolerance):
     return target - tolerance <= value <= target + tolerance
 
-# Target azimuth and elevation
-target_az = 0
-target_el = 0
+while True:
+    current_az, current_el = get_current_azimuth(conn)
+    print(f"Azimuth: {current_az}, Elevation: {current_el}")
+    if within_tolerance(current_az, target_az, tolerance) and within_tolerance(current_el, target_el, tolerance):
+        break
+    time.sleep(1)  # Polling interval
+
+
+
 
 # Connect to the server
 conn = http.client.HTTPConnection("192.168.4.1", 80)
@@ -31,8 +43,7 @@ response.close()
 # Record the start time
 start_time = time.time()
 
-# Tolerance value
-tolerance = 1
+
 
 # # Loop through each target azimuth in 5-degree increments
 # for target_az in range(0, 361, 5):
