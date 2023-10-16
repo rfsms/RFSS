@@ -107,65 +107,83 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-    
-            const checkbox = document.getElementById('pauseSchedule');
-            const azFormDiv = document.getElementById('azFormDiv');
-            const startingAZ = document.getElementById('startingAZ');
-            const endingAZ = document.getElementById('endingAZ');
-    
-            // Set initial state based on checkbox state
-            azFormDiv.style.opacity = checkbox.checked ? "1" : "0.5";
-            startingAZ.disabled = !checkbox.checked;
-            endingAZ.disabled = !checkbox.checked;            
 
-            // Update state when checkbox changes
-            checkbox.addEventListener('change', function() {
-                azFormDiv.style.opacity = this.checked ? "1" : "0.5";
-                startingAZ.disabled = !this.checked;
-                endingAZ.disabled = !this.checked;
+        const checkbox = document.getElementById('pauseSchedule');
+        const azFormDiv = document.getElementById('azFormDiv');
+        const startingAZ = document.getElementById('startingAZ');
+        const endingAZ = document.getElementById('endingAZ');
 
-                 // Determine which route to call based on checkbox state
-                const route = this.checked ? '/pause_schedule' : '/unpause_schedule';
-    
-                // route request is updated based on checkbox state 
-                fetch(route, {
-                    method: 'POST'
-                });
-            });
-    
-            // Function to handle form submission
-            document.getElementById('azForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                const formData = new FormData(this);
-                let extractedStartingAZ = formData.get('startingAZ');
-                let extractedEndingAZ = formData.get('endingAZ');
-    
-                if (!extractedEndingAZ) {
-                    extractedEndingAZ = extractedStartingAZ;
-                    endingAZ.value = extractedEndingAZ;
-                    formData.set('endingAZ', extractedEndingAZ);
+        // Set initial state based on checkbox state
+        azFormDiv.style.opacity = checkbox.checked ? "1" : "0.5";
+        startingAZ.disabled = !checkbox.checked;
+        endingAZ.disabled = !checkbox.checked;            
+
+        // Update state when checkbox changes
+        checkbox.addEventListener('change', function() {
+            azFormDiv.style.opacity = this.checked ? "1" : "0.5";
+            startingAZ.disabled = !this.checked;
+            endingAZ.disabled = !this.checked;
+
+            // Determine which route to call based on checkbox state
+            const route = this.checked ? '/pause_schedule' : '/unpause_schedule';
+
+            // Route request is updated based on checkbox state 
+            fetch(route, {
+                method: 'POST'
+            })
+            .then(response => response.text())  // Read the response as text
+            .then(text => {
+                if (text) {  // If the response is not empty, try parsing it as JSON
+                    return JSON.parse(text);
                 }
-    
-                fetch('/set_az', {
-                    method: 'POST',
-                    body: formData
-                });
-            });
-    
-            // Function to update the actual azimuth and elevation
-            function updateActualAzEl() {
-                fetch('/get_actual_AzEl')
-                    .then(response => response.json())
-                    .then(data => {
-                        document.getElementById('actualAzimuth').innerText = `Actual Azimuth: ${data.actual_az}\u00B0`;
-                        document.getElementById('actualElevation').innerText = `Actual Elevation: ${data.actual_el}\u00B0`;
-                        console.log("Actual AZ: ", data.actual_az, "Actual EL: ", data.actual_el)
-                    });
+            })
+            .then(data => {
+                if (data) {  // If data is not undefined, log it to the console
+                    console.log(data);
+                }
+            })
+            .catch(error => console.error('An error occurred:', error));  // Catch any errors
+        });
+
+        // Function to handle form submission
+        document.getElementById('azForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            let extractedStartingAZ = formData.get('startingAZ');
+            let extractedEndingAZ = formData.get('endingAZ');
+
+            // Form validation for outside range or text
+            if (isNaN(extractedStartingAZ) || isNaN(extractedEndingAZ) || extractedStartingAZ < 0 || extractedStartingAZ > 360 || extractedEndingAZ < 0 || extractedEndingAZ > 360) {
+                alert('Please enter valid values between 0 and 360.');
+                return;
             }
-    
-            // Update the actual azimuth and elevation every second
-            setInterval(updateActualAzEl, 1000);
+            // Ending AZ == Starting AZ if Ending AZ is blank (i.e., spot point) 
+            if (!extractedEndingAZ) {
+                extractedEndingAZ = extractedStartingAZ;
+                endingAZ.value = extractedEndingAZ;
+                formData.set('endingAZ', extractedEndingAZ);
+            }
+
+            fetch('/set_az', {
+                method: 'POST',
+                body: formData
+            });
+        });
+
+        // Function to update the actual azimuth and elevation
+        function updateActualAzEl() {
+            fetch('/get_actual_AzEl')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('actualAzimuth').innerText = `Actual Azimuth: ${data.actual_az}\u00B0`;
+                    document.getElementById('actualElevation').innerText = `Actual Elevation: ${data.actual_el}\u00B0`;
+                    // console.log("Actual AZ: ", data.actual_az, "Actual EL: ", data.actual_el);
+                });
+        }
+
+        // Update the actual azimuth and elevation every second
+        setInterval(updateActualAzEl, 1000);
         });
     </script>
 

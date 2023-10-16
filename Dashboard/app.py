@@ -155,24 +155,37 @@ def unpause_schedule():
     # Getting the current time in epoch and 
     # Determine which satellite is currently between AOS and LOS
     current_time = int(datetime.datetime.utcnow().timestamp())
+    current_utc_time_str = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
 
     sorted_list = sorted(data['list'], key=lambda x: x[2] if len(x) > 9 else float('inf'))
+
+    result = {
+        'status': 'success',
+        'message': ''
+    }
 
     if sorted_list:
         entry = sorted_list[0]
         if len(entry) > 9:
             aos, los, sat_id = entry[2], entry[3], entry[9]
-        print(f"Satellite ID: {sat_id}, AOS: {datetime.datetime.utcfromtimestamp(aos).strftime('%Y-%m-%d %H:%M:%S')} UTC, LOS: {datetime.datetime.utcfromtimestamp(los).strftime('%Y-%m-%d %H:%M:%S')} UTC")
-
-        # If there is an ongoing pass, then send the command to track it
-        # Otherwise SATTracker is an idiot and will wait until the next pass
-        if aos <= current_time <= los:
-            print(f"Updating satellite with ID {sat_id}")
-            conn.request("GET", f"/cmd?a=U|{sat_id}")
-            conn.getresponse()
+            print(f"Satellite ID: {sat_id}, AOS: {datetime.datetime.utcfromtimestamp(aos).strftime('%Y-%m-%d %H:%M:%S')} UTC, LOS: {datetime.datetime.utcfromtimestamp(los).strftime('%Y-%m-%d %H:%M:%S')} UTC")
     
+            # If there is an ongoing pass, then send the command to track it
+            # Otherwise SATTracker is an idiot and will wait until the next pass
+            if aos <= current_time <= los:
+                print(f"Updating satellite with ID {sat_id}")
+                conn.request("GET", f"/cmd?a=U|{sat_id}")
+                conn.getresponse()
+                result['message'] = f'Updating satellite with ID {sat_id} at {current_utc_time_str} UTC'
+            else:
+                result['message'] = 'No ongoing pass found'
+
+        else:
+            result['status'] = 'failure'
+            result['message'] = 'No data found'
+
     conn.close()
-    return '', 200
+    return json.dumps(result), 200, {'Content-Type': 'application/json'}
 
 @app.route('/set_az', methods=['POST'])
 def set_az():
