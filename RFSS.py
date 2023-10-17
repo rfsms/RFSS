@@ -10,7 +10,7 @@ from pymongo import MongoClient
 import sys
 
 if len(sys.argv) < 2:
-    raise ValueError("Please provide either 'RFSS_FSV' or 'RFSS_PXS' as an argument.")
+    raise ValueError("Please provide either 'RFSS_FSV' or 'RFSS_PXA' as an argument.")
 
 runningModule = None
 
@@ -110,8 +110,8 @@ def fetchReport():
             logging.info("Attempting check_and_set_rotator function")
             check_and_set_rotator()
 
-            RFSS_FSV.main()
-            # RFSS_PXA.main()
+            #RFSS_FSV.main()
+            runningModule.main()
 
     except Exception as e:
         logging.error(f'An error occuredL {e}')
