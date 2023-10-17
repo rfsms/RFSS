@@ -1,8 +1,13 @@
+# Only communicates with SA (PXA) to capture a single trace and then repeats for 'num_capture_iterations'
+# Then creates a spectrogram on the resulting data. 
+
 import pyvisa
 import csv
 import datetime
 import matplotlib.pyplot as plt
 import numpy as np
+
+
 # Initialize the VISA resource manager
 RM = pyvisa.ResourceManager()
 
