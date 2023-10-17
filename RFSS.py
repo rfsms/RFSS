@@ -110,7 +110,6 @@ def fetchReport():
             logging.info("Attempting check_and_set_rotator function")
             check_and_set_rotator()
 
-            #RFSS_FSV.main()
             runningModule.main()
 
     except Exception as e:
