@@ -7,6 +7,7 @@ import numpy as np
 import os
 import glob
 import pandas as pd
+from scipy.io import savemat
 
 
 PXA_RESOURCE_STRING = 'TCPIP::192.168.2.101::hislip0::INSTR' 
@@ -16,12 +17,12 @@ RM = pyvisa.ResourceManager()
 manualDir = '/home/noaa_gms/RFSS/Tools/Testing/manualCaptures'
 
 # Specify the number of times you want to capture the trace
-num_capture_iterations = 10
+num_capture_iterations = 2
 
 # Specify the center frequency in MHz, span in MHz, and number of points collected
 center_frequency_mhz = 1702.5  # Center frequency in MHz
 span_mhz = 20.0  # Span in MHz
-num_points = 1000  # Replace with the number of points collected
+num_points = 1000 # Replace with the number of points collected
 
 # Calculate the frequency values in MHz with four decimal places
 frequency_start_mhz = center_frequency_mhz - span_mhz / 2
@@ -31,14 +32,13 @@ frequency_values_mhz = [round(frequency_start_mhz + i * frequency_step_mhz, 4) f
 # Generate a unique folder name based on current time
 folderDate = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 dirDate = os.path.join(manualDir, folderDate)
-# pyvisa.log_to_screen()
 
 # Create the new directory
 os.makedirs(dirDate)
 
 waveforms_15MHz = [
 "2-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1698_QPSK.ARB",
-"2-1-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1698_QPSK_1PRB_GUARDBAND.ARB",
+# "2-1-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1698_QPSK_1PRB_GUARDBAND.ARB",
 # "2-2-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1698_QPSK_2PRB_GUARDBAND.ARB",
 # "2-3-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1698_QPSK_3PRB_GUARDBAND.ARB",
 # "4-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLDFT_ALLPUSCH_1698_QPSK.ARB",
@@ -89,8 +89,6 @@ def createSpectrogram(dirDate):
     # Initialize empty lists to collect all data and timestamps
     all_data = []
     all_timestamps = []
-
-
     
     # Loop through each CSV file to read its content
     for csv_file in csv_files:
@@ -104,6 +102,7 @@ def createSpectrogram(dirDate):
 
     # Convert the list of arrays into a single 2D NumPy array
     all_data = np.concatenate(all_data, axis=1)
+    all_data = all_data.T  # Transpose the data array
     all_timestamps = np.array(all_timestamps)
 
     # Plot the rotated spectrogram
@@ -114,10 +113,10 @@ def createSpectrogram(dirDate):
     plt.colorbar(label='Amplitude (dB)')
     plt.yticks(range(len(all_timestamps)), all_timestamps)
     plt.xlabel('Frequency (MHz)')
-    plt.title('Rotated Spectrogram with Timestamps')
+    plt.title(f'Aggregated_Spectrogram\n{timestamp_str} UTC')
 
     # Save the plot
-    plt.savefig(f'{dirDate}spectrogram_aggregated_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}.png')
+    plt.savefig(os.path.join(dirDate, f'Aggregated_Spectrogram_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}.png'))
 
     # plt.show()
 
@@ -139,13 +138,12 @@ with RM.open_resource(PXA_RESOURCE_STRING) as PXA:
     PXA.write(f'SWE:POIN {num_points}')
 
     PXA.write('INST:SCR:CRE')
-    PXA.write(":INST:NSEL 8")
-    PXA.write(":CONF:WAV")
-    PXA.write(":INIT:CONT OFF")
+    PXA.write('INST:NSEL 8') # IQ Analyzer
+    PXA.write('CONF:WAV')
+    PXA.write('INIT:CONT OFF')
     PXA.write('SENS:FREQ:CENT 1702500000')
     PXA.write('POW:ATT:AUTO OFF')
     PXA.write('POW:ATT 0')
-    PXA.write('DISP:WAV:VIEW:NSEL 1')
     PXA.write('POW:GAIN ON')
     PXA.write('WAV:SRAT 18.75MHz')
     PXA.write('WAV:SWE:TIME 16ms')
@@ -193,19 +191,21 @@ with RM.open_resource(MXG_RESOURCE_STRING, timeout=2000) as MXG:
             MXG.write(':RAD:ARB 1')
             MXG.write(':OUTP 1')
             time.sleep(2)
-            # input('Waiting for user confirmation')
+
             with RM.open_resource(PXA_RESOURCE_STRING, timeout = 2000) as PXA:
                 # Initialize a list to store data from each iteration and timestamps
                 data_iterations = []
                 timestamp_iterations = []
                 for iteration in range(num_capture_iterations):
                     # Generate a timestamp string for the current iteration
-                    timestamp_str = datetime.datetime.now().strftime("%m/%d/%y %H:%M:%S")
+                    timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
                     timestamp_iterations.append(timestamp_str)
                     print(f'Iteration: {iteration}')
                     
                     #Swlect the spectrum Analyzer
                     PXA.write('INST:SCR:SEL "Spectrum Analyzer 1"')
+                    ready = PXA.query('*OPC?')
+                    print(f'Ready State: {ready}')
                     # PXA.write('INST:SCR:SEL "IQ Analyzer 1"')
 
                     # Configure the instrument to fetch trace data and read/format
@@ -218,7 +218,19 @@ with RM.open_resource(MXG_RESOURCE_STRING, timeout=2000) as MXG:
                     # Append the trace data to the list
                     data_iterations.append([float(x) for x in trace_data.decode().split(',')])
                     # print(f'DataIterations: {data_iterations}')
-            
+
+                    # IQ Data Capture_Start
+                    PXA.write('INST:SCR:SEL "IQ Analyzer 1"')
+                    PXA.write('INIT:IMM;*WAI')
+                    data = PXA.query_binary_values(":FETCH:WAV0?")
+
+                    # Convert to separate I and Q arrays
+                    i_data = data[::2]
+                    q_data = data[1::2]
+
+                    savemat(os.path.join(dirDate, f'{waveform_clean}_{timestamp_str}.mat'), {'I_Data': i_data, 'Q_Data': q_data})
+                    # IQ Data Capture_End
+                     
             # Create or open the CSV file for writing in append mode with timestamp in the filename
             csv_file_path = os.path.join(dirDate, f'{waveform_clean}_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}.csv')
             
