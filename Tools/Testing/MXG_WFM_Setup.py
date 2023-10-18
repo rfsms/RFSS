@@ -8,7 +8,7 @@ import os
 import glob
 import pandas as pd
 from scipy.io import savemat
-
+from PIL import Image
 
 PXA_RESOURCE_STRING = 'TCPIP::192.168.2.101::hislip0::INSTR' 
 MXG_RESOURCE_STRING = 'TCPIP::192.168.130.66::5025::SOCKET' 
@@ -17,7 +17,10 @@ RM = pyvisa.ResourceManager()
 manualDir = '/home/noaa_gms/RFSS/Tools/Testing/manualCaptures'
 
 # Specify the number of times you want to capture the trace
-num_capture_iterations = 2
+# The number of traces here are a direct corelation of time required for completion.
+# For num_capture_iterations = 5, there will be 5 IQs transferred and one csv with 5 columns of data per waveform  
+# To speed hings up you can also disable the IQ data transfer.
+num_capture_iterations = 5
 
 # Specify the center frequency in MHz, span in MHz, and number of points collected
 center_frequency_mhz = 1702.5  # Center frequency in MHz
@@ -38,28 +41,28 @@ os.makedirs(dirDate)
 
 waveforms_15MHz = [
 "2-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1698_QPSK.ARB",
-# "2-1-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1698_QPSK_1PRB_GUARDBAND.ARB",
-# "2-2-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1698_QPSK_2PRB_GUARDBAND.ARB",
-# "2-3-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1698_QPSK_3PRB_GUARDBAND.ARB",
-# "4-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLDFT_ALLPUSCH_1698_QPSK.ARB",
-# "6-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1702_QPSK.ARB",
-# "6-2-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1702_QPSK_2PRB_GUARDBAND.ARB",
-# "6-3-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1702_QPSK_3PRB_GUARDBAND.ARB",
-# "7-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLDFT_ALLPUSCH_1702_QPSK.ARB",
-# "8-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1707_QPSK.ARB",
-# "8-1-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1707_QPSK_1PRB_GUARDBAND.ARB",
-# "8-2-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1707_QPSK_2PRB_GUARDBAND.ARB",
-# "8-3-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1707_QPSK_3PRB_GUARDBAND.ARB",
-# "9-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLDFT_ALLPUSCH_1707_QPSK.ARB",
-# "16-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1701_QPSK_METOP.ARB",
-# "16-1-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1701_METOP_QPSK_1PRB_GUARDBAND.ARB",
-# "16-2-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1701_METOP_QPSK_2PRB_GUARDBAND.ARB",
-# "16-3-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1701_METOP_QPSK_3PRB_GUARDBAND.ARB",
-# "17-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLDFT_ALLPUSCH_1701_QPSK_METOP.ARB",
-# "18-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1698_QPSK_PUCCH.ARB",
-# "19-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1701_QPSK_METOP_PUCCH.ARB",
-# "22-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_NONBLANKED.ARB",
-# "23-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLDFT_ALLPUSCH_NONBLANKED.ARB"
+"2-1-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1698_QPSK_1PRB_GUARDBAND.ARB",
+"2-2-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1698_QPSK_2PRB_GUARDBAND.ARB",
+"2-3-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1698_QPSK_3PRB_GUARDBAND.ARB",
+"4-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLDFT_ALLPUSCH_1698_QPSK.ARB",
+"6-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1702_QPSK.ARB",
+"6-2-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1702_QPSK_2PRB_GUARDBAND.ARB",
+"6-3-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1702_QPSK_3PRB_GUARDBAND.ARB",
+"7-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLDFT_ALLPUSCH_1702_QPSK.ARB",
+"8-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1707_QPSK.ARB",
+"8-1-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1707_QPSK_1PRB_GUARDBAND.ARB",
+"8-2-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1707_QPSK_2PRB_GUARDBAND.ARB",
+"8-3-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1707_QPSK_3PRB_GUARDBAND.ARB",
+"9-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLDFT_ALLPUSCH_1707_QPSK.ARB",
+"16-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1701_QPSK_METOP.ARB",
+"16-1-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1701_METOP_QPSK_1PRB_GUARDBAND.ARB",
+"16-2-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1701_METOP_QPSK_2PRB_GUARDBAND.ARB",
+"16-3-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1701_METOP_QPSK_3PRB_GUARDBAND.ARB",
+"17-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLDFT_ALLPUSCH_1701_QPSK_METOP.ARB",
+"18-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1698_QPSK_PUCCH.ARB",
+"19-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_1701_QPSK_METOP_PUCCH.ARB",
+"22-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLCP_ALLPUSCH_NONBLANKED.ARB",
+"23-15MHZ_SCS15KHZ_9UES_ALLTTI_ALLDFT_ALLPUSCH_NONBLANKED.ARB"
 ]
 
 # waveforms_5MHz = [
@@ -82,30 +85,34 @@ waveforms_15MHz = [
 # "21-5MHZ_SCS15KHZ_3UES_ALLTTI_ALLDFT_ALLPUSCH_QPSK_NONBLANKED.ARB"
 # ]
 
-def createSpectrogram(dirDate):
-    # Collect all the CSV files generated
-    csv_files = glob.glob(f"{dirDate}/*.csv")
+def aggregate_spectrograms(dirDate):
+    image_files = sorted(glob.glob(f"{dirDate}/*.png"), key=os.path.getmtime)
+    images = [Image.open(image_file) for image_file in image_files]
 
-    # Initialize empty lists to collect all data and timestamps
-    all_data = []
-    all_timestamps = []
+    widths, heights = zip(*(image.size for image in images))
+
+    max_width = max(widths)
+    total_height = sum(heights)
+
+    new_image = Image.new('RGB', (max_width, total_height))
+
+    y_offset = 0
+    for image in images:
+        new_image.paste(image, (0, y_offset))
+        y_offset += image.height
+
+    new_image.save(os.path.join(dirDate, 'Aggregated_Spectrogram.png'))
+
+def createSpectrogram(dirDate, waveform_clean, timestamp_str, csv_file_path):
+    # Read last created csv to begin spectrogram creation
+    df = pd.read_csv(csv_file_path)
+    frequencies = df['Frequency (MHz)']
+    timestamps = df.columns[1:]
+    data = df.iloc[:, 1:].to_numpy()
     
-    # Loop through each CSV file to read its content
-    for csv_file in csv_files:
-        df = pd.read_csv(csv_file)
-        frequencies = df['Frequency (MHz)']
-        timestamps = df.columns[1:]
-        data = df.iloc[:, 1:].to_numpy()
-        
-        all_data.append(data)
-        all_timestamps.extend(timestamps)
+    all_data = data.T  # Transpose the data array
+    all_timestamps = np.array(timestamps)
 
-    # Convert the list of arrays into a single 2D NumPy array
-    all_data = np.concatenate(all_data, axis=1)
-    all_data = all_data.T  # Transpose the data array
-    all_timestamps = np.array(all_timestamps)
-
-    # Plot the rotated spectrogram
     plt.figure(figsize=(10, 6))
     plt.imshow(all_data, aspect='auto', cmap='viridis', origin='lower',
             extent=[frequencies.iloc[0], frequencies.iloc[-1], 0, len(all_timestamps)-1])
@@ -113,12 +120,11 @@ def createSpectrogram(dirDate):
     plt.colorbar(label='Amplitude (dB)')
     plt.yticks(range(len(all_timestamps)), all_timestamps)
     plt.xlabel('Frequency (MHz)')
-    plt.title(f'Aggregated_Spectrogram\n{timestamp_str} UTC')
+    plt.title(f'{waveform_clean}\n{timestamp_str} UTC')
 
     # Save the plot
-    plt.savefig(os.path.join(dirDate, f'Aggregated_Spectrogram_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}.png'))
-
-    # plt.show()
+    plt.savefig(os.path.join(dirDate, f'{waveform_clean}_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}.png'))
+    plt.close()
 
 # Open a connection to the Spectrum Analyzer
 with RM.open_resource(PXA_RESOURCE_STRING) as PXA:
@@ -127,12 +133,12 @@ with RM.open_resource(PXA_RESOURCE_STRING) as PXA:
     PXA.write('*CLS')
     PXA.write('SYST:DEF SCR')
     pxa_idn = PXA.query('*IDN?')
-    print(f'PXA: {pxa_idn}')
+    # print(f'PXA: {pxa_idn}')
     PXA.write("INIT:CONT ON")
     PXA.write('SENS:FREQ:CENT 1702500000')
     PXA.write('FREQ:SPAN 20000000')
     PXA.write('DISP:WIND:TRAC:Y:RLEV -40')
-    PXA.write('POW:ATT 0')
+    # PXA.write('POW:ATT 0')
     PXA.write('POW:GAIN ON')
     PXA.write('BAND:RES 1000')
     PXA.write(f'SWE:POIN {num_points}')
@@ -143,7 +149,7 @@ with RM.open_resource(PXA_RESOURCE_STRING) as PXA:
     PXA.write('INIT:CONT OFF')
     PXA.write('SENS:FREQ:CENT 1702500000')
     PXA.write('POW:ATT:AUTO OFF')
-    PXA.write('POW:ATT 0')
+    # PXA.write('POW:ATT 0')
     PXA.write('POW:GAIN ON')
     PXA.write('WAV:SRAT 18.75MHz')
     PXA.write('WAV:SWE:TIME 16ms')
@@ -151,14 +157,14 @@ with RM.open_resource(PXA_RESOURCE_STRING) as PXA:
     PXA.write('FORM:BORD SWAP')
     PXA.write('FORM REAL,32')
 
-with RM.open_resource(MXG_RESOURCE_STRING, timeout=2000) as MXG:
+with RM.open_resource(MXG_RESOURCE_STRING, timeout=20000) as MXG:
     MXG.read_termination = '\n'
     MXG.write_termination = '\n'
     
     # MXG reset/setup
     MXG.write('*IDN?')
     mxg_idn = MXG.read()
-    print(f'MXG: {mxg_idn}')
+    # print(f'MXG: {mxg_idn}')
 
     #RMXG Config
     MXG.write('*RST')
@@ -205,7 +211,7 @@ with RM.open_resource(MXG_RESOURCE_STRING, timeout=2000) as MXG:
                     #Swlect the spectrum Analyzer
                     PXA.write('INST:SCR:SEL "Spectrum Analyzer 1"')
                     ready = PXA.query('*OPC?')
-                    print(f'Ready State: {ready}')
+                    # print(f'Ready State: {ready}')
                     # PXA.write('INST:SCR:SEL "IQ Analyzer 1"')
 
                     # Configure the instrument to fetch trace data and read/format
@@ -218,7 +224,7 @@ with RM.open_resource(MXG_RESOURCE_STRING, timeout=2000) as MXG:
                     # Append the trace data to the list
                     data_iterations.append([float(x) for x in trace_data.decode().split(',')])
                     # print(f'DataIterations: {data_iterations}')
-
+                
                     # IQ Data Capture_Start
                     PXA.write('INST:SCR:SEL "IQ Analyzer 1"')
                     PXA.write('INIT:IMM;*WAI')
@@ -251,32 +257,11 @@ with RM.open_resource(MXG_RESOURCE_STRING, timeout=2000) as MXG:
             
             print(f"Trace data from {num_capture_iterations} iterations saved to {csv_file_path}")
 
-            # # Setup the plots by converting the frequency values and amplitude data 
-            # # to numpy arrays for plotting
-            # frequency_values_mhz = np.array(frequency_values_mhz)
-            # np_data_iterations = np.array(data_iterations).astype(float)
-
-            # # Plot the spectrogram
-            # plt.figure(figsize=(10, 6))
-            # # plt.imshow(data_iterations, aspect='auto', cmap='inferno', origin='lower', 
-            # #            extent=[frequency_values_mhz[0], frequency_values_mhz[-1], 0, num_capture_iterations-1])
-
-            # plt.imshow(data_iterations, aspect='auto', cmap='viridis', origin='lower', 
-            #            extent=[frequency_values_mhz[0], frequency_values_mhz[-1], 0, num_capture_iterations-1])
-
-            # plt.colorbar(label='Amplitude (dB)')
-            # plt.yticks(range(len(timestamp_iterations)), timestamp_iterations)
-            # plt.xlabel('Frequency (MHz)')
-            # plt.title(f'{waveform_clean}\n{timestamp_str}')
-
-            # # Save the plot
-            # plt.savefig(os.path.join(dirDate, f'spectrogram_{waveform_clean}_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}.png'))
-
-            # plt.show()
+            createSpectrogram(dirDate, waveform_clean, timestamp_str, csv_file_path)
 
         else:
             print("Operation issue")
-            break     
+            break
 
-createSpectrogram(dirDate)
-       
+# After all the individual spectrograms have been generated, call the function
+aggregate_spectrograms(dirDate)
