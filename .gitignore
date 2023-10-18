@@ -18,6 +18,6 @@ tempCodeRunnerFile.js
 schedule.csv
 tempCodeRunnerFilepython3 -u
 .vscode/settings.json
-Tools/Testing/manualCaptures/*.png
-Tools/Testing/manualCaptures/*.csv
-Tools/Testing/manualCaptures/*.mat
+Tools/Testing/manualCaptures/*/*.png
+Tools/Testing/manualCaptures/*/*.csv
+Tools/Testing/manualCaptures/*/*.mat
