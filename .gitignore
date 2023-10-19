@@ -21,3 +21,4 @@ tempCodeRunnerFilepython3 -u
 Tools/Testing/manualCaptures/*/*.png
 Tools/Testing/manualCaptures/*/*.csv
 Tools/Testing/manualCaptures/*/*.mat
+toDemod/
