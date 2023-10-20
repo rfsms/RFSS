@@ -4,6 +4,7 @@ import datetime
 from pytz import timezone
 import http.client
 import json
+import os
 
 app = Flask(__name__)
 client = pymongo.MongoClient("mongodb://localhost:27017/")
@@ -134,9 +135,12 @@ def get_actual_AzEl():
 
 @app.route('/pause_schedule', methods=['POST'])
 def pause_schedule():
+    with open("pause_flag.txt", "w") as f:
+        f.write("paused")
     global is_paused
     is_paused = True
     conn = http.client.HTTPConnection("192.168.4.1", 80)
+
     # Send a stop command to the rotor (which also commands SAT Tracker to unschedule)
     conn.request("GET", f"/cmd?a=S")
     response = conn.getresponse()
@@ -145,6 +149,8 @@ def pause_schedule():
 
 @app.route('/unpause_schedule', methods=['POST'])
 def unpause_schedule():
+    if os.path.exists("pause_flag.txt"):
+        os.remove("pause_flag.txt")
     global is_paused
     is_paused = False
     conn = http.client.HTTPConnection("192.168.4.1", 80)
@@ -202,6 +208,11 @@ def set_az():
     conn.request("GET", f"/cmd?a=P|{set_az}|{0}|")
     response = conn.getresponse()
     return '', response.status
+
+@app.route('/check_pause_state', methods=['GET'])
+def check_pause_state():
+    paused = os.path.exists("pause_flag.txt")
+    return Response(json.dumps({"paused": paused}), mimetype='application/json')
 
 if __name__ == '__main__':
     app.run(debug=False)

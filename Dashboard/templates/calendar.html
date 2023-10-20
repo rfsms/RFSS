@@ -186,8 +186,33 @@
                 });
         }
 
+        // Function to check server for pause state and update checkbox
+        function checkPauseState() {
+            fetch('/check_pause_state', {
+                method: 'GET'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.paused !== undefined) {
+                    checkbox.checked = data.paused;
+                    azFormDiv.style.opacity = data.paused ? "1" : "0.5";
+                    startingAZ.disabled = !data.paused;
+                    endingAZ.disabled = !data.paused;
+
+                    if (data.paused) {
+                        console.log('Scheduling is paused.');
+                    }
+                }
+            })
+            .catch(error => console.error('An error occurred:', error));
+        }
+
         // Update the actual azimuth and elevation every second
         setInterval(updateActualAzEl, 1000);
+
+        // Update the checkbox state every two second
+        setInterval(checkPauseState, 2000);
+
         });
     </script>
 
