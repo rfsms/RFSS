@@ -22,3 +22,4 @@ Tools/Testing/manualCaptures/*/*.png
 Tools/Testing/manualCaptures/*/*.csv
 Tools/Testing/manualCaptures/*/*.mat
 toDemod/
+pause_flag.txt
