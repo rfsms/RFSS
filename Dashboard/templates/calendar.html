@@ -176,9 +176,13 @@
             fetch('/get_actual_AzEl')
                 .then(response => response.json())
                 .then(data => {
-                    document.getElementById('actualAzimuth').innerText = `Actual Azimuth: ${data.actual_az}\u00B0`;
-                    document.getElementById('actualElevation').innerText = `Actual Elevation: ${data.actual_el}\u00B0`;
-                    // console.log("Actual AZ: ", data.actual_az, "Actual EL: ", data.actual_el);
+                    if (data.actual_az === 450.000000 && data.actual_el === 180.000000) {
+                        document.getElementById('actualAzimuth').innerText = "Controller Disconnected";
+                        document.getElementById('actualElevation').innerText = "Controller Disconnected";
+                    } else {
+                        document.getElementById('actualAzimuth').innerText = `Actual Azimuth: ${data.actual_az}\u00B0`;
+                        document.getElementById('actualElevation').innerText = `Actual Elevation: ${data.actual_el}\u00B0`;
+                    }
                 });
         }
 
