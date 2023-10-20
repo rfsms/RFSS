@@ -11,6 +11,8 @@ db = client["status_db"]
 collection = db["schedule_daily"]
 schedule_run = db['schedule_run']
 
+is_paused = False
+
 def get_location():
     try:
         conn = http.client.HTTPConnection("192.168.4.1", 80)
@@ -132,6 +134,8 @@ def get_actual_AzEl():
 
 @app.route('/pause_schedule', methods=['POST'])
 def pause_schedule():
+    global is_paused
+    is_paused = True
     conn = http.client.HTTPConnection("192.168.4.1", 80)
     # Send a stop command to the rotor (which also commands SAT Tracker to unschedule)
     conn.request("GET", f"/cmd?a=S")
@@ -141,6 +145,8 @@ def pause_schedule():
 
 @app.route('/unpause_schedule', methods=['POST'])
 def unpause_schedule():
+    global is_paused
+    is_paused = False
     conn = http.client.HTTPConnection("192.168.4.1", 80)
 
     # Re-enable scheduler
