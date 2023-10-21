@@ -160,7 +160,7 @@ def unpause_schedule():
     conn.getresponse()
 
     # Get schedule to determine if there is an ongoing pass
-    conn.request("GET", "/future?a=28654;33591;38771;43698;")
+    conn.request("GET", "/future?a=28654;33591;38771;43689;") #NOAA18 28654;NOAA19 33591;METOPB 38771;METOPC 43689
     response_content = conn.getresponse().read()
     data = json.loads(response_content.decode('utf-8'))
 
