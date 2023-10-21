@@ -93,7 +93,7 @@ def get_SpecAn_content_and_DL_locally(INSTR):
         INSTR.write(f'MMEM:CDIR "{INSTR_DIR}"')
         response = INSTR.query('MMEM:CAT?')
 
-        # Process the response and print the content
+        # Process the response and log the content
         content_list = response.replace('\'', '').split(',')
         logging.info("Transferring captures from Spectrum Analyzer to process on RFSS server.")
         for item in content_list:
@@ -133,6 +133,9 @@ def get_SpecAn_content_and_DL_locally(INSTR):
 # Finally, get_SpecAn_content_and_DL_locally(INSTR) & local_tgz_and_rm_IQ(TEMP_DIR, satellite_name) are processed
 def process_schedule():
     """Process the CSV schedule."""
+    # Initializing pause flag
+    loop_completed = True
+
     with open(CSV_FILE_PATH, 'r') as csvfile:
         # Create a CSV reader object
         csvreader = csv.reader(csvfile)
@@ -140,8 +143,25 @@ def process_schedule():
 
         # Go through rows
         for row in csvreader:
+            # Check for pause flag at the start of each row
+            while os.path.exists("/home/noaa_gms/RFSS/pause_flag.txt"):
+                logging.info("Pause flag detected at start of row. Pausing.")
+                time.sleep(5)  # Sleep for 5 seconds before checking again
+
+            # Reset the flag here to reset for each row
+            loop_completed = True
+
+            if len(row) < 5:
+                logging.info(f"Skipping row {row} - not enough elements")
+                continue
+
             aos_time = row[2][1:-1].replace(" ", "").split(",")  # Parsing (hh, mm, ss)
             los_time = row[3][1:-1].replace(" ", "").split(",")  # Parsing (hh, mm, ss)
+
+            if len(aos_time) != 3 or len(los_time) != 3:
+                logging.info(f"Skipping row {row} - invalid time format")
+                continue
+
             satellite_name = row[4]
             now = datetime.datetime.utcnow()
 
@@ -151,24 +171,38 @@ def process_schedule():
             los_datetime = datetime.datetime(now.year, now.month, now.day, 
                                              int(los_time[0]), int(los_time[1]), int(los_time[2]))
 
-
             # If current time has already passed the scheduled los_datetime, skip to the next schedule
             if now > los_datetime:
                 continue
-                
+
+            was_paused = False  # Initialize the flag here
+            log_pause_msg = True  # Initialize another flag to control the logging message
+
             # If current time is before the scheduled aos_datetime, wait until aos_datetime is reached
             while now < aos_datetime:
-                time.sleep(1)
+                if os.path.exists("/home/noaa_gms/RFSS/pause_flag.txt"):
+                    if log_pause_msg:
+                        logging.info("Pause flag detected. Pausing pass schedule.")
+                        log_pause_msg = False  # Set to False so the message is not logged again
+                    was_paused = True  # Set the flag because the schedule was paused
+                    loop_completed = False
+                    time.sleep(1)
+                else:
+                    log_pause_msg = True  # Reset the logging flag if pause_flag.txt is removed
+                    if was_paused:
+                        logging.info("Schedule restarting.")
+                        was_paused = False  # Reset the flag
                 now = datetime.datetime.utcnow()
 
             # Adding a trigger to provide single hit log and start running
             triggered = False
             while True:
-                now = datetime.datetime.utcnow()  # Update current time at the start of each iteration
+                was_paused = False  # Pause flag initialization 
+
+                now = datetime.datetime.utcnow()
                 if now >= los_datetime:
                     break
 
-                # Lets see if this works...
                 if not triggered:
                     logging.info(f'Current scheduled row under test: {row}')
                     triggered = True
@@ -179,29 +213,38 @@ def process_schedule():
                         "row": row,
                         }
                     schedule_run.insert_one(document)
+                
+                while os.path.exists("/home/noaa_gms/RFSS/pause_flag.txt"):
+                    logging.info("Schedule paused. Waiting for flag to be removed.")
+                    was_paused = True  # Set the flag because the schedule was paused
+                    time.sleep(5)  # Sleep for 5 seconds before checking again
 
-                # Intrumentation happens here
-                # print(f"Function with label '{satellite_name}' is running!")
+                # If the schedule was paused and is now restarting
+                if was_paused:
+                    logging.info(f"Schedule restarting during pass. Current scheduled row under test: {row}")
+                    was_paused = False  # Reset the flag
+
+                # Instrumentation happens here
                 INSTR.write('INST IQ')
                 INSTR.write('INIT:IMM;*WAI')
                 current_datetime = datetime.datetime.utcnow()
                 formatted_current_datetime = current_datetime.strftime('%Y-%m-%d_%H_%M_%S_UTC') 
                 time_saved_IQ = f"'{INSTR_DIR}{formatted_current_datetime}_{satellite_name}'"
                 INSTR.write(f"MMEM:STOR:IQ:STAT 1,{time_saved_IQ}")
-                time.sleep(2)  # Sleep for 2 second
+                time.sleep(2)  # Sleep for 2 seconds
             
-            # # print_message(satellite_name)
             get_SpecAn_content_and_DL_locally(INSTR)
-            # local_tgz_and_rm_IQ(TEMP_DIR, satellite_name)        
             success = local_tgz_and_rm_IQ(TEMP_DIR, satellite_name)
             
-            # Assuming local_tgz_and_rm_IQ function is successful, update the MongoDB document
-            document_update = {
-                "$set": {
-                    "processed": success  # Assuming success is either "true" or "false"
+            # Only execute this part if the loop was not broken by the pause flag
+            if loop_completed:
+                document_update = {
+                    "$set": {
+                        "processed": success  # Assuming success is either "true" or "false"
+                    }
                 }
-            }
-            schedule_run.update_one({"timestamp": document["timestamp"]}, document_update)
+                schedule_run.update_one({"timestamp": document["timestamp"]}, document_update)
+
 
 def main():
 
