@@ -133,7 +133,7 @@ try:
         PXA.write('POW:ATT:AUTO OFF')
         PXA.write('POW:ATT 0')
         PXA.write('POW:GAIN OFF')
-        PXA.write('WAV:SRAT 7.68MHz')
+        PXA.write('WAV:SRAT 6.25MHz')
         PXA.write('WAV:SWE:TIME 16ms')
         PXA.write('DISP:WAV:VIEW:WIND:TRAC:Y:COUP ON')
         PXA.write('FORM:BORD SWAP')
