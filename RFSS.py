@@ -49,7 +49,7 @@ def fetchReport():
     try:
         logging.info(f"Fetching report for use.")
         conn = http.client.HTTPConnection("192.168.4.1", 80)
-        conn.request("GET", "/report?a=38771;43689;28654;33591")
+        conn.request("GET", "/report?a=38771;43689;28654;33591") #NOAA18 28654;NOAA19 33591;METOPB 38771;METOPC 43689
         response = conn.getresponse()
 
         if response.status == 200:
