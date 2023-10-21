@@ -126,15 +126,15 @@ def get_SpecAn_content_and_DL_locally(INSTR):
         if "-256," in str(e):
             logging.info("No files on Spectrum Analyzer to process:", e)
 
-
 # This function is the timing behind RFSS data capture.  Reads the CSV_FILE_PATH and goes through each row determining
 # aos/los, etc and compares against current time.  If older entries exist continue, if current time meet aos time then 
 # wait.  once current time matches an aos data is being captured until los.
 # Finally, get_SpecAn_content_and_DL_locally(INSTR) & local_tgz_and_rm_IQ(TEMP_DIR, satellite_name) are processed
 def process_schedule():
     """Process the CSV schedule."""
-    # Initializing pause flag
+    # Initializing pause flag at various states
     loop_completed = True
+    log_pause_msg_start_of_row = True 
 
     with open(CSV_FILE_PATH, 'r') as csvfile:
         # Create a CSV reader object
@@ -145,8 +145,14 @@ def process_schedule():
         for row in csvreader:
             # Check for pause flag at the start of each row
             while os.path.exists("/home/noaa_gms/RFSS/pause_flag.txt"):
-                logging.info("Pause flag detected at start of row. Pausing.")
+                if log_pause_msg_start_of_row:
+                    logging.info("Pause flag detected at start of row. Pausing.")
+                    log_pause_msg_start_of_row = False  # Set to False so the message is not logged again
                 time.sleep(5)  # Sleep for 5 seconds before checking again
+
+            # Reset the logging flag if pause_flag.txt is removed
+            if not os.path.exists("/home/noaa_gms/RFSS/pause_flag.txt"):
+                log_pause_msg_start_of_row = True
 
             # Reset the flag here to reset for each row
             loop_completed = True
@@ -190,11 +196,11 @@ def process_schedule():
                 else:
                     log_pause_msg = True  # Reset the logging flag if pause_flag.txt is removed
                     if was_paused:
-                        logging.info("Schedule restarting.")
+                        logging.info("Pause_flag removed. Restarting schedule...")
                         was_paused = False  # Reset the flag
                 now = datetime.datetime.utcnow()
 
-            # Adding a trigger to provide single hit log and start running
+            # Adding a trigger to provide single hit logging and start running
             triggered = False
             while True:
                 was_paused = False  # Pause flag initialization 
@@ -202,6 +208,11 @@ def process_schedule():
                 now = datetime.datetime.utcnow()
                 if now >= los_datetime:
                     break
+
+                if os.path.exists("/home/noaa_gms/RFSS/pause_flag.txt"):
+                    if now < aos_datetime or now > los_datetime:
+                        loop_completed = False  # Setting this to False as it's breaking because of pause_flag.txt
+                        break
 
                 if not triggered:
                     logging.info(f'Current scheduled row under test: {row}')
@@ -214,15 +225,27 @@ def process_schedule():
                         }
                     schedule_run.insert_one(document)
                 
-                while os.path.exists("/home/noaa_gms/RFSS/pause_flag.txt"):
-                    logging.info("Schedule paused. Waiting for flag to be removed.")
-                    was_paused = True  # Set the flag because the schedule was paused
-                    time.sleep(5)  # Sleep for 5 seconds before checking again
+                log_pause_msg_inside_loop = True  # Initialize another flag to control the logging message
 
-                # If the schedule was paused and is now restarting
+                while os.path.exists("/home/noaa_gms/RFSS/pause_flag.txt"):
+                    if log_pause_msg_inside_loop:
+                        logging.info("Schedule paused. Waiting for flag to be removed.")
+                        log_pause_msg_inside_loop = False  # Set to False so the message is not logged again
+                    was_paused = True  # Set the flag because the schedule is paused
+                    time.sleep(5)
+
+                # Reset the logging flag if pause_flag.txt is removed
+                if not os.path.exists("/home/noaa_gms/RFSS/pause_flag.txt"):
+                    log_pause_msg_inside_loop = True
+
+                # If the schedule is unpaused and schedule restarted during a pass
                 if was_paused:
-                    logging.info(f"Schedule restarting during pass. Current scheduled row under test: {row}")
+                    logging.info(f"Restarting schedule during pass. Current scheduled row under test: {row}")
                     was_paused = False  # Reset the flag
+
+                if os.path.exists("/home/noaa_gms/RFSS/pause_flag.txt"):
+                    loop_completed = False
+                    break
 
                 # Instrumentation happens here
                 INSTR.write('INST IQ')
@@ -231,7 +254,7 @@ def process_schedule():
                 formatted_current_datetime = current_datetime.strftime('%Y-%m-%d_%H_%M_%S_UTC') 
                 time_saved_IQ = f"'{INSTR_DIR}{formatted_current_datetime}_{satellite_name}'"
                 INSTR.write(f"MMEM:STOR:IQ:STAT 1,{time_saved_IQ}")
-                time.sleep(2)  # Sleep for 2 seconds
+                time.sleep(2) 
             
             get_SpecAn_content_and_DL_locally(INSTR)
             success = local_tgz_and_rm_IQ(TEMP_DIR, satellite_name)
@@ -276,7 +299,7 @@ def main():
     INSTR.write('CALC2:SGR:COL RAD')
     INSTR.write("INST:CRE:NEW IQ, 'IQ Analyzer'")
     INSTR.write('INIT:CONT OFF')
-    INSTR.write('TRAC:IQ:SRAT 6250000')
+    INSTR.write('TRAC:IQ:SRAT 6250000') # For 5MHz channel
     INSTR.write('SENS:SWE:TIME 0.016')
     INSTR.write('SENS:SWE:COUN 10')
     INSTR.write('HCOP:DEV:LANG PNG')
