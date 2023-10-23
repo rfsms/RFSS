@@ -213,7 +213,7 @@ try:
                 data_iterations = []
                 timestamp_iterations = []
                 
-            time.sleep(60)
+            time.sleep(10)
 
     # After all the individual spectrograms have been generated, call the function
     # aggregate_spectrograms(dirDate)
