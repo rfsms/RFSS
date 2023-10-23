@@ -19,7 +19,7 @@ manualDir = '/home/noaa_gms/RFSS/Tools/Testing/manualCaptures'
 # The number of traces here are a direct corelation of time required for completion.
 # For num_capture_iterations = 5, there will be 5 IQs transferred and one csv with 5 columns of data per waveform  
 # To speed hings up you can also disable the IQ data transfer.
-num_capture_iterations = 120
+num_capture_iterations = 5
 
 # Specify the center frequency in MHz, span in MHz, and number of points collected
 center_frequency_mhz = 1697.5  # Center frequency in MHz
@@ -207,13 +207,13 @@ try:
                 # print(f"Trace data from {num_capture_iterations} iterations saved to {csv_file_path}")
 
                 createSpectrogram(dirDate, timestamp_str, csv_file_path)
-                print(f'Counter: {counter}')
+                # print(f'Counter: {counter}')
 
                 counter = 0
                 data_iterations = []
                 timestamp_iterations = []
                 
-            time.sleep(10)
+            time.sleep(5)
 
     # After all the individual spectrograms have been generated, call the function
     # aggregate_spectrograms(dirDate)
