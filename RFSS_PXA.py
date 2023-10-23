@@ -206,7 +206,7 @@ def process_schedule():
             if loop_completed:
                 document_update = {
                     "$set": {
-                        "processed": success  # Assuming success is either "true" or "false"
+                        "processed": str(success)  # Assuming success is either "true" or "false"
                     }
                 }
                 schedule_run.update_one({"timestamp": document["timestamp"]}, document_update)
