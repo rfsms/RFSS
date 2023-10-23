@@ -4,7 +4,6 @@ import csv
 import time
 import datetime
 import os 
-import tarfile
 import glob
 import subprocess
 import logging
@@ -61,29 +60,25 @@ def local_tgz_and_rm_IQ(directory, satellite):
     current_datetime = datetime.datetime.utcnow()
     formatted_current_datetime = current_datetime.strftime('%Y-%m-%d_%H_%M_%S_UTC')
     
-    # Get a list of all files in the directory
-    all_files = [os.path.join(directory, file) for file in os.listdir(directory)]
-
-    # Create the name of the final tar.gz file
+    all_files = [file for file in os.listdir(directory)]
     gz_file = os.path.join(directory, f'{formatted_current_datetime}_{satellite}.tar.gz')
-
-    # Create the tar.gz archive
-    with tarfile.open(gz_file, 'w:gz') as tar:
-        for file in all_files:
-            tar.add(file, arcname=os.path.basename(file))
     
-    # Remove the original files
-    for file in all_files:
-        os.remove(file)
+    process = subprocess.run(['tar', 'czf', gz_file, '-C', directory] + all_files)
+    
+    if process.returncode == 0:
+        for file in all_files:
+            os.remove(os.path.join(directory, file))
+    else:
+        logging.error(f'Error creating tar.gz file: {gz_file}')
+        return False
 
-    # Check if the gz_file exists before proceeding
     if os.path.exists(gz_file):
         logging.info('Rsyncing *.tar.gz files and removing locally')
         mv_tar_files_to_preUpload(TEMP_DIR)
-        return "true"
+        return True
     else:
-        logging.info(f"No '{gz_file}' found. Skipping scp_gz_files_and_delete.")
-        return "false"
+        logging.error(f"No '{gz_file}' found. Skipping scp_gz_files_and_delete.")
+        return False
 
 def handle_pause(log_message, restart_message=None, sleep_time=5, loop_completed=None):
     log_flag = True
@@ -96,6 +91,7 @@ def handle_pause(log_message, restart_message=None, sleep_time=5, loop_completed
         time.sleep(sleep_time)
     
     if was_paused:
+        #Resetup SpecAn
         INSTR.write(":INST:NSEL 8")
         INSTR.write(":CONF:WAV")
         INSTR.write(":INIT:CONT OFF")
