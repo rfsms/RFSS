@@ -48,7 +48,7 @@ def mv_tar_files_to_preUpload(source_dir):
     if process.returncode == 0:
         # Removing all files in the source directory
         subprocess.run(["rm", "-f", os.path.join(source_dir, '*')])
-        logging.info('All files in the source directory have been removed.')
+        logging.info('All tar.gz files in the "Received" directory have been moved to preUpload.')
         logging.info('----------------------------------------------------')
     else:
         logging.info('Error while moving files.')
@@ -73,7 +73,7 @@ def local_tgz_and_rm_IQ(directory, satellite):
         return False
 
     if os.path.exists(gz_file):
-        logging.info('Rsyncing *.tar.gz files and removing locally')
+        logging.info('All files have been tar/compressed and will be moved to preUpload')
         mv_tar_files_to_preUpload(TEMP_DIR)
         return True
     else:
