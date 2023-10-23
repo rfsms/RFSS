@@ -96,6 +96,19 @@ def handle_pause(log_message, restart_message=None, sleep_time=5, loop_completed
         time.sleep(sleep_time)
     
     if was_paused:
+        INSTR.write(":INST:NSEL 8")
+        INSTR.write(":CONF:WAV")
+        INSTR.write(":INIT:CONT OFF")
+        INSTR.write('SENS:FREQ:CENT 1702500000')
+        INSTR.write('POW:ATT:AUTO OFF')
+        INSTR.write('POW:ATT 0')
+        INSTR.write('DISP:WAV:VIEW:NSEL 1')
+        INSTR.write('POW:GAIN ON')
+        INSTR.write('WAV:SRAT 18.75MHz')
+        INSTR.write('WAV:SWE:TIME 16ms')
+        INSTR.write('DISP:WAV:VIEW:WIND:TRAC:Y:COUP ON')
+        INSTR.write(":FORM:BORD SWAP")
+        INSTR.write(":FORM REAL,32")
         if restart_message:
             logging.info(restart_message)
         if loop_completed is not None:
