@@ -4,7 +4,6 @@ import csv
 import time
 import datetime
 import os 
-import tarfile
 import glob
 import subprocess
 import logging
@@ -49,7 +48,7 @@ def mv_tar_files_to_preUpload(source_dir):
     if process.returncode == 0:
         # Removing all files in the source directory
         subprocess.run(["rm", "-f", os.path.join(source_dir, '*')])
-        logging.info('All files in the source directory have been removed.')
+        logging.info('All tar.gz files in the "Received" directory have been moved to preUpload.')
         logging.info('----------------------------------------------------')
     else:
         logging.info('Error while moving files.')
@@ -61,29 +60,25 @@ def local_tgz_and_rm_IQ(directory, satellite):
     current_datetime = datetime.datetime.utcnow()
     formatted_current_datetime = current_datetime.strftime('%Y-%m-%d_%H_%M_%S_UTC')
     
-    # Get a list of all files in the directory
-    all_files = [os.path.join(directory, file) for file in os.listdir(directory)]
-
-    # Create the name of the final tar.gz file
+    all_files = [file for file in os.listdir(directory)]
     gz_file = os.path.join(directory, f'{formatted_current_datetime}_{satellite}.tar.gz')
-
-    # Create the tar.gz archive
-    with tarfile.open(gz_file, 'w:gz') as tar:
-        for file in all_files:
-            tar.add(file, arcname=os.path.basename(file))
     
-    # Remove the original files
-    for file in all_files:
-        os.remove(file)
-
-    # Check if the gz_file exists before proceeding
-    if os.path.exists(gz_file):
-        logging.info('Rsyncing *.tar.gz files and removing locally')
-        mv_tar_files_to_preUpload(TEMP_DIR)
-        return "true"
+    process = subprocess.run(['tar', 'czf', gz_file, '-C', directory] + all_files)
+    
+    if process.returncode == 0:
+        for file in all_files:
+            os.remove(os.path.join(directory, file))
     else:
-        logging.info(f"No '{gz_file}' found. Skipping scp_gz_files_and_delete.")
-        return "false"
+        logging.error(f'Error creating tar.gz file: {gz_file}')
+        return False
+
+    if os.path.exists(gz_file):
+        logging.info('All files have been tar/compressed and will be moved to preUpload')
+        mv_tar_files_to_preUpload(TEMP_DIR)
+        return True
+    else:
+        logging.error(f"No '{gz_file}' found. Skipping scp_gz_files_and_delete.")
+        return False
 
 # Function to get contents of c:\R_S\Instr\user\RFSS\ on Spectrum Analyzer download locally to /home/noaa_gms/RFSS/Received 
 # These files will be called something like "2023-08-02_19_00_07_UTC_NOAA-15.iq.tar"
