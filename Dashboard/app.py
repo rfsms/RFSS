@@ -2,10 +2,11 @@ from flask import Flask, render_template, request, Response
 import pymongo
 import datetime
 from pytz import timezone
-import http.client
+from http.client import http, RemoteDisconnected
 import json
 import os
-
+from multiprocessing import Process
+import time
 
 app = Flask(__name__)
 client = pymongo.MongoClient("mongodb://localhost:27017/")
@@ -132,6 +133,7 @@ def get_actual_AzEl():
     conn = http.client.HTTPConnection("192.168.4.1", 80)
     current_az, current_el = get_current_AzEl(conn)
     json_data = json.dumps({'actual_az': current_az, 'actual_el': current_el})
+    conn.close()
     return Response(json_data, content_type='application/json')
 
 @app.route('/pause_schedule', methods=['POST'])
@@ -200,15 +202,84 @@ def unpause_schedule():
     conn.close()
     return json.dumps(result), 200, {'Content-Type': 'application/json'}
 
-@app.route('/set_az', methods=['POST'])
-def set_az():
-    starting_az = request.form['startingAZ']
-    ending_az = float(request.form['endingAZ'])
-    set_az = starting_az
+def set_rotor_azimuth(starting_az, ending_az):
     conn = http.client.HTTPConnection("192.168.4.1", 80)
-    conn.request("GET", f"/cmd?a=P|{set_az}|{0}|")
-    response = conn.getresponse()
-    return '', response.status
+    try:
+        max_retries = 3
+        retry_delay = 2  # seconds
+        
+        def send_request(az):
+            retries = 0
+            while retries < max_retries:
+                try:
+                    conn.request("GET", f"/cmd?a=P|{az}|{0}|")
+                    response = conn.getresponse()
+                    return response
+                except RemoteDisconnected:
+                    print("Remote end closed connection. Retrying...")
+                    retries += 1
+                    time.sleep(retry_delay)
+            raise Exception("Max retries reached")
+        
+        # Set initial azimuth
+        response = send_request(starting_az)
+        print(f"Setting rotor to starting azimuth: {starting_az}, HTTP Status: {response.status}")
+
+        # Wait until the rotor reaches the starting azimuth
+        while True:
+            current_az, _ = get_current_AzEl(conn)
+            if abs(current_az - float(starting_az)) <= 1.0:
+                print(f"Rotor is now at starting azimuth: {current_az}")
+                break
+            time.sleep(1)
+
+            # Check if the operation should be stopped before scanning starts
+            if not os.path.exists("/home/noaa_gms/RFSS/pause_flag.txt"):
+                print("Rotor scanning setup stopped.")
+                return
+
+        # Step through azimuth angles
+        set_az = float(starting_az)
+        while set_az <= float(ending_az):
+            #Check is the operation should be stopped while scanning is on-going
+            if not os.path.exists("/home/noaa_gms/RFSS/pause_flag.txt"):
+                print("Rotor scanning operation stopped.")
+                return  # Stop the function if pause_flag.txt does not exist
+
+            conn.request("GET", f"/cmd?a=P|{set_az}|{0}|")
+            response = conn.getresponse()
+            print(f"Setting rotor to azimuth: {set_az}, HTTP Status: {response.status}")
+
+            # Pause for 2 seconds
+            time.sleep(2)
+            set_az += 2.0
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+    finally:
+        conn.close()
+
+@app.route('/set_az', methods=['POST'])
+def set_az_route():
+    starting_az = float(request.form['startingAZ'])
+    ending_az = float(request.form['endingAZ'])
+
+    # Start scanning task in a separate process
+    p = Process(target=set_rotor_azimuth, args=(starting_az, ending_az))
+    p.start()
+    
+    return json.dumps({"message": "Data capture started"}), 200
+
+# Working config before changes for scanning
+# @app.route('/set_az', methods=['POST'])
+# def set_az():
+#     starting_az = request.form['startingAZ']
+#     ending_az = float(request.form['endingAZ'])
+#     set_az = starting_az
+#     conn = http.client.HTTPConnection("192.168.4.1", 80)
+#     conn.request("GET", f"/cmd?a=P|{set_az}|{0}|")
+#     response = conn.getresponse()
+#     return '', response.status
 
 @app.route('/check_pause_state', methods=['GET'])
 def check_pause_state():
