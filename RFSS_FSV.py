@@ -4,8 +4,8 @@ import csv
 import time
 import datetime
 import os 
-import glob
-import subprocess
+# import glob
+# import subprocess
 import logging
 from pymongo import MongoClient
 import shutil
