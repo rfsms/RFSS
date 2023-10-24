@@ -4,8 +4,6 @@ import csv
 import time
 import datetime
 import os 
-# import glob
-# import subprocess
 import logging
 from pymongo import MongoClient
 import shutil
@@ -36,66 +34,34 @@ INSTR = RsInstrument(RESOURCE_STRING, False, False, OPTION_STRING_FORCE_RS_VISA)
 INSTR_DIR = 'c:\\R_S\\Instr\\user\\RFSS\\'
 DEMOD_DIR = '/home/noaa_gms/RFSS/toDemod/'
 
-# Once the files are removed fromSpecAn, tar/gz'd in TEMP_DIR folder, then this function moves the file into
-# preUpload to get rsync'd when connectivity to EC2 is available.  
-# Uploads is triggered by/usr/local/bin/rsyncUpload.sh service and happens whenever a new file is placed in the dir.
-# def mv_tar_files_to_preUpload(source_dir):
-#     file_list = glob.glob(os.path.join(source_dir, '*tar.gz'))
-#     if not file_list:
-#         logging.info('No *.tar.gz files found in the source directory.')
-#         return
-
-#     destination_path = "/home/noaa_gms/RFSS/preUpload/"
-#     process = subprocess.run(["mv", *file_list, destination_path])
-
-#     if process.returncode == 0:
-#         # Removing all files in the source directory
-#         subprocess.run(["rm", "-f", os.path.join(source_dir, '*')])
-#         logging.info('All tar.gz files in the "Received" directory have been moved to preUpload.')
-#         logging.info('----------------------------------------------------')
-#     else:
-#         logging.info('Error while moving files.')
-
-# Function to tar.gz all files in /home/noaa_gms/RFSS/Received/* with a satName_timestamp and then delete all *.iq.tar.  Then scp all files to EC2 using the scp function
-# These files will be called someting like "NOAA15_2023-08-02_19_00_00_UTC.tar.gz" and will be comprised of the above *.iq.tar files
-# After calling, this function calls mv_tar_files_to_preUpload for rsync
-# def local_tgz_and_rm_IQ(directory, satellite):
-#     current_datetime = datetime.datetime.utcnow()
-#     formatted_current_datetime = current_datetime.strftime('%Y-%m-%d_%H_%M_%S_UTC')
-    
-#     all_files = [file for file in os.listdir(directory)]
-#     gz_file = os.path.join(directory, f'{formatted_current_datetime}_{satellite}.tar.gz')
-    
-#     process = subprocess.run(['tar', 'czf', gz_file, '-C', directory] + all_files)
-    
-#     if process.returncode == 0:
-#         for file in all_files:
-#             os.remove(os.path.join(directory, file))
-#     else:
-#         logging.error(f'Error creating tar.gz file: {gz_file}')
-#         return False
-
-#     if os.path.exists(gz_file):
-#         logging.info('All files have been tar/compressed and will be moved to preUpload')
-#         mv_tar_files_to_preUpload(TEMP_DIR)
-#         return True
-#     else:
-#         logging.error(f"No '{gz_file}' found. Skipping scp_gz_files_and_delete.")
-#         return False
-
 def move_iq_files_toDemod(temp_dir, to_demod_path):
-    iq_files = [file for file in os.listdir(temp_dir) if file.endswith('.iq.tar')]
+    try:
+        iq_files = [file for file in os.listdir(temp_dir) if file.endswith('.iq.tar')]
+    except FileNotFoundError:
+        return False
+
     if not iq_files:
         return False
 
-    earliest_file = min(iq_files)
-    dest_folder_name = re.search(r'(\d{4}-\d{2}-\d{2})', earliest_file).group(1).replace('-', '_')
+    try:
+        earliest_file = min(iq_files)
+        dest_folder_name = re.search(r'(\d{4}-\d{2}-\d{2})', earliest_file).group(1).replace('-', '_')
+    except AttributeError:
+        return False
+
     dest_folder = os.path.join(to_demod_path, dest_folder_name)
     
-    os.makedirs(dest_folder, exist_ok=True)
-    
+    try:
+        os.makedirs(dest_folder, exist_ok=True)
+        os.makedirs(os.path.join(dest_folder, 'results'), exist_ok=True)
+    except PermissionError:
+        return False
+
     for file in iq_files:
-        shutil.move(os.path.join(temp_dir, file), os.path.join(dest_folder, file))
+        try:
+            shutil.move(os.path.join(temp_dir, file), os.path.join(dest_folder, file))
+        except (FileNotFoundError, PermissionError):
+            return False
 
     return True
 
