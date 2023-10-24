@@ -1,0 +1,13 @@
+[Unit]
+Description=RFSS service after multi-user target
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /home/noaa_gms/RFSS/RFSS.py RFSS_FSV
+Restart=on-failure
+User=noaa_gms
+Group=noaa_gms
+
+[Install]
+WantedBy=multi-user.target

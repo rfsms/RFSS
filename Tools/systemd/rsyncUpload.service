@@ -1,0 +1,13 @@
+[Unit]
+Description=Starts the RFSS rsync service after multi-user target
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/rsyncUpload.sh
+Restart=on-failure
+User=noaa_gms
+Group=noaa_gms
+
+[Install]
+WantedBy=multi-user.target
