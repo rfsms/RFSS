@@ -11,6 +11,7 @@ from scipy.io import savemat
 import subprocess
 import sys
 
+TEMP_DIR = '/home/noaa_gms/RFSS/Received/'
 RESOURCE_STRING = 'TCPIP::192.168.1.101::hislip0'
 OPTION_STRING_FORCE_RS_VISA = 'SelectVisa=rs'
 INSTR = RsInstrument(RESOURCE_STRING, False, False, OPTION_STRING_FORCE_RS_VISA)
@@ -59,6 +60,43 @@ def createSpectrogram(dirDate, timestamp_str, csv_file_path):
     plt.savefig(os.path.join(dirDate, f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}.png'))
     plt.close()
 
+def get_SpecAn_content_and_DL_locally(INSTR):
+    try:
+        # Set and list the current directory on the SA
+        INSTR.write(f'MMEM:CDIR "{INSTR_DIR}"')
+        response = INSTR.query('MMEM:CAT?')
+
+        # Process the response and log the content
+        content_list = response.replace('\'', '').split(',')
+        for item in content_list:
+            # logging.info(item)
+
+            # Download each file in the directory (skip directories)
+            if not item.endswith('/'):  # Skip directories
+                temp_filename = TEMP_DIR + item  # Set the destination path on your PC
+                instrument_filename = INSTR_DIR + item  # Set the SA file path
+
+                try:
+                    # Download the file
+                    data = INSTR.read_file_from_instrument_to_pc(instrument_filename, temp_filename)
+
+                    # Check if data is not None before writing to the file
+                    if data is not None:
+                        with open(temp_filename, 'wb') as f:
+                            f.write(data)
+
+                    else:
+                        continue
+
+                except Exception as e:
+                    print(f"Error while downloading file '{item}': {str(e)}")
+
+        print('Removing files from Spectrum Analyzer')    
+        INSTR.write(f'MMEM:DEL "{INSTR_DIR}*"')
+
+    except RsInstrException as e:
+        if "-256," in str(e):
+            print("No files on Spectrum Analyzer to process:", e)        
 
 def instrument_setup(center_frequency_mhz, span_mhz):
     try:
@@ -106,6 +144,7 @@ def captureTrace(set_az):
             formatted_current_datetime = current_datetime.strftime('%Y-%m-%d_%H_%M_%S_UTC')
             time_saved_IQ = f"'{INSTR_DIR}{set_az}_{formatted_current_datetime}'"
             INSTR.write(f"MMEM:STOR:IQ:STAT 1,{time_saved_IQ}")
+            get_SpecAn_content_and_DL_locally(INSTR)
     except KeyboardInterrupt:
         print("Manually stopped by user.")
 
