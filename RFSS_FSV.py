@@ -163,6 +163,10 @@ def process_schedule():
                                              int(aos_time[0]), int(aos_time[1]), int(aos_time[2]))
             los_datetime = datetime.datetime(now.year, now.month, now.day, 
                                              int(los_time[0]), int(los_time[1]), int(los_time[2]))
+            
+            # Check if LOS time is on the next day
+            if los_datetime < aos_datetime:
+                los_datetime += datetime.timedelta(days=1)
 
             # If current time has already passed the scheduled los_datetime, skip to the next schedule
             if now > los_datetime:
@@ -217,7 +221,6 @@ def process_schedule():
                     }
                 }
                 schedule_run.update_one({"timestamp": document["timestamp"]}, document_update)
-
 
 def main():
 
