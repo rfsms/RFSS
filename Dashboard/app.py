@@ -7,6 +7,7 @@ import json
 import os
 from multiprocessing import Process
 import time
+import subprocess
 
 app = Flask(__name__)
 client = pymongo.MongoClient("mongodb://localhost:27017/")
@@ -250,8 +251,12 @@ def set_rotor_azimuth(starting_az, ending_az):
             response = conn.getresponse()
             print(f"Setting rotor to azimuth: {set_az}, HTTP Status: {response.status}")
 
-            # Pause for 2 seconds
-            time.sleep(2)
+            try:
+                subprocess.run(["python3", "/home/noaa_gms/RFSS/Tools/Testing/PXA_Spectrogram_IQ.py", int(some_data)]], check=True)
+            except subprocess.CalledProcessError as e:
+                print(f"Trace capture failed with error: {e}")
+                continue  # Skip to the next iteration or handle the error as needed
+
             set_az += 2.0
 
     except Exception as e:
