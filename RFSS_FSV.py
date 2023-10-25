@@ -27,27 +27,32 @@ TEMP_DIR = '/home/noaa_gms/RFSS/Received/'
 REMOTE_IP = 'noaa-gms-ec2'
 REMOTE_USERNAME = 'Administrator'
 REMOTE_PATH = '/'
-RESOURCE_STRING = 'TCPIP::192.168.1.101::hislip0'
+RESOURCE_STRING = 'TCPIP::192.168.0.101::hislip0'
 OPTION_STRING_FORCE_RS_VISA = 'SelectVisa=rs'
-INSTR = RsInstrument(RESOURCE_STRING, False, False, OPTION_STRING_FORCE_RS_VISA)
-# INSTR = RsInstrument(RESOURCE_STRING, False, False, 'simulate=True')
+# INSTR = RsInstrument(RESOURCE_STRING, False, False, OPTION_STRING_FORCE_RS_VISA)
+INSTR = RsInstrument(RESOURCE_STRING, False, False, 'simulate=True')
 INSTR_DIR = 'c:\\R_S\\Instr\\user\\RFSS\\'
 DEMOD_DIR = '/home/noaa_gms/RFSS/toDemod/'
 
 def move_iq_files_toDemod(temp_dir, to_demod_path):
+    # logging.info('Running move_iq_files_toDemod()')
     try:
-        iq_files = [file for file in os.listdir(temp_dir) if file.endswith('.iq.tar')]
+        iq_files = [file for file in os.listdir(temp_dir) if file.endswith('.iq.tar') or file == 'Simulating'] #Simulating in case of simulate=true
     except FileNotFoundError:
         return False
 
     if not iq_files:
+        logging.info('No IQ files found')
         return False
-
-    try:
-        earliest_file = min(iq_files)
-        dest_folder_name = re.search(r'(\d{4}-\d{2}-\d{2})', earliest_file).group(1).replace('-', '_')
-    except AttributeError:
-        return False
+    
+    if 'Simulating' in iq_files:
+        dest_folder_name = 'Simulating'
+    else:
+        try:
+            earliest_file = min(iq_files)
+            dest_folder_name = re.search(r'(\d{4}-\d{2}-\d{2})', earliest_file).group(1).replace('-', '_')
+        except AttributeError:
+            return False
 
     dest_folder = os.path.join(to_demod_path, dest_folder_name)
     
@@ -129,6 +134,7 @@ def handle_pause(log_message, restart_message=None, sleep_time=5, loop_completed
 # wait.  once current time matches an aos data is being captured until los.
 # Finally, get_SpecAn_content_and_DL_locally(INSTR) & local_tgz_and_rm_IQ(TEMP_DIR, satellite_name) are processed
 def process_schedule():
+    logging.info("Successfully started process_schedule() of the main routine")
     """Process the CSV schedule."""
     # Initializing pause flag at various states
     loop_completed = [True] 
@@ -140,6 +146,7 @@ def process_schedule():
 
         # Go through rows
         for row in csvreader:
+            # logging.info(row)
             # Check for pause flag at the start of each row
             handle_pause("Pause flag detected at start of row.", "Pause_flag removed. Restarting schedule...", loop_completed=loop_completed)
 
@@ -164,9 +171,9 @@ def process_schedule():
             los_datetime = datetime.datetime(now.year, now.month, now.day, 
                                              int(los_time[0]), int(los_time[1]), int(los_time[2]))
             
-            # Check if LOS time is on the next day
-            if los_datetime < aos_datetime:
-                los_datetime += datetime.timedelta(days=1)
+            # # Check if LOS time is on the next day - need to address this correctly
+            # if los_datetime < aos_datetime:
+            #     los_datetime += datetime.timedelta(days=1)
 
             # If current time has already passed the scheduled los_datetime, skip to the next schedule
             if now > los_datetime:
@@ -223,6 +230,7 @@ def process_schedule():
                 schedule_run.update_one({"timestamp": document["timestamp"]}, document_update)
 
 def main():
+    logging.info("Starting RFSS_FSV or RFSS_PXA main routine")
 
     # Instrument reset/setup
     idn = INSTR.query('*IDN?')
@@ -260,6 +268,7 @@ def main():
     try:
         process_schedule()
         logging.info("Schedule finished for the day.\n")
+        logging.info("Successfully executed process_schedule() ofthe main routine")
     except Exception as e:
         logging.info(f"An error occurred: {e}")
 
