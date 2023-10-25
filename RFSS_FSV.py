@@ -27,10 +27,10 @@ TEMP_DIR = '/home/noaa_gms/RFSS/Received/'
 REMOTE_IP = 'noaa-gms-ec2'
 REMOTE_USERNAME = 'Administrator'
 REMOTE_PATH = '/'
-RESOURCE_STRING = 'TCPIP::192.168.0.101::hislip0'
+RESOURCE_STRING = 'TCPIP::192.168.1.101::hislip0'
 OPTION_STRING_FORCE_RS_VISA = 'SelectVisa=rs'
-# INSTR = RsInstrument(RESOURCE_STRING, False, False, OPTION_STRING_FORCE_RS_VISA)
-INSTR = RsInstrument(RESOURCE_STRING, False, False, 'simulate=True')
+INSTR = RsInstrument(RESOURCE_STRING, False, False, OPTION_STRING_FORCE_RS_VISA)
+# INSTR = RsInstrument(RESOURCE_STRING, False, False, 'simulate=True')
 INSTR_DIR = 'c:\\R_S\\Instr\\user\\RFSS\\'
 DEMOD_DIR = '/home/noaa_gms/RFSS/toDemod/'
 
@@ -134,7 +134,7 @@ def handle_pause(log_message, restart_message=None, sleep_time=5, loop_completed
 # wait.  once current time matches an aos data is being captured until los.
 # Finally, get_SpecAn_content_and_DL_locally(INSTR) & local_tgz_and_rm_IQ(TEMP_DIR, satellite_name) are processed
 def process_schedule():
-    logging.info("Successfully started process_schedule() of the main routine")
+    logging.info("Successfully started process_schedule().  Waiting for next pass...")
     """Process the CSV schedule."""
     # Initializing pause flag at various states
     loop_completed = [True] 
@@ -268,7 +268,7 @@ def main():
     try:
         process_schedule()
         logging.info("Schedule finished for the day.\n")
-        logging.info("Successfully executed process_schedule() ofthe main routine")
+        # logging.info("Successfully executed process_schedule() of the main routine")
     except Exception as e:
         logging.info(f"An error occurred: {e}")
 
