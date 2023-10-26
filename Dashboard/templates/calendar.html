@@ -88,21 +88,48 @@
     {% else %}
         <p><center>No events received today - Wait unitl 00:00 UTC for next schedule</p></center>
     {% endif %}
-    <!-- For elements for displaying azimuth and elevation -->
-    <div class="flex justify-center items-center mt-8 mb-8">
-        <div id="actualAzimuth" class="mr-4 py-2 px-4 bg-blue-200 p-2 rounded"></div>
-        <div id="actualElevation" class="mr-4 py-2 px-4 bg-blue-200 rounded"></div>
-    </div>
+    <!-- Wrapper to center-align all elements -->
+    <div class="flex flex-col items-center">
+        <br></br>
+        <!-- Elements for displaying azimuth and elevation -->
+        <div class="flex justify-center items-center mb-8">
+            <div id="actualAzimuth" class="mr-4 py-2 px-4 bg-blue-200 p-2 rounded"></div>
+            <div id="actualElevation" class="mr-4 py-2 px-4 bg-blue-200 rounded"></div>
+        </div>
     <!-- Form elements for manual scanning -->
-    <div id="azFormDiv" class="flex justify-center items-center mt-8 mb-8">
-        <form id="azForm" action="/set_az" method="post" class="flex justify-center">
-            <label for="startingAZ" class="mr-4">Starting AZ:</label>
-            <input type="text" id="startingAZ" name="startingAZ" class="border bg-white text-black py-2 px-4 rounded text-center mr-4" style="opacity: 0.5">
-            <label for="endingAZ" class="mr-4">Ending AZ:</label>
-            <input type="text" id="endingAZ" name="endingAZ" class="border bg-white text-black py-2 px-4 rounded text-center mr-4" style="opacity: 0.5">
-            <input type="submit" value="Submit AZ" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mr-4">
-        </form>
-        <input type="checkbox" id="pauseSchedule" class="ml-4"> Pause Schedule
+        <div id="azFormDiv" class="flex flex-col items-center mb-8">
+            <form id="azForm" action="/set_az" method="post" class="flex flex-col items-center">
+                <div class="flex justify-center">
+                    <div class="flex flex-col justify-center items-center mr-4">
+                        <label for="startingAZ" class="text-center">Starting AZ:</label>
+                        <input type="text" id="startingAZ" name="startingAZ" class="border border-gray-600 bg-white text-black py-2 px-4 rounded text-center" style="opacity: 0.5">
+                    </div>
+                    <div class="flex flex-col justify-center items-center mr-4">
+                        <label for="endingAZ" class="text-center">Ending AZ:</label>
+                        <input type="text" id="endingAZ" name="endingAZ" class="border border-gray-600 bg-white text-black py-2 px-4 rounded text-center" style="opacity: 0.5">
+                    </div>
+                </div>
+                <div class="flex justify-center items-center mb-8">
+                    <div class="flex flex-col justify-center items-center mr-4">
+                        <label for="centerFreq" class="text-center">Center Frequency (MHz):</label>
+                        <input type="text" id="centerFreq" name="centerFreq" class="border border-gray-600 bg-white text-black py-2 px-4 rounded text-center" style="opacity: 0.5">
+                    </div>
+                    <div class="flex flex-col justify-center items-center mr-4">
+                        <label for="span" class="text-center">Span (MHz):</label>
+                        <input type="text" id="span" name="span" class="border border-gray-600 bg-white text-black py-2 px-4 rounded text-center" style="opacity: 0.5">
+                    </div>
+                    <div class="flex flex-col justify-center items-center mr-4">
+                        <label for="points" class="text-center">Num Points:</label>
+                        <input type="text" id="points" name="points" class="border border-gray-600 bg-white text-black py-2 px-4 rounded text-center" style="opacity: 0.5">
+                    </div>
+                    </div>
+                    <div class="flex items-center mt-4">
+                        <input type="submit" value="Submit AZ" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                        <input type="checkbox" id="pauseSchedule" class="ml-4"> Pause Schedule
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -112,58 +139,86 @@
         const azFormDiv = document.getElementById('azFormDiv');
         const startingAZ = document.getElementById('startingAZ');
         const endingAZ = document.getElementById('endingAZ');
+        const centerFreq = document.getElementById('centerFreq');
+        const span = document.getElementById('span');
+        const points = document.getElementById('points');
 
         // Set initial state based on checkbox state
-        azFormDiv.style.opacity = checkbox.checked ? "1" : "0.5";
-        startingAZ.disabled = !checkbox.checked;
-        endingAZ.disabled = !checkbox.checked;            
+        function toggleFormState(isEnabled) {
+            azFormDiv.style.opacity = isEnabled ? "1" : "0.5";
+            [startingAZ, endingAZ, centerFreq, span, points].forEach(elem => elem.disabled = !isEnabled);
+        }
+
+        toggleFormState(checkbox.checked);        
 
         // Update state when checkbox changes
         checkbox.addEventListener('change', function() {
-            azFormDiv.style.opacity = this.checked ? "1" : "0.5";
-            startingAZ.disabled = !this.checked;
-            endingAZ.disabled = !this.checked;
+            toggleFormState(this.checked);
 
-            // Determine which route to call based on checkbox state
-            const route = this.checked ? '/pause_schedule' : '/unpause_schedule';
+            let route, formData;
 
-            // Route request is updated based on checkbox state 
-            fetch(route, {
-                method: 'POST'
-            })
-            .then(response => response.text())  // Read the response as text
-            .then(text => {
-                if (text) {  // If the response is not empty, try parsing it as JSON
-                    return JSON.parse(text);
-                }
-            })
-            .then(data => {
-                if (data) {  // If data is not undefined, log it to the console
-                    console.log(data);
-                }
-            })
-            .catch(error => console.error('An error occurred:', error));  // Catch any errors
+            if (this.checked) {
+                route = '/pause_schedule';
+                formData = new FormData(document.getElementById('azForm'));
+            } else {
+                route = '/unpause_schedule';
+                formData = null;
+            }
+
+            fetch(route, { method: 'POST', body: formData })
+                .then(response => response.text())
+                .then(text => text ? JSON.parse(text) : null)
+                .then(data => data && console.log(data))
+                .catch(error => console.error('An error occurred:', error));
         });
 
         // Function to handle form submission
         document.getElementById('azForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            
             const formData = new FormData(this);
-            let extractedStartingAZ = formData.get('startingAZ');
-            let extractedEndingAZ = formData.get('endingAZ');
 
+            let formValues = {
+                extractedStartingAZ: formData.get('startingAZ'),
+                extractedEndingAZ: formData.get('endingAZ'),
+                extractedCenterFreq: formData.get('centerFreq'),
+                extractedSpan: formData.get('span'),
+                extractedPoints: formData.get('points')
+            };
+            
+            // Round center frequency and span to 2 decimal places
+            formValues.extractedCenterFreq = parseFloat(formValues.extractedCenterFreq).toFixed(4);
+            centerFreq.value = formValues.extractedCenterFreq;
+            formValues.extractedSpan = parseFloat(formValues.extractedSpan).toFixed(2);
+            span.value = formValues.extractedSpan;
+            
             // Form validation for outside range or text
-            if (isNaN(extractedStartingAZ) || isNaN(extractedEndingAZ) || extractedStartingAZ < 0 || extractedStartingAZ > 360 || extractedEndingAZ < 0 || extractedEndingAZ > 360) {
-                alert('Please enter valid values between 0 and 360.');
+            if (isNaN(formValues.extractedStartingAZ) || isNaN(formValues.extractedEndingAZ) || formValues.extractedStartingAZ < 0 || formValues.extractedStartingAZ > 360 || formValues.extractedEndingAZ < 0 || formValues.extractedEndingAZ > 360) {
+                alert('Please enter valid azimuth values between 0 and 360.');
+                return;
+            }
+
+            // Validation for center frequency and span
+            if (isNaN(formValues.extractedCenterFreq) || formValues.extractedCenterFreq <= 0 ||
+                isNaN(formValues.extractedSpan) || formValues.extractedSpan <= 0) {
+                alert('Please enter a valid positive Center Frequency and Span.');
+                return;
+            }
+
+            // Points validation 
+            if (!Number.isInteger(parseFloat(formValues.extractedPoints)) || parseFloat(formValues.extractedPoints) < 101 || parseFloat(formValues.extractedPoints) > 8000) {
+                alert('Points must be an integer between 101 and 8000.');
                 return;
             }
             // Ending AZ == Starting AZ if Ending AZ is blank (i.e., spot point) 
-            if (!extractedEndingAZ) {
-                extractedEndingAZ = extractedStartingAZ;
-                endingAZ.value = extractedEndingAZ;
-                formData.set('endingAZ', extractedEndingAZ);
+            if (!formValues.extractedEndingAZ) {
+                formValues.extractedEndingAZ = formValues.extractedStartingAZ;
+                endingAZ.value = formValues.extractedEndingAZ;
+                formData.set('endingAZ', formValues.extractedEndingAZ);
             }
+
+            formData.set('centerFreq', parseFloat(parseFloat(formValues.extractedCenterFreq).toFixed(2)).toString());
+            formData.set('span', parseFloat(parseFloat(formValues.extractedSpan).toFixed(2)).toString());
+
 
             fetch('/set_az', {
                 method: 'POST',
@@ -195,9 +250,7 @@
             .then(data => {
                 if (data.paused !== undefined) {
                     checkbox.checked = data.paused;
-                    azFormDiv.style.opacity = data.paused ? "1" : "0.5";
-                    startingAZ.disabled = !data.paused;
-                    endingAZ.disabled = !data.paused;
+                    toggleFormState(data.paused);  // <-- Add this line
 
                     if (data.paused) {
                         console.log('Scheduling is paused.');

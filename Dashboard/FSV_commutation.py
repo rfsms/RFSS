@@ -7,10 +7,10 @@ import pandas as pd
 from scipy.io import savemat
 
 TEMP_DIR = '/home/noaa_gms/RFSS/Received/'
-RESOURCE_STRING = 'TCPIP::192.168.0.101::hislip0'
+RESOURCE_STRING = 'TCPIP::192.168.1.101::hislip0'
 OPTION_STRING_FORCE_RS_VISA = 'SelectVisa=rs'
-# FSV = RsInstrument(RESOURCE_STRING, False, False, OPTION_STRING_FORCE_RS_VISA)
-FSV = RsInstrument(RESOURCE_STRING, False, False, 'simulate=True')
+FSV = RsInstrument(RESOURCE_STRING, False, False, OPTION_STRING_FORCE_RS_VISA)
+# FSV = RsInstrument(RESOURCE_STRING, False, False, 'simulate=True')
 INSTR_DIR = 'c:\\R_S\\Instr\\user\\RFSS\\'
 
 def createSpectrogram(dirDate, csv_file_path, start_frequency_mhz, end_frequency_mhz, starting_az, ending_az):
@@ -77,7 +77,7 @@ def get_SpecAn_content_and_DL_locally(INSTR):
 def instrument_scanning_setup():
     FSV.write('INST IQ')
 
-def instrument_commutation_setup(center_frequency_mhz, span_mhz):
+def instrument_commutation_setup(center_frequency_MHz=1702.5, span_MHz=8, points=1001):
     try:
         # print("Attempting instrument setup")
         FSV.reset()
@@ -85,8 +85,8 @@ def instrument_commutation_setup(center_frequency_mhz, span_mhz):
         FSV.visa_timeout = 20000
         FSV.write("SYST:DISP:UPD ON")
         FSV.write("INIT:CONT ON")
-        FSV.write(f"SENS:FREQ:CENT {center_frequency_mhz}MHz")
-        FSV.write(f"SENS:FREQ:SPAN {span_mhz}MHz")
+        FSV.write(f"SENS:FREQ:CENT {center_frequency_MHz}MHz")
+        FSV.write(f"SENS:FREQ:SPAN {span_MHz}MHz")
         FSV.write("SENS:BAND:RES 5000")
         FSV.write("SENS:BAND:VID:AUTO OFF")
         FSV.write("SENS:BAND:VID 5000")
