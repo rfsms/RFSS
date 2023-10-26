@@ -18,7 +18,7 @@ def createSpectrogram(dirDate, csv_file_path, start_frequency_mhz, end_frequency
     timestamps = df.columns[1:]
     data = df.iloc[:, 1:].to_numpy()
 
-    plt.figure(figsize=(12, 8))
+    plt.figure(figsize=(20, 10))
     
     plt.imshow(data, aspect='auto', cmap='viridis', origin='lower',
                extent=[0, len(timestamps) - 1, frequencies.iloc[0], frequencies.iloc[-1]],
@@ -28,6 +28,8 @@ def createSpectrogram(dirDate, csv_file_path, start_frequency_mhz, end_frequency
     plt.yticks(np.arange(frequencies.iloc[0], frequencies.iloc[-1], step=0.5))
     plt.xlabel('Timestamp')
     plt.ylabel('Frequency (MHz)')
+    plt.xticks(range(0, len(timestamps), 2), timestamps[::2], rotation=45, ha="right", rotation_mode="anchor") # Every two ticks
+    # plt.xticks(range(0, len(timestamps), 5), timestamps[::5], rotation=45, ha="right", rotation_mode="anchor") # Every 5 ticks
     plt.title(f"Start Freq: {start_frequency_mhz} MHz, Stop Freq: {end_frequency_mhz} MHz\nStart AZ: {starting_az}, Stop AZ: {ending_az}\n{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')} UTC")
     plt.tight_layout()
     plt.savefig(os.path.join(dirDate, f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}.png'))

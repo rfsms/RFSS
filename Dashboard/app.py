@@ -26,15 +26,15 @@ schedule_run = db['schedule_run']
 
 is_paused = False
 
-# # Specify the center frequency in MHz, span in MHz, and number of points collected
-# center_frequency_MHz = 1702.5  # Center frequency in MHz
-# span_MHz = 6.0  # Span in MHz
-# num_points = 1001 # Replace with the number of points collected
-
 # Specify the center frequency in MHz, span in MHz, and number of points collected
-center_frequency_MHz = 2174.5  # Center frequency in MHz
-span_MHz = 50.0  # Span in MHz
+center_frequency_MHz = 1702.5  # Center frequency in MHz
+span_MHz = 6.0  # Span in MHz
 num_points = 1001 # Replace with the number of points collected
+
+# # Specify the center frequency in MHz, span in MHz, and number of points collected
+# center_frequency_MHz = 2174.5  # Center frequency in MHz
+# span_MHz = 50.0  # Span in MHz
+# num_points = 1001 # Replace with the number of points collected
 
 # Calculate the frequency values in MHz with four decimal places
 frequency_start_MHz = center_frequency_MHz - span_MHz / 2
@@ -94,7 +94,7 @@ def set_rotor_azimuth(starting_az, ending_az):
     conn = http.client.HTTPConnection("192.168.4.1", 80)
     
     def send_request(az):
-        logging.info(f"Sending request for azimuth: {az}")
+        # logging.info(f"Sending request for azimuth: {az}")
         for _ in range(3):
             try:
                 conn.request("GET", f"/cmd?a=P|{az}|{0}|")
