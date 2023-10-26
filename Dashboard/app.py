@@ -9,6 +9,14 @@ import os
 from multiprocessing import Process
 import time
 import csv
+import logging
+
+# Reset the Root Logger - this section is used to reset the root logger and then apply below configuration
+for handler in logging.root.handlers[:]:
+    logging.root.removeHandler(handler)
+
+# Setup logging
+logging.basicConfig(filename='/home/noaa_gms/RFSS/RFSS_SA.log', level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
 app = Flask(__name__)
 client = pymongo.MongoClient("mongodb://localhost:27017/")
@@ -82,11 +90,11 @@ def set_rotor_azimuth(starting_az, ending_az):
     data_iterations = []
     timestamp_iterations = []
 
-    print("Starting set_rotor_azimuth function")
+    # print("Starting set_rotor_azimuth function")
     conn = http.client.HTTPConnection("192.168.4.1", 80)
     
     def send_request(az):
-        print(f"Sending request for azimuth: {az}")
+        logging.info(f"Sending request for azimuth: {az}")
         for _ in range(3):
             try:
                 conn.request("GET", f"/cmd?a=P|{az}|{0}|")
@@ -97,13 +105,13 @@ def set_rotor_azimuth(starting_az, ending_az):
 
     def check_conditions():
         current_az, current_el = get_current_AzEl(conn)
-        print(f"Checking conditions: Current Az: {current_az}, Current El: {current_el}")
+        logging.info(f"Checking conditions: Current Az: {current_az}, Current El: {current_el}")
         return abs(current_az - float(starting_az)) <= 1.0 and abs(current_el) <= 1.0
 
-    print("Initial request and conditions check...")
+    # print("Initial request and conditions check...")
     send_request(starting_az)
     while not check_conditions():
-        print("Initial conditions not met. Retrying in 1 second.")
+        logging.info("Initial conditions not met. Retrying in 1 second.")
         time.sleep(1)
     
     for set_az in range(int(starting_az), int(ending_az) + 1, 2):
@@ -115,7 +123,7 @@ def set_rotor_azimuth(starting_az, ending_az):
             timestamp_iterations.append(datetime.datetime.now().strftime("%Y%m%d_%H%M%S") + f'_{set_az}')
 
         else:
-                print("Pause flag detected, exiting.")
+                logging.info("Pause flag removal detected, exiting.")
                 return
         
     # Writing to the CSV
@@ -241,7 +249,7 @@ def set_az_path():
 
 @app.route('/pause_schedule', methods=['POST'])
 def pause_schedule():
-    print('Configuring SA for scan mode')
+    logging.info('Configuring SA for scan mode')
     instrument_scan_setup(center_frequency_MHz, span_MHz)
     with open("/home/noaa_gms/RFSS/pause_flag.txt", "w") as f:
         f.write("paused")
@@ -258,7 +266,7 @@ def pause_schedule():
 @app.route('/unpause_schedule', methods=['POST'])
 def unpause_schedule():
 
-    print('Returning SA back to pass mode')
+    logging.info('Returning SA back to pass mode')
     instrument_pass_setup()
 
     if os.path.exists("/home/noaa_gms/RFSS/pause_flag.txt"):
@@ -293,12 +301,12 @@ def unpause_schedule():
         entry = sorted_list[0]
         if len(entry) > 9:
             aos, los, sat_id = entry[2], entry[3], entry[9]
-            print(f"Satellite ID: {sat_id}, AOS: {datetime.datetime.utcfromtimestamp(aos).strftime('%Y-%m-%d %H:%M:%S')} UTC, LOS: {datetime.datetime.utcfromtimestamp(los).strftime('%Y-%m-%d %H:%M:%S')} UTC")
+            # print(f"Satellite ID: {sat_id}, AOS: {datetime.datetime.utcfromtimestamp(aos).strftime('%Y-%m-%d %H:%M:%S')} UTC, LOS: {datetime.datetime.utcfromtimestamp(los).strftime('%Y-%m-%d %H:%M:%S')} UTC")
     
             # If there is an ongoing pass, then send the command to track it
             # Otherwise SATTracker is an idiot and will wait until the next pass
             if aos <= current_time <= los:
-                print(f"Updating satellite with ID {sat_id}")
+                logging.info(f"Updating satellite with ID {sat_id}")
                 conn.request("GET", f"/cmd?a=U|{sat_id}")
                 conn.getresponse()
                 result['message'] = f'Updating satellite with ID {sat_id} at {current_utc_time_str} UTC'

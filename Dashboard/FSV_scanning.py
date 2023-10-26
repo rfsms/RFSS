@@ -114,10 +114,7 @@ def captureTrace():
         FSV.write("INIT:IMM")
         if FSV.query('*OPC?') == '1':
             trace_data = FSV.query('TRAC? TRACE1')
-
-            # trace_data = FSV.read_raw()
-            # trace_data = trace_data.strip(b'\n\r')
-            print(trace_data)
+            # print(trace_data)
             return trace_data
 
         # FSV.write("INST IQ")
