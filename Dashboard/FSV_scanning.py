@@ -12,7 +12,6 @@ OPTION_STRING_FORCE_RS_VISA = 'SelectVisa=rs'
 FSV = RsInstrument(RESOURCE_STRING, False, False, OPTION_STRING_FORCE_RS_VISA)
 INSTR_DIR = 'c:\\R_S\\Instr\\user\\RFSS\\'
 
-
 def createSpectrogram(dirDate, csv_file_path, start_frequency_mhz, end_frequency_mhz, starting_az, ending_az):
     df = pd.read_csv(csv_file_path)
     frequencies = df['Frequency (MHz)']
