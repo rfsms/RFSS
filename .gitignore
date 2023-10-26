@@ -22,3 +22,4 @@ toDemod/
 pause_flag.txt
 Tools/Testing/manualCaptures/*
 scanData/
+commutationData/
