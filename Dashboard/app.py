@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, Response
 import pymongo
+from FSV_scanning import instrument_scan_setup, instrument_pass_setup, captureTrace, createSpectrogram
 import datetime
 from pytz import timezone
 from http.client import http, RemoteDisconnected
@@ -7,7 +8,7 @@ import json
 import os
 from multiprocessing import Process
 import time
-import subprocess
+import csv
 
 app = Flask(__name__)
 client = pymongo.MongoClient("mongodb://localhost:27017/")
@@ -16,6 +17,24 @@ collection = db["schedule_daily"]
 schedule_run = db['schedule_run']
 
 is_paused = False
+
+# # Specify the center frequency in MHz, span in MHz, and number of points collected
+# center_frequency_MHz = 1702.5  # Center frequency in MHz
+# span_MHz = 6.0  # Span in MHz
+# num_points = 1001 # Replace with the number of points collected
+
+# Specify the center frequency in MHz, span in MHz, and number of points collected
+center_frequency_MHz = 2174.5  # Center frequency in MHz
+span_MHz = 50.0  # Span in MHz
+num_points = 1001 # Replace with the number of points collected
+
+# Calculate the frequency values in MHz with four decimal places
+frequency_start_MHz = center_frequency_MHz - span_MHz / 2
+frequency_end_MHz = center_frequency_MHz + span_MHz / 2
+frequency_step_MHz = span_MHz / (num_points - 1)
+frequency_values_MHz = [round(frequency_start_MHz + i * frequency_step_MHz, 4) for i in range(num_points)]
+
+manualDir = '/home/noaa_gms/RFSS/scanData'
 
 def get_location():
     try:
@@ -33,13 +52,6 @@ def get_location():
     except Exception as e:
         return (f'An error occurred checking the location: {e}')
 
-def get_current_AzEl(conn):
-    conn.request("GET", "/min")
-    response = conn.getresponse()
-    data = json.loads(response.read())
-    conn.close()
-    return round(data['az'], 1), round(data['el'], 1)
-
 def format_time(time_tuple):
     return f"{time_tuple[0]:02d}:{time_tuple[1]:02d}:{time_tuple[2]:02d}"
 
@@ -49,6 +61,81 @@ def convert_to_EST(time_str):
     utc_dt = datetime.datetime.combine(datetime.date.today(), utc_time, tzinfo=timezone('UTC'))
     est_dt = utc_dt.astimezone(timezone('US/Eastern'))
     return est_dt.strftime('%H:%M:%S')
+
+def get_current_AzEl(conn):
+    conn.request("GET", "/min")
+    response = conn.getresponse()
+    data = json.loads(response.read())
+    return round(data['az'], 1), round(data['el'], 1)
+
+def set_rotor_azimuth(starting_az, ending_az):
+
+    # Prepare the directory and filename for the CSV
+    folderDate = datetime.datetime.now().strftime("%Y_%m_%d_%H%M%S")
+    dirDate = os.path.join(manualDir, folderDate)
+    if not os.path.exists(dirDate):
+        os.makedirs(dirDate)
+    
+    csv_file_path = os.path.join(dirDate, f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}.csv')
+    
+    # Initialize the list that will hold all iterations of data
+    data_iterations = []
+    timestamp_iterations = []
+
+    print("Starting set_rotor_azimuth function")
+    conn = http.client.HTTPConnection("192.168.4.1", 80)
+    
+    def send_request(az):
+        print(f"Sending request for azimuth: {az}")
+        for _ in range(3):
+            try:
+                conn.request("GET", f"/cmd?a=P|{az}|{0}|")
+                return conn.getresponse()
+            except RemoteDisconnected:
+                time.sleep(2)
+        raise Exception("Max retries reached")
+
+    def check_conditions():
+        current_az, current_el = get_current_AzEl(conn)
+        print(f"Checking conditions: Current Az: {current_az}, Current El: {current_el}")
+        return abs(current_az - float(starting_az)) <= 1.0 and abs(current_el) <= 1.0
+
+    print("Initial request and conditions check...")
+    send_request(starting_az)
+    while not check_conditions():
+        print("Initial conditions not met. Retrying in 1 second.")
+        time.sleep(1)
+    
+    for set_az in range(int(starting_az), int(ending_az) + 1, 2):
+        if os.path.exists("/home/noaa_gms/RFSS/pause_flag.txt"):
+            send_request(set_az)
+            trace_data = captureTrace()  # Assuming this returns a list of float numbers
+            
+            data_iterations.append([float(x) for x in trace_data.split(',')])
+            timestamp_iterations.append(datetime.datetime.now().strftime("%Y%m%d_%H%M%S") + f'_{set_az}')
+
+        else:
+                print("Pause flag detected, exiting.")
+                return
+        
+    # Writing to the CSV
+    with open(csv_file_path, 'w', newline='') as csv_file:
+        csv_writer = csv.writer(csv_file)
+
+        # Write frequency data as the header row
+        header_row = ["Frequency (MHz)"] + timestamp_iterations
+        csv_writer.writerow(header_row)
+
+        # Write frequency and amplitude data in corresponding columns for each iteration
+        for frequency_MHz, amplitudes in zip(frequency_values_MHz, zip(*data_iterations)):
+            row_to_write = [f"{frequency_MHz:.4f}"] + list(amplitudes)
+            csv_writer.writerow(row_to_write)
+
+    # Create a spectrogram in the same directory as the CSV file
+    timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    createSpectrogram(dirDate, csv_file_path, frequency_start_MHz, frequency_end_MHz, starting_az, ending_az)
+    
+    conn.close()
 
 @app.route('/')
 def calendar():
@@ -104,7 +191,6 @@ def calendar():
     current_utc_time_str = current_utc_time.strftime("%m/%d/%Y %H:%M")
     return render_template('calendar.html', current_utc_time=current_utc_time_str, event=event['schedule'] if event else None, date_from_db=date_from_db_str, location=location_data)
 
-
 @app.route('/events', methods=['POST'])
 def events():
     selected_date = request.form['date']
@@ -131,14 +217,32 @@ def events():
 
 @app.route('/get_actual_AzEl')
 def get_actual_AzEl():
-    conn = http.client.HTTPConnection("192.168.4.1", 80)
-    current_az, current_el = get_current_AzEl(conn)
-    json_data = json.dumps({'actual_az': current_az, 'actual_el': current_el})
-    conn.close()
-    return Response(json_data, content_type='application/json')
+    try:
+        conn = http.client.HTTPConnection("192.168.4.1", 80)
+        current_az, current_el = get_current_AzEl(conn)
+        json_data = json.dumps({'actual_az': current_az, 'actual_el': current_el})
+        conn.close()
+        return Response(json_data, content_type='application/json')
+    except Exception as e:
+        json_data = json.dumps({'error': str(e)})
+        return Response(json_data, content_type='application/json', status=500)
+
+@app.route('/set_az', methods=['POST'])
+def set_az_path():
+    starting_az = float(request.form['startingAZ'])
+    ending_az = float(request.form['endingAZ'])
+    
+    try:
+        p = Process(target=set_rotor_azimuth, args=(starting_az, ending_az))
+        p.start()
+        return json.dumps({"message": "Data capture started"}), 200
+    except Exception as e:
+        return json.dumps({"message": f"An error occurred: {str(e)}"}), 500
 
 @app.route('/pause_schedule', methods=['POST'])
 def pause_schedule():
+    print('Configuring SA for scan mode')
+    instrument_scan_setup(center_frequency_MHz, span_MHz)
     with open("/home/noaa_gms/RFSS/pause_flag.txt", "w") as f:
         f.write("paused")
     global is_paused
@@ -153,8 +257,13 @@ def pause_schedule():
 
 @app.route('/unpause_schedule', methods=['POST'])
 def unpause_schedule():
+
+    print('Returning SA back to pass mode')
+    instrument_pass_setup()
+
     if os.path.exists("/home/noaa_gms/RFSS/pause_flag.txt"):
         os.remove("/home/noaa_gms/RFSS/pause_flag.txt")
+
     global is_paused
     is_paused = False
     conn = http.client.HTTPConnection("192.168.4.1", 80)
@@ -202,89 +311,6 @@ def unpause_schedule():
 
     conn.close()
     return json.dumps(result), 200, {'Content-Type': 'application/json'}
-
-def set_rotor_azimuth(starting_az, ending_az):
-    conn = http.client.HTTPConnection("192.168.4.1", 80)
-    try:
-        max_retries = 3
-        retry_delay = 2  # seconds
-        
-        def send_request(az):
-            retries = 0
-            while retries < max_retries:
-                try:
-                    conn.request("GET", f"/cmd?a=P|{az}|{0}|")
-                    response = conn.getresponse()
-                    return response
-                except RemoteDisconnected:
-                    print("Remote end closed connection. Retrying...")
-                    retries += 1
-                    time.sleep(retry_delay)
-            raise Exception("Max retries reached")
-        
-        # Set initial azimuth
-        response = send_request(starting_az)
-        print(f"Setting rotor to starting azimuth: {starting_az}, HTTP Status: {response.status}")
-
-        # Wait until the rotor reaches the starting azimuth
-        while True:
-            current_az, _ = get_current_AzEl(conn)
-            if abs(current_az - float(starting_az)) <= 1.0:
-                print(f"Rotor is now at starting azimuth: {current_az}")
-                break
-            time.sleep(1)
-
-            # Check if the operation should be stopped before scanning starts
-            if not os.path.exists("/home/noaa_gms/RFSS/pause_flag.txt"):
-                print("Rotor scanning setup stopped.")
-                return
-
-        # Step through azimuth angles
-        set_az = float(starting_az)
-        while set_az <= float(ending_az):
-            #Check is the operation should be stopped while scanning is on-going
-            if not os.path.exists("/home/noaa_gms/RFSS/pause_flag.txt"):
-                print("Rotor scanning operation stopped.")
-                return  # Stop the function if pause_flag.txt does not exist
-
-            conn.request("GET", f"/cmd?a=P|{set_az}|{0}|")
-            response = conn.getresponse()
-            print(f"Setting rotor to azimuth: {set_az}, HTTP Status: {response.status}")
-
-            try:
-                subprocess.run(["python3", "/home/noaa_gms/RFSS/Tools/Testing/PXA_Spectrogram_IQ.py", int(some_data)]], check=True)
-            except subprocess.CalledProcessError as e:
-                print(f"Trace capture failed with error: {e}")
-                continue  # Skip to the next iteration or handle the error as needed
-
-            set_az += 2.0
-
-    except Exception as e:
-        print(f"An error occurred: {e}")
-    finally:
-        conn.close()
-
-@app.route('/set_az', methods=['POST'])
-def set_az_route():
-    starting_az = float(request.form['startingAZ'])
-    ending_az = float(request.form['endingAZ'])
-
-    # Start scanning task in a separate process
-    p = Process(target=set_rotor_azimuth, args=(starting_az, ending_az))
-    p.start()
-    
-    return json.dumps({"message": "Data capture started"}), 200
-
-# Working config before changes for scanning
-# @app.route('/set_az', methods=['POST'])
-# def set_az():
-#     starting_az = request.form['startingAZ']
-#     ending_az = float(request.form['endingAZ'])
-#     set_az = starting_az
-#     conn = http.client.HTTPConnection("192.168.4.1", 80)
-#     conn.request("GET", f"/cmd?a=P|{set_az}|{0}|")
-#     response = conn.getresponse()
-#     return '', response.status
 
 @app.route('/check_pause_state', methods=['GET'])
 def check_pause_state():
