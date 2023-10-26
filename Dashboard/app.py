@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, Response
 import pymongo
-from FSV_scanning import instrument_scan_setup, instrument_pass_setup, captureTrace, createSpectrogram
+from FSV_commutation import instrument_commutation_setup, instrument_scanning_setup, captureTrace, createSpectrogram
 import datetime
 from pytz import timezone
 from http.client import http, RemoteDisconnected
@@ -42,7 +42,7 @@ frequency_end_MHz = center_frequency_MHz + span_MHz / 2
 frequency_step_MHz = span_MHz / (num_points - 1)
 frequency_values_MHz = [round(frequency_start_MHz + i * frequency_step_MHz, 4) for i in range(num_points)]
 
-manualDir = '/home/noaa_gms/RFSS/scanData'
+manualDir = '/home/noaa_gms/RFSS/commutationData'
 
 def get_location():
     try:
@@ -249,8 +249,8 @@ def set_az_path():
 
 @app.route('/pause_schedule', methods=['POST'])
 def pause_schedule():
-    logging.info('Configuring SA for scan mode')
-    instrument_scan_setup(center_frequency_MHz, span_MHz)
+    logging.info('Configuring SA for commutation mode')
+    instrument_commutation_setup(center_frequency_MHz, span_MHz)
     with open("/home/noaa_gms/RFSS/pause_flag.txt", "w") as f:
         f.write("paused")
     global is_paused
@@ -266,8 +266,8 @@ def pause_schedule():
 @app.route('/unpause_schedule', methods=['POST'])
 def unpause_schedule():
 
-    logging.info('Returning SA back to pass mode')
-    instrument_pass_setup()
+    logging.info('Returning SA back to scanning mode')
+    instrument_scanning_setup()
 
     if os.path.exists("/home/noaa_gms/RFSS/pause_flag.txt"):
         os.remove("/home/noaa_gms/RFSS/pause_flag.txt")
