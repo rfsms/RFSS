@@ -36,20 +36,21 @@ def createSpectrogram(dirDate, csv_file_path, start_frequency_mhz, end_frequency
     plt.close()
 
 def instrument_scanning_setup():
-    PXA.write("INST:SEL 'Spectrum'")
-    PXA.write("SENS:SWE:WIND1:POIN 1001")
-    PXA.write("SENS:FREQ:CENT 1702.5MHz")
-    PXA.write('SENS:FREQ:SPAN 8MHz')
-    PXA.write("INST IQ")
+    # For MXA (without IQ, no need to change anything...will need to modify once we add IQ extract)
+    PXA.write("INST:SCR:SEL 'IQ Analyzer 1'")
+    # PXA.write("SENS:SWE:WIND1:POIN 1001")
+    # PXA.write("SENS:FREQ:CENT 1702.5MHz")
+    # PXA.write('SENS:FREQ:SPAN 8MHz')
+    # PXA.write("INST IQ")
 
-def instrument_commutation_setup(center_frequency_MHz=1702.5, span_MHz=8, points=1001):
+def instrument_commutation_setup(center_frequency_MHz=1702.5, span_MHz=20, points=1001):
     try:
 
-        PXA.visa_timeout = 20000
-        PXA.write("INST:SEL 'Spectrum'")
+        # PXA.visa_timeout = 20000
+        PXA.write("INST:SCR:SEL 'Spectrum Analyzer 1'")
         PXA.write(f"SENS:FREQ:CENT {center_frequency_MHz}MHz")
         PXA.write(f"SENS:FREQ:SPAN {span_MHz}MHz")
-        PXA.write(f"SENS:SWE:WIND1:POIN {points}")
+        PXA.write(f"SWE:POIN {points}")
 
     except KeyboardInterrupt:
         print(f"An error occurred in instrument setup")
@@ -59,7 +60,7 @@ def captureTrace():
     try:
         PXA.write("INIT:IMM")
         if PXA.query('*OPC?') == '1':
-            trace_data = PXA.query('TRAC? TRACE1')
+            trace_data = PXA.query('TRAC? TRACE2')
             # print(trace_data)
             return trace_data
 
