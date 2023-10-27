@@ -75,6 +75,7 @@ def get_SpecAn_content_and_DL_locally(INSTR):
             print("No files on Spectrum Analyzer to process:", e)   
 
 def instrument_scanning_setup():
+    # Since FSV config between tabs is the same we need to reset the CF for IQ back
     FSV.write("INST:SEL 'Spectrum'")
     FSV.write("SENS:SWE:WIND1:POIN 1001")
     FSV.write("SENS:FREQ:CENT 1702.5MHz")
