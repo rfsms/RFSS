@@ -92,9 +92,10 @@ def handle_pause(log_message, restart_message=None, sleep_time=5, loop_completed
     
     if was_paused:
         #Resetup SpecAn
-        INSTR.write(":INST:NSEL 8")
-        INSTR.write(":CONF:WAV")
-        INSTR.write(":INIT:CONT OFF")
+        INSTR.write("INST:SCR:SEL 'IQ Analyzer 1'")
+        # INSTR.write("INST:NSEL 8")
+        INSTR.write("CONF:WAV")
+        INSTR.write("INIT:CONT OFF")
         INSTR.write('SENS:FREQ:CENT 1702500000')
         INSTR.write('POW:ATT:AUTO OFF')
         INSTR.write('POW:ATT 0')
@@ -103,8 +104,9 @@ def handle_pause(log_message, restart_message=None, sleep_time=5, loop_completed
         INSTR.write('WAV:SRAT 18.75MHz')
         INSTR.write('WAV:SWE:TIME 16ms')
         INSTR.write('DISP:WAV:VIEW:WIND:TRAC:Y:COUP ON')
-        INSTR.write(":FORM:BORD SWAP")
-        INSTR.write(":FORM REAL,32")
+        INSTR.write("FORM:BORD SWAP")
+        INSTR.write("FORM REAL,32")
+
         if restart_message:
             logging.info(restart_message)
         if loop_completed is not None:
@@ -214,33 +216,45 @@ def process_schedule():
 def main():
 
     # Instrument reset/setup
-    idn = INSTR.query('*IDN?')
+    idn = INSTR.query("*IDN?")
     instrument = idn.replace("Hello, I am: ", "")
     logging.info(f"Setting Up '{instrument}' at {RESOURCE_STRING}")
     
-        #Reset SpecAn
-    INSTR.write('*RST')
-    INSTR.write('*CLS')
-    INSTR.write('SYST:DEF SCR')
+    #Reset SpecAn
+    INSTR.write("*RST")
+    INSTR.write("*CLS")
+    INSTR.write("SYST:DEF SCR")
 
-    # Setup IQ Analyzer
-    INSTR.write(":INST:NSEL 8")
-    INSTR.write(":CONF:WAV")
-    INSTR.write(":INIT:CONT OFF")
-    INSTR.write('SENS:FREQ:CENT 1702500000')
-    INSTR.write('POW:ATT:AUTO OFF')
-    INSTR.write('POW:ATT 0')
-    INSTR.write('DISP:WAV:VIEW:NSEL 1')
-    INSTR.write('POW:GAIN ON')
-    INSTR.write('WAV:SRAT 18.75MHz')
-    INSTR.write('WAV:SWE:TIME 16ms')
-    INSTR.write('DISP:WAV:VIEW:WIND:TRAC:Y:COUP ON')
-    INSTR.write(":FORM:BORD SWAP")
-    INSTR.write(":FORM REAL,32")
+    # Setup Spectrum Analyzer
+    INSTR.write("INST:NSEL 1")
+    INSTR.write("INIT:CONT OFF")
+    INSTR.write("SENS:FREQ:SPAN 20000000")
+    INSTR.write("SENS:FREQ:CENT 1702500000")
+    INSTR.write("POW:ATT:AUTO OFF")
+    INSTR.write("POW:ATT 0")
+    INSTR.write("BAND 5000")
+    INSTR.write("DISP:WIND:TRAC:Y:RLEV -40dBm")
+    INSTR.write("TRAC1:TYPE WRIT")
+    INSTR.write("DET:TRAC1 NORM")
+    INSTR.write("TRAC2:TYPE MAXH")
+    INSTR.write("DET:TRAC2 POS")
+    INSTR.write("AVER:COUNT 10")
+    #Create IQ window
+    INSTR.write("INST:SCR:CRE")
+    INSTR.write("INST:NSEL 8")
+    INSTR.write("CONF:WAV")
+    INSTR.write("SENS:FREQ:CENT 1702500000")
+    # INSTR.write("DISP:WAV:VIEW:NSEL 1")
+    INSTR.write("POW:GAIN ON")
+    INSTR.write("WAV:SRAT 18.75MHz")
+    INSTR.write("WAV:SWE:TIME 16ms")
+    INSTR.write("DISP:WAV:VIEW:WIND:TRAC:Y:COUP ON")
+    INSTR.write("FORM:BORD SWAP")
+    INSTR.write("FORM REAL,32")
 
     try:
         process_schedule()
-        INSTR.write('DISP:ENAB ON')
+        INSTR.write("DISP:ENAB ON")
         logging.info("Schedule finished for the day.\n")
     except Exception as e:
         logging.info(f"An error occurred: {e}")
