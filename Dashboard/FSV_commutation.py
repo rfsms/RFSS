@@ -98,7 +98,7 @@ def captureTrace():
     try:
         FSV.write("INIT:IMM")
         if FSV.query('*OPC?') == '1':
-            trace_data = FSV.query('TRAC? TRACE1')
+            trace_data = FSV.query('TRAC? TRACE2')
             # print(trace_data)
             return trace_data
 
