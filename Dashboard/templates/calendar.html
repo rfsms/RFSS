@@ -124,7 +124,7 @@
                     </div>
                     <div class="flex items-center mt-4">
                         <input type="submit" id="submitAzButton" value="Submit AZ" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
-                        <input type="checkbox" id="pauseSchedule" class="ml-4"> Pause Schedule
+                        <input type="checkbox" id="pauseSchedule" class="ml-4" disabled> Pause Schedule
                     </div>
                 </form>
             </div>
@@ -225,23 +225,27 @@
             });
         });
 
+        function toggleCheckboxState(azimuth, elevation) {
+            if (azimuth === 450 && elevation === 180) {
+                checkbox.disabled = true;
+            } else {
+                checkbox.disabled = false;
+            }
+        }
+
+        // Function to update the actual azimuth and elevation
         function updateActualAzEl() {
-            const submitAzButton = document.getElementById('submitAzButton');
             fetch('/get_actual_AzEl')
                 .then(response => response.json())
                 .then(data => {
-                    console.log(data);  // Debugging line
                     if (data.actual_az === 450.000000 && data.actual_el === 180.000000) {
-                        console.log("Disabling button");  // Debugging line
                         document.getElementById('actualAzimuth').innerText = "Controller Disconnected";
                         document.getElementById('actualElevation').innerText = "Controller Disconnected";
-                        submitAzButton.disabled = true;  // Disable the button
                     } else {
-                        console.log("Enabling button");  // Debugging line
                         document.getElementById('actualAzimuth').innerText = `Actual Azimuth: ${data.actual_az}\u00B0`;
                         document.getElementById('actualElevation').innerText = `Actual Elevation: ${data.actual_el}\u00B0`;
-                        submitAzButton.disabled = false;  // Enable the button
                     }
+                    toggleCheckboxState(data.actual_az, data.actual_el);
                 });
         }
 
