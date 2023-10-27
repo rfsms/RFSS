@@ -225,17 +225,22 @@
             });
         });
 
-        // Function to update the actual azimuth and elevation
         function updateActualAzEl() {
+            const submitAzButton = document.getElementById('submitAzButton');
             fetch('/get_actual_AzEl')
                 .then(response => response.json())
                 .then(data => {
+                    console.log(data);  // Debugging line
                     if (data.actual_az === 450.000000 && data.actual_el === 180.000000) {
+                        console.log("Disabling button");  // Debugging line
                         document.getElementById('actualAzimuth').innerText = "Controller Disconnected";
                         document.getElementById('actualElevation').innerText = "Controller Disconnected";
+                        submitAzButton.disabled = true;  // Disable the button
                     } else {
+                        console.log("Enabling button");  // Debugging line
                         document.getElementById('actualAzimuth').innerText = `Actual Azimuth: ${data.actual_az}\u00B0`;
                         document.getElementById('actualElevation').innerText = `Actual Elevation: ${data.actual_el}\u00B0`;
+                        submitAzButton.disabled = false;  // Enable the button
                     }
                 });
         }
@@ -249,7 +254,7 @@
             .then(data => {
                 if (data.paused !== undefined) {
                     checkbox.checked = data.paused;
-                    toggleFormState(data.paused);  // <-- Add this line
+                    toggleFormState(data.paused); 
 
                     if (data.paused) {
                         console.log('Scheduling is paused.');
