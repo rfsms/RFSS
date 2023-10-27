@@ -1,14 +1,4 @@
 from flask import Flask, render_template, request, Response
-import pymongo
-from FSV_commutation import instrument_commutation_setup, instrument_scanning_setup, captureTrace, createSpectrogram
-import datetime
-from pytz import timezone
-from http.client import http, RemoteDisconnected
-import json
-import os
-from multiprocessing import Process
-import time
-import csv
 import logging
 
 # Reset the Root Logger - this section is used to reset the root logger and then apply below configuration
@@ -17,6 +7,30 @@ for handler in logging.root.handlers[:]:
 
 # Setup logging
 logging.basicConfig(filename='/home/noaa_gms/RFSS/RFSS_SA.log', level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+
+# Initialize logger
+logger = logging.getLogger(__name__)
+
+import subprocess
+# Check RFSS service status and log it
+result = subprocess.run(["systemctl", "show", "-p", "ExecStart", "RFSS.service"], capture_output=True, text=True)
+exec_start_line = result.stdout.strip()
+if "RFSS_PXA" in exec_start_line:
+    from PXA_commutation import instrument_commutation_setup, instrument_scanning_setup, captureTrace, createSpectrogram
+    logger.info("Imported PXA libraries")
+elif "RFSS_FSV" in exec_start_line:
+    from FSV_commutation import instrument_commutation_setup, instrument_scanning_setup, captureTrace, createSpectrogram
+    logger.info("Imported FSV libraries")
+
+import pymongo
+import datetime
+from pytz import timezone
+from http.client import http, RemoteDisconnected
+import json
+import os
+from multiprocessing import Process
+import time
+import csv
 
 app = Flask(__name__)
 client = pymongo.MongoClient("mongodb://localhost:27017/")
