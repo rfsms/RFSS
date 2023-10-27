@@ -59,11 +59,13 @@ def instrument_commutation_setup(center_frequency_MHz=1702.5, span_MHz=20, point
 def captureTrace():
     try:
         PXA.write("INIT:IMM")
-        if PXA.query('*OPC?') == '1':
-            trace_data = PXA.query('TRAC? TRACE2')
-            # print(trace_data)
-            return trace_data
-
+        # Removing this section since Agilnet apparently doesnt know how to handle OPC correctly...
+        # if PXA.query('*OPC?') == '1':
+        #     print(f"OPC is good")
+        #     trace_data = PXA.query('TRAC? TRACE1')
+        #     return trace_data
+        trace_data = PXA.query('TRAC? TRACE2')
+        return trace_data
         # PXA.write("INST IQ")
         # PXA.write("INIT:IMM")
         # if PXA.query('*OPC?') == '1':
@@ -74,3 +76,4 @@ def captureTrace():
         #     get_SpecAn_content_and_DL_locally(PXA)
     except KeyboardInterrupt:
         print("Manually stopped by user.")
+    
