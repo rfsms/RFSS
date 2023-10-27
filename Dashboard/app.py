@@ -26,21 +26,21 @@ schedule_run = db['schedule_run']
 
 is_paused = False
 
-# Specify the center frequency in MHz, span in MHz, and number of points collected
-center_frequency_MHz = 1702.5  # Center frequency in MHz
-span_MHz = 6.0  # Span in MHz
-num_points = 1001 # Replace with the number of points collected
+# # Specify the center frequency in MHz, span in MHz, and number of points collected
+# center_frequency_MHz = 1702.5  # Center frequency in MHz
+# span_MHz = 6.0  # Span in MHz
+# num_points = 1001 # Replace with the number of points collected
 
 # # Specify the center frequency in MHz, span in MHz, and number of points collected
 # center_frequency_MHz = 2174.5  # Center frequency in MHz
 # span_MHz = 50.0  # Span in MHz
 # num_points = 1001 # Replace with the number of points collected
 
-# Calculate the frequency values in MHz with four decimal places
-frequency_start_MHz = center_frequency_MHz - span_MHz / 2
-frequency_end_MHz = center_frequency_MHz + span_MHz / 2
-frequency_step_MHz = span_MHz / (num_points - 1)
-frequency_values_MHz = [round(frequency_start_MHz + i * frequency_step_MHz, 4) for i in range(num_points)]
+# # Calculate the frequency values in MHz with four decimal places
+# frequency_start_MHz = center_frequency_MHz - span_MHz / 2
+# frequency_end_MHz = center_frequency_MHz + span_MHz / 2
+# frequency_step_MHz = span_MHz / (num_points - 1)
+# frequency_values_MHz = [round(frequency_start_MHz + i * frequency_step_MHz, 4) for i in range(num_points)]
 
 manualDir = '/home/noaa_gms/RFSS/commutationData'
 
@@ -76,7 +76,19 @@ def get_current_AzEl(conn):
     data = json.loads(response.read())
     return round(data['az'], 1), round(data['el'], 1)
 
-def set_rotor_azimuth(starting_az, ending_az):
+def set_rotor_azimuth(starting_az, ending_az, location):
+    center_frequency_MHz = float(request.form.get('centerFreq'))
+    span_MHz = float(request.form.get('span'))
+    points = int(request.form.get('points'))
+    
+    logging.info(f"Configuring SA for commutation mode and sending: CF: {center_frequency_MHz}, Span: {span_MHz}, Points: {points}")
+    instrument_commutation_setup(center_frequency_MHz, span_MHz, points)
+
+    # Calculate the frequency values in MHz with four decimal places
+    frequency_start_MHz = center_frequency_MHz - span_MHz / 2
+    frequency_end_MHz = center_frequency_MHz + span_MHz / 2
+    frequency_step_MHz = span_MHz / (points - 1)
+    frequency_values_MHz = [round(frequency_start_MHz + i * frequency_step_MHz, 4) for i in range(points)]
 
     # Prepare the directory and filename for the CSV
     folderDate = datetime.datetime.now().strftime("%Y_%m_%d_%H%M%S")
@@ -141,7 +153,7 @@ def set_rotor_azimuth(starting_az, ending_az):
 
     # Create a spectrogram in the same directory as the CSV file
     timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    createSpectrogram(dirDate, csv_file_path, frequency_start_MHz, frequency_end_MHz, starting_az, ending_az)
+    createSpectrogram(dirDate, csv_file_path, frequency_start_MHz, frequency_end_MHz, starting_az, ending_az, location)
     
     conn.close()
 
@@ -239,9 +251,10 @@ def get_actual_AzEl():
 def set_az_path():
     starting_az = float(request.form['startingAZ'])
     ending_az = float(request.form['endingAZ'])
+    location = get_location()
     
     try:
-        p = Process(target=set_rotor_azimuth, args=(starting_az, ending_az))
+        p = Process(target=set_rotor_azimuth, args=(starting_az, ending_az, location))
         p.start()
         return json.dumps({"message": "Data capture started"}), 200
     except Exception as e:
@@ -249,8 +262,6 @@ def set_az_path():
 
 @app.route('/pause_schedule', methods=['POST'])
 def pause_schedule():
-    logging.info('Configuring SA for commutation mode')
-    instrument_commutation_setup(center_frequency_MHz, span_MHz)
     with open("/home/noaa_gms/RFSS/pause_flag.txt", "w") as f:
         f.write("paused")
     global is_paused
