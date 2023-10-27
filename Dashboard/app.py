@@ -90,7 +90,7 @@ def set_rotor_azimuth(starting_az, ending_az, location):
     conn = http.client.HTTPConnection("192.168.4.1", 80)
     
     def send_request(az):
-        # logging.info(f"Sending request for azimuth: {az}")
+        logging.info(f"Sending request for azimuth: {az}")
         for _ in range(3):
             try:
                 conn.request("GET", f"/cmd?a=P|{az}|{0}|")
@@ -138,7 +138,8 @@ def set_rotor_azimuth(starting_az, ending_az, location):
     # Create a spectrogram in the same directory as the CSV file
     timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     createSpectrogram(dirDate, csv_file_path, frequency_start_MHz, frequency_end_MHz, starting_az, ending_az, location)
-    
+    logging.info('Commutation scan complete')
+    unpause_schedule()
     conn.close()
 
 @app.route('/')
