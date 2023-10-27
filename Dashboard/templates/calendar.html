@@ -124,7 +124,7 @@
                     </div>
                     </div>
                     <div class="flex items-center mt-4">
-                        <input type="submit" value="Submit AZ" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                        <input type="submit" id="submitAzButton" value="Submit AZ" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
                         <input type="checkbox" id="pauseSchedule" class="ml-4"> Pause Schedule
                     </div>
                 </form>
@@ -146,7 +146,7 @@
         // Set initial state based on checkbox state
         function toggleFormState(isEnabled) {
             azFormDiv.style.opacity = isEnabled ? "1" : "0.5";
-            [startingAZ, endingAZ, centerFreq, span, points].forEach(elem => elem.disabled = !isEnabled);
+            [startingAZ, endingAZ, centerFreq, span, points, submitAzButton].forEach(elem => elem.disabled = !isEnabled);
         }
 
         toggleFormState(checkbox.checked);        
