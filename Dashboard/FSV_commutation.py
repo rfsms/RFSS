@@ -13,7 +13,7 @@ FSV = RsInstrument(RESOURCE_STRING, False, False, OPTION_STRING_FORCE_RS_VISA)
 # FSV = RsInstrument(RESOURCE_STRING, False, False, 'simulate=True')
 INSTR_DIR = 'c:\\R_S\\Instr\\user\\RFSS\\'
 
-def createSpectrogram(dirDate, csv_file_path, start_frequency_mhz, end_frequency_mhz, starting_az, ending_az):
+def createSpectrogram(dirDate, csv_file_path, start_frequency_mhz, end_frequency_mhz, starting_az, ending_az, location):
     df = pd.read_csv(csv_file_path)
     frequencies = df['Frequency (MHz)']
     timestamps = df.columns[1:]
@@ -31,7 +31,7 @@ def createSpectrogram(dirDate, csv_file_path, start_frequency_mhz, end_frequency
     plt.ylabel('Frequency (MHz)')
     plt.xticks(range(0, len(timestamps), 2), timestamps[::2], rotation=45, ha="right", rotation_mode="anchor") # Every two ticks
     # plt.xticks(range(0, len(timestamps), 5), timestamps[::5], rotation=45, ha="right", rotation_mode="anchor") # Every 5 ticks
-    plt.title(f"Start Freq: {start_frequency_mhz} MHz, Stop Freq: {end_frequency_mhz} MHz\nStart AZ: {starting_az}, Stop AZ: {ending_az}\n{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')} UTC")
+    plt.title(f"Start Freq: {start_frequency_mhz} MHz, Stop Freq: {end_frequency_mhz} MHz\nStart AZ: {starting_az}, Stop AZ: {ending_az}\n{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')} UTC - {location}")
     plt.tight_layout()
     plt.savefig(os.path.join(dirDate, f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}.png'))
     plt.close()
@@ -75,39 +75,21 @@ def get_SpecAn_content_and_DL_locally(INSTR):
             print("No files on Spectrum Analyzer to process:", e)   
 
 def instrument_scanning_setup():
-    FSV.write('INST IQ')
+    FSV.write("INST:SEL 'Spectrum'")
+    FSV.write("SENS:SWE:WIND1:POIN 1001")
+    FSV.write("SENS:FREQ:CENT 1702.5MHz")
+    FSV.write('SENS:FREQ:SPAN 8MHz')
+    FSV.write("INST IQ")
 
 def instrument_commutation_setup(center_frequency_MHz=1702.5, span_MHz=8, points=1001):
     try:
-        # print("Attempting instrument setup")
-        FSV.reset()
-        FSV.clear_status()
+
         FSV.visa_timeout = 20000
-        FSV.write("SYST:DISP:UPD ON")
-        FSV.write("INIT:CONT ON")
+        FSV.write("INST:SEL 'Spectrum'")
         FSV.write(f"SENS:FREQ:CENT {center_frequency_MHz}MHz")
         FSV.write(f"SENS:FREQ:SPAN {span_MHz}MHz")
-        FSV.write("SENS:BAND:RES 5000")
-        FSV.write("SENS:BAND:VID:AUTO OFF")
-        FSV.write("SENS:BAND:VID 5000")
-        FSV.write("INP:ATT:AUTO OFF")
-        FSV.write("INP:ATT 0")
-        FSV.write("DISP:WIND:SUBW:TRAC:Y:SCAL:RLEV -30")
-        FSV.write("DISP:WIND1:SUBW:TRAC1:MODE AVER")
-        FSV.write("SENS:WIND1:DET1:FUNC RMS")
-        FSV.write("DISP:WIND1:SUBW:TRAC2:MODE MAXH")
-        FSV.write("SENS:WIND1:DET2:FUNC RMS")
-        FSV.write("DISP:WIND1:SUBW:TRAC1:Y:SCAL 100") 
-        FSV.write("DISP:WIND1:SUBW:TRAC1:Y:SCAL:RPOS 110")
-        FSV.write("SENS:SWE:COUN 20")
-        FSV.write("INST:CRE:NEW IQ, 'IQ Analyzer'")
-        FSV.write("INIT:CONT OFF")
-        FSV.write("TRAC:IQ:SRAT 6250000") # For 5MHz channel
-        FSV.write("SENS:SWE:TIME 0.016")
-        FSV.write("SENS:SWE:COUN 10")
-        FSV.write("HCOP:DEV:LANG PNG")
-        FSV.write("INST:SEL 'Spectrum'")
-        print("Instrument Setup Complete")
+        FSV.write(f"SENS:SWE:WIND1:POIN {points}")
+
     except KeyboardInterrupt:
         print(f"An error occurred in instrument setup")
 
