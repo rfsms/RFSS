@@ -214,6 +214,7 @@ def process_schedule():
                 schedule_run.update_one({"timestamp": document["timestamp"]}, document_update)
 
 def main():
+    logging.info("Starting RFSS_PXA main routine")
 
     # Instrument reset/setup
     idn = INSTR.query("*IDN?")
