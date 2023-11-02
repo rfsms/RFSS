@@ -12,4 +12,4 @@ flask-compress==1.14
 flask-cors==4.0.0
 zeroconf==0.112.0 # Added for pyVISA HiSLIP
 scipy==1.10.0
-werkzeug>=2.2.3 # not directly required, pinned by Snyk to avoid a vulnerability
+werkzeug>=3.0.1 # not directly required, pinned by Snyk to avoid a vulnerability
