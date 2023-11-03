@@ -74,11 +74,8 @@ def get_current_AzEl(conn):
     data = json.loads(response.read())
     return round(data['az'], 1), round(data['el'], 1)
 
-def set_rotor_azimuth(starting_az, ending_az, location):
-    center_frequency_MHz = float(request.form.get('centerFreq'))
-    span_MHz = float(request.form.get('span'))
-    points = int(request.form.get('points'))
-    
+def set_rotor_azimuth(iq_option, starting_az, ending_az, center_frequency_MHz, span_MHz, points, location):
+
     logging.info(f"Configuring SA for commutation mode and sending: CF: {center_frequency_MHz}, Span: {span_MHz}, Points: {points}")
     instrument_commutation_setup(center_frequency_MHz, span_MHz, points)
 
@@ -127,7 +124,7 @@ def set_rotor_azimuth(starting_az, ending_az, location):
     for set_az in range(int(starting_az), int(ending_az) + 1, 2):
         if os.path.exists("/home/noaa_gms/RFSS/pause_flag.txt"):
             send_request(set_az)
-            trace_data = captureTrace()  # Assuming this returns a list of float numbers
+            trace_data = captureTrace(iq=iq_option, set_az=set_az, band='YourBandHere')
             
             data_iterations.append([float(x) for x in trace_data.split(',')])
             timestamp_iterations.append(datetime.datetime.now().strftime("%Y%m%d_%H%M%S") + f'_{set_az}')
@@ -250,10 +247,14 @@ def get_actual_AzEl():
 def set_az_path():
     starting_az = float(request.form['startingAZ'])
     ending_az = float(request.form['endingAZ'])
+    center_frequency_MHz = float(request.form['centerFreq'])
+    span_MHz = float(request.form['span'])
+    points = int(request.form['points'])
     location = get_location()
+    iq_option = request.form.get('iqOption') == 'on'
     
     try:
-        p = Process(target=set_rotor_azimuth, args=(starting_az, ending_az, location))
+        p = Process(target=set_rotor_azimuth, args=(iq_option, starting_az, ending_az, center_frequency_MHz, span_MHz, points, location))
         p.start()
         return json.dumps({"message": "Data capture started"}), 200
     except Exception as e:
@@ -261,6 +262,7 @@ def set_az_path():
 
 @app.route('/pause_schedule', methods=['POST'])
 def pause_schedule():
+    logging.info('Schedule paused for commutative mode')
     with open("/home/noaa_gms/RFSS/pause_flag.txt", "w") as f:
         f.write("paused")
     global is_paused

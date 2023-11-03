@@ -121,10 +121,17 @@
                         <label for="points" class="text-center">Num Points:</label>
                         <input type="text" id="points" name="points" class="border border-gray-600 bg-white text-black py-2 px-4 rounded text-center" style="opacity: 0.5">
                     </div>
-                    </div>
+                </div>
                     <div class="flex items-center mt-4">
                         <input type="submit" id="submitAzButton" value="Submit AZ" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
-                        <input type="checkbox" id="pauseSchedule" class="ml-4" disabled> Pause Schedule
+                        <div class="ml-4 flex items-center">
+                            <input type="checkbox" id="pauseSchedule" disabled> 
+                            <span class="ml-2">Pause Schedule</span>
+                        </div>
+                        <div class="ml-4 flex items-center">
+                            <input type="checkbox" id="iqOption" name="iqOption" disabled> 
+                            <span class="ml-2">Collect IQ</span>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -133,146 +140,148 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            const checkbox = document.getElementById('pauseSchedule');
+            const azFormDiv = document.getElementById('azFormDiv');
+            const startingAZ = document.getElementById('startingAZ');
+            const endingAZ = document.getElementById('endingAZ');
+            const centerFreq = document.getElementById('centerFreq');
+            const span = document.getElementById('span');
+            const points = document.getElementById('points');
+            const iqOption = document.getElementById('iqOption');
 
-        const checkbox = document.getElementById('pauseSchedule');
-        const azFormDiv = document.getElementById('azFormDiv');
-        const startingAZ = document.getElementById('startingAZ');
-        const endingAZ = document.getElementById('endingAZ');
-        const centerFreq = document.getElementById('centerFreq');
-        const span = document.getElementById('span');
-        const points = document.getElementById('points');
-
-        // Set initial state based on checkbox state
-        function toggleFormState(isEnabled) {
-            azFormDiv.style.opacity = isEnabled ? "1" : "0.5";
-            [startingAZ, endingAZ, centerFreq, span, points, submitAzButton].forEach(elem => elem.disabled = !isEnabled);
-        }
-
-        toggleFormState(checkbox.checked);        
-
-        // Update state when checkbox changes
-        checkbox.addEventListener('change', function() {
-            toggleFormState(this.checked);
-
-            let route, formData;
-
-            if (this.checked) {
-                route = '/pause_schedule';
-                formData = new FormData(document.getElementById('azForm'));
-            } else {
-                route = '/unpause_schedule';
-                formData = null;
+            // Set initial state based on checkbox state
+            function toggleFormState(isEnabled) {
+                azFormDiv.style.opacity = isEnabled ? "1" : "0.5";
+                [startingAZ, endingAZ, centerFreq, span, points, submitAzButton, iqOption].forEach(elem => elem.disabled = !isEnabled);
             }
 
-            fetch(route, { method: 'POST', body: formData })
-                .then(response => response.text())
-                .then(text => text ? JSON.parse(text) : null)
-                .then(data => data && console.log(data))
-                .catch(error => console.error('An error occurred:', error));
-        });
+            toggleFormState(checkbox.checked);        
 
-        // Function to handle form submission
-        document.getElementById('azForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const formData = new FormData(this);
+            // Update state when checkbox changes
+            checkbox.addEventListener('change', function() {
+                toggleFormState(this.checked);
 
-            let formValues = {
-                extractedStartingAZ: formData.get('startingAZ'),
-                extractedEndingAZ: formData.get('endingAZ'),
-                extractedCenterFreq: formData.get('centerFreq'),
-                extractedSpan: formData.get('span'),
-                extractedPoints: formData.get('points')
-            };
-            
-            // Round center frequency and span to 2 decimal places
-            formValues.extractedCenterFreq = parseFloat(formValues.extractedCenterFreq).toFixed(4);
-            centerFreq.value = formValues.extractedCenterFreq;
-            formValues.extractedSpan = parseFloat(formValues.extractedSpan).toFixed(2);
-            span.value = formValues.extractedSpan;
-            
-            // Form validation for outside range or text
-            if (isNaN(formValues.extractedStartingAZ) || isNaN(formValues.extractedEndingAZ) || formValues.extractedStartingAZ < 0 || formValues.extractedStartingAZ > 360 || formValues.extractedEndingAZ < 0 || formValues.extractedEndingAZ > 360) {
-                alert('Please enter valid azimuth values between 0 and 360.');
-                return;
-            }
+                let route, formData;
 
-            // Validation for center frequency and span
-            if (isNaN(formValues.extractedCenterFreq) || formValues.extractedCenterFreq <= 0 ||
-                isNaN(formValues.extractedSpan) || formValues.extractedSpan <= 0) {
-                alert('Please enter a valid positive Center Frequency and Span.');
-                return;
-            }
+                if (this.checked) {
+                    route = '/pause_schedule';
+                    formData = new FormData(document.getElementById('azForm'));
+                } else {
+                    route = '/unpause_schedule';
+                    formData = null;
+                }
 
-            // Points validation 
-            if (!Number.isInteger(parseFloat(formValues.extractedPoints)) || parseFloat(formValues.extractedPoints) < 101 || parseFloat(formValues.extractedPoints) > 8000) {
-                alert('Points must be an integer between 101 and 8000.');
-                return;
-            }
-            // Ending AZ == Starting AZ if Ending AZ is blank (i.e., spot point) 
-            if (!formValues.extractedEndingAZ) {
-                formValues.extractedEndingAZ = formValues.extractedStartingAZ;
-                endingAZ.value = formValues.extractedEndingAZ;
-                formData.set('endingAZ', formValues.extractedEndingAZ);
-            }
-
-            formData.set('centerFreq', parseFloat(parseFloat(formValues.extractedCenterFreq).toFixed(2)).toString());
-            formData.set('span', parseFloat(parseFloat(formValues.extractedSpan).toFixed(2)).toString());
-
-
-            fetch('/set_az', {
-                method: 'POST',
-                body: formData
+                fetch(route, { method: 'POST', body: formData })
+                    .then(response => response.text())
+                    .then(text => text ? JSON.parse(text) : null)
+                    .then(data => data && console.log(data))
+                    .catch(error => console.error('An error occurred:', error));
             });
-        });
 
-        function toggleCheckboxState(azimuth, elevation) {
-            if (azimuth === 450 && elevation === 180) {
-                checkbox.disabled = true;
-            } else {
-                checkbox.disabled = false;
+            // Function to handle form submission
+            document.getElementById('azForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const formData = new FormData(this);
+
+                let formValues = {
+                    extractedStartingAZ: formData.get('startingAZ'),
+                    extractedEndingAZ: formData.get('endingAZ'),
+                    extractedCenterFreq: formData.get('centerFreq'),
+                    extractedSpan: formData.get('span'),
+                    extractedPoints: formData.get('points')
+                };
+                
+                // Round center frequency and span to 2 decimal places
+                formValues.extractedCenterFreq = parseFloat(formValues.extractedCenterFreq).toFixed(4);
+                centerFreq.value = formValues.extractedCenterFreq;
+                formValues.extractedSpan = parseFloat(formValues.extractedSpan).toFixed(2);
+                span.value = formValues.extractedSpan;
+                
+                // Form validation for outside range or text
+                if (isNaN(formValues.extractedStartingAZ) || isNaN(formValues.extractedEndingAZ) || formValues.extractedStartingAZ < 0 || formValues.extractedStartingAZ > 360 || formValues.extractedEndingAZ < 0 || formValues.extractedEndingAZ > 360) {
+                    alert('Please enter valid azimuth values between 0 and 360.');
+                    return;
+                }
+
+                // Validation for center frequency and span
+                if (isNaN(formValues.extractedCenterFreq) || formValues.extractedCenterFreq <= 0 ||
+                    isNaN(formValues.extractedSpan) || formValues.extractedSpan <= 0) {
+                    alert('Please enter a valid positive Center Frequency and Span.');
+                    return;
+                }
+
+                // Points validation 
+                if (!Number.isInteger(parseFloat(formValues.extractedPoints)) || parseFloat(formValues.extractedPoints) < 101 || parseFloat(formValues.extractedPoints) > 8000) {
+                    alert('Points must be an integer between 101 and 8000.');
+                    return;
+                }
+                // Ending AZ == Starting AZ if Ending AZ is blank (i.e., spot point) 
+                if (!formValues.extractedEndingAZ) {
+                    formValues.extractedEndingAZ = formValues.extractedStartingAZ;
+                    endingAZ.value = formValues.extractedEndingAZ;
+                    formData.set('endingAZ', formValues.extractedEndingAZ);
+                }
+
+                formData.set('centerFreq', parseFloat(parseFloat(formValues.extractedCenterFreq).toFixed(2)).toString());
+                formData.set('span', parseFloat(parseFloat(formValues.extractedSpan).toFixed(2)).toString());
+
+                // Append the IQ option checkbox state to the formData
+                formData.append('iqOption', document.getElementById('iqOption').checked);
+
+                fetch('/set_az', {
+                    method: 'POST',
+                    body: formData
+                });
+            });
+
+            function toggleCheckboxState(azimuth, elevation) {
+                if (azimuth === 450 && elevation === 180) {
+                    checkbox.disabled = true;
+                } else {
+                    checkbox.disabled = false;
+                }
             }
-        }
 
-        // Function to update the actual azimuth and elevation
-        function updateActualAzEl() {
-            fetch('/get_actual_AzEl')
+            // Function to update the actual azimuth and elevation
+            function updateActualAzEl() {
+                fetch('/get_actual_AzEl')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.actual_az === 450.000000 && data.actual_el === 180.000000) {
+                            document.getElementById('actualAzimuth').innerText = "Controller Disconnected";
+                            document.getElementById('actualElevation').innerText = "Controller Disconnected";
+                        } else {
+                            document.getElementById('actualAzimuth').innerText = `Actual Azimuth: ${data.actual_az}\u00B0`;
+                            document.getElementById('actualElevation').innerText = `Actual Elevation: ${data.actual_el}\u00B0`;
+                        }
+                        toggleCheckboxState(data.actual_az, data.actual_el);
+                    });
+            }
+
+            // Function to check server for pause state and update checkbox
+            function checkPauseState() {
+                fetch('/check_pause_state', {
+                    method: 'GET'
+                })
                 .then(response => response.json())
                 .then(data => {
-                    if (data.actual_az === 450.000000 && data.actual_el === 180.000000) {
-                        document.getElementById('actualAzimuth').innerText = "Controller Disconnected";
-                        document.getElementById('actualElevation').innerText = "Controller Disconnected";
-                    } else {
-                        document.getElementById('actualAzimuth').innerText = `Actual Azimuth: ${data.actual_az}\u00B0`;
-                        document.getElementById('actualElevation').innerText = `Actual Elevation: ${data.actual_el}\u00B0`;
+                    if (data.paused !== undefined) {
+                        checkbox.checked = data.paused;
+                        toggleFormState(data.paused); 
+
+                        if (data.paused) {
+                            console.log('Scheduling is paused.');
+                        }
                     }
-                    toggleCheckboxState(data.actual_az, data.actual_el);
-                });
-        }
+                })
+                .catch(error => console.error('An error occurred:', error));
+            }
 
-        // Function to check server for pause state and update checkbox
-        function checkPauseState() {
-            fetch('/check_pause_state', {
-                method: 'GET'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.paused !== undefined) {
-                    checkbox.checked = data.paused;
-                    toggleFormState(data.paused); 
+            // Update the actual azimuth and elevation every second
+            setInterval(updateActualAzEl, 2000);
 
-                    if (data.paused) {
-                        console.log('Scheduling is paused.');
-                    }
-                }
-            })
-            .catch(error => console.error('An error occurred:', error));
-        }
-
-        // Update the actual azimuth and elevation every second
-        setInterval(updateActualAzEl, 2000);
-
-        // Update the checkbox state every two second
-        setInterval(checkPauseState, 1000);
+            // Update the checkbox state every two second
+            setInterval(checkPauseState, 1000);
 
         });
     </script>
