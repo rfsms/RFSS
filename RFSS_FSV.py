@@ -230,7 +230,7 @@ def process_schedule():
                 schedule_run.update_one({"timestamp": document["timestamp"]}, document_update)
 
 def main():
-    logging.info("Starting RFSS_FSV or RFSS_PXA main routine")
+    logging.info("Starting RFSS_FSV main routine")
 
     # Instrument reset/setup
     idn = INSTR.query('*IDN?')
@@ -260,7 +260,7 @@ def main():
     INSTR.write('CALC2:SGR:COL RAD')
     INSTR.write("INST:CRE:NEW IQ, 'IQ Analyzer'")
     INSTR.write('INIT:CONT OFF')
-    INSTR.write('TRAC:IQ:SRAT 6250000') # For 5MHz channel
+    INSTR.write('TRAC:IQ:SRAT 6250000') # For 5MHz channel, 10MHz==15.36MHz, 15MHz==18.75MHz
     INSTR.write('SENS:SWE:TIME 0.016')
     INSTR.write('SENS:SWE:COUN 10')
     INSTR.write('HCOP:DEV:LANG PNG')
