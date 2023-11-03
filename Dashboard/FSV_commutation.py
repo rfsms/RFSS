@@ -4,7 +4,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pandas as pd
-from scipy.io import savemat
+import logging
+
+# Reset the Root Logger - this section is used to reset the root logger and then apply below configuration
+for handler in logging.root.handlers[:]:
+    logging.root.removeHandler(handler)
+
+# Setup logging
+logging.basicConfig(filename='/home/noaa_gms/RFSS/RFSS_SA.log', level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+
+# Initialize logger
+logger = logging.getLogger(__name__)
 
 TEMP_DIR = '/home/noaa_gms/RFSS/Received/'
 RESOURCE_STRING = 'TCPIP::192.168.1.101::hislip0'
@@ -85,7 +95,7 @@ def instrument_scanning_setup():
 def instrument_commutation_setup(center_frequency_MHz=1702.5, span_MHz=8, points=1001):
     try:
 
-        FSV.visa_timeout = 20000
+        FSV.visa_timeout = 5000
         FSV.write("INST:SEL 'Spectrum'")
         FSV.write(f"SENS:FREQ:CENT {center_frequency_MHz}MHz")
         FSV.write(f"SENS:FREQ:SPAN {span_MHz}MHz")
@@ -95,21 +105,30 @@ def instrument_commutation_setup(center_frequency_MHz=1702.5, span_MHz=8, points
         print(f"An error occurred in instrument setup")
 
 # def captureTrace(set_az):
-def captureTrace():
+def captureTrace(iq, set_az, band):
     try:
+        FSV.write("INST:SEL 'Spectrum'")
         FSV.write("INIT:IMM")
         if FSV.query('*OPC?') == '1':
             trace_data = FSV.query('TRAC? TRACE2')
-            # print(trace_data)
-            return trace_data
+        else:
+            # Handle the case where the *OPC? query does not return '1'
+            logging.error("Operation not complete (*OPC? did not return '1')")
+            return None  # Or handle this condition appropriately
 
-        # FSV.write("INST IQ")
-        # FSV.write("INIT:IMM")
-        # if FSV.query('*OPC?') == '1':
-        #     current_datetime = datetime.datetime.utcnow()
-        #     formatted_current_datetime = current_datetime.strftime('%Y-%m-%d_%H_%M_%S_UTC')
-        #     time_saved_IQ = f"'{INSTR_DIR}{set_az}_{formatted_current_datetime}'"
-        #     FSV.write(f"MMEM:STOR:IQ:STAT 1,{time_saved_IQ}")
-        #     get_SpecAn_content_and_DL_locally(FSV)
-    except KeyboardInterrupt:
-        print("Manually stopped by user.")
+        if iq:
+            # logging.info(f"iq: {iq}, set_az: {set_az}, Band: {band}")
+            FSV.write("INST IQ")
+            FSV.write("INIT:IMM")
+            if FSV.query('*OPC?') == '1':
+                time_saved_IQ = f"'{set_az}'"
+                FSV.write(f"MMEM:STOR:IQ:STAT 1,{time_saved_IQ}")
+            else:
+                # Handle the case where the *OPC? query does not return '1' after setting to IQ
+                logging.error("IQ data not stored (*OPC? did not return '1' after setting to IQ)")
+
+        return trace_data  # This needs to be outside the 'if iq' block
+
+    except Exception as e:
+        logging.error(f"An error occurred during captureTrace: {e}")
+        return None  # Ensure that a failure in capturing trace data does not break the calling code
