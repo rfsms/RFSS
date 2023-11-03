@@ -16,10 +16,10 @@ import subprocess
 result = subprocess.run(["systemctl", "show", "-p", "ExecStart", "RFSS.service"], capture_output=True, text=True)
 exec_start_line = result.stdout.strip()
 if "RFSS_PXA" in exec_start_line:
-    from PXA_commutation import instrument_commutation_setup, instrument_scanning_setup, captureTrace, createSpectrogram
+    from PXA_commutation import instrument_commutation_setup, instrument_scanning_setup, captureTrace, createSpectrogram, get_SpecAn_content_and_DL_locally
     logger.info("Imported PXA libraries")
 elif "RFSS_FSV" in exec_start_line:
-    from FSV_commutation import instrument_commutation_setup, instrument_scanning_setup, captureTrace, createSpectrogram
+    from FSV_commutation import instrument_commutation_setup, instrument_scanning_setup, captureTrace, createSpectrogram, get_SpecAn_content_and_DL_locally
     logger.info("Imported FSV libraries")
 
 import pymongo
@@ -40,7 +40,7 @@ schedule_run = db['schedule_run']
 
 is_paused = False
 
-manualDir = '/home/noaa_gms/RFSS/commutationData'
+commutateDir = '/home/noaa_gms/RFSS/commutationData'
 
 def get_location():
     try:
@@ -74,9 +74,9 @@ def get_current_AzEl(conn):
     data = json.loads(response.read())
     return round(data['az'], 1), round(data['el'], 1)
 
-def set_rotor_azimuth(iq_option, starting_az, ending_az, center_frequency_MHz, span_MHz, points, location):
+def set_rotor_azimuth(iq_option, starting_az, ending_az, center_frequency_MHz, span_MHz, points, location, band_config):
 
-    logging.info(f"Configuring SA for commutation mode and sending: CF: {center_frequency_MHz}, Span: {span_MHz}, Points: {points}")
+    logging.info(f"Configuring SA for commutation mode and sending: CF: {center_frequency_MHz}, Span: {span_MHz}, Points: {points}, IQ Conf?: {iq_option}, Band Config: {band_config}")
     instrument_commutation_setup(center_frequency_MHz, span_MHz, points)
 
     # Calculate the frequency values in MHz with four decimal places
@@ -87,7 +87,7 @@ def set_rotor_azimuth(iq_option, starting_az, ending_az, center_frequency_MHz, s
 
     # Prepare the directory and filename for the CSV
     folderDate = datetime.datetime.now().strftime("%Y_%m_%d_%H%M%S")
-    dirDate = os.path.join(manualDir, folderDate)
+    dirDate = os.path.join(commutateDir, folderDate)
     if not os.path.exists(dirDate):
         os.makedirs(dirDate)
     
@@ -101,7 +101,7 @@ def set_rotor_azimuth(iq_option, starting_az, ending_az, center_frequency_MHz, s
     conn = http.client.HTTPConnection("192.168.4.1", 80)
     
     def send_request(az):
-        logging.info(f"Sending request for azimuth: {az}")
+        # logging.info(f"Sending request for azimuth: {az}")
         for _ in range(3):
             try:
                 conn.request("GET", f"/cmd?a=P|{az}|{0}|")
@@ -124,7 +124,7 @@ def set_rotor_azimuth(iq_option, starting_az, ending_az, center_frequency_MHz, s
     for set_az in range(int(starting_az), int(ending_az) + 1, 2):
         if os.path.exists("/home/noaa_gms/RFSS/pause_flag.txt"):
             send_request(set_az)
-            trace_data = captureTrace(iq=iq_option, set_az=set_az, band='YourBandHere')
+            trace_data = captureTrace(iq=iq_option, set_az=set_az, band=band_config)
             
             data_iterations.append([float(x) for x in trace_data.split(',')])
             timestamp_iterations.append(datetime.datetime.now().strftime("%Y%m%d_%H%M%S") + f'_{set_az}')
@@ -150,6 +150,8 @@ def set_rotor_azimuth(iq_option, starting_az, ending_az, center_frequency_MHz, s
     timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     createSpectrogram(dirDate, csv_file_path, frequency_start_MHz, frequency_end_MHz, starting_az, ending_az, location)
     logging.info('Commutation scan complete')
+    get_SpecAn_content_and_DL_locally(dirDate)
+    logging.info(f'Transferred Commutation Data from SA to {dirDate} folder')
     unpause_schedule()
     conn.close()
 
@@ -252,9 +254,10 @@ def set_az_path():
     points = int(request.form['points'])
     location = get_location()
     iq_option = request.form.get('iqOption') == 'on'
+    band_config = request.form['bandConfig']
     
     try:
-        p = Process(target=set_rotor_azimuth, args=(iq_option, starting_az, ending_az, center_frequency_MHz, span_MHz, points, location))
+        p = Process(target=set_rotor_azimuth, args=(iq_option, starting_az, ending_az, center_frequency_MHz, span_MHz, points, location, band_config))
         p.start()
         return json.dumps({"message": "Data capture started"}), 200
     except Exception as e:
@@ -278,7 +281,7 @@ def pause_schedule():
 @app.route('/unpause_schedule', methods=['POST'])
 def unpause_schedule():
 
-    logging.info('Returning SA back to scanning mode')
+    logging.info('Returned SA back to scanning mode')
     instrument_scanning_setup()
 
     if os.path.exists("/home/noaa_gms/RFSS/pause_flag.txt"):

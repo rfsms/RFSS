@@ -123,7 +123,7 @@
                     </div>
                 </div>
                     <div class="flex items-center mt-4">
-                        <input type="submit" id="submitAzButton" value="Submit AZ" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                        <input type="submit" id="submitAzButton" value="Submit Scan" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
                         <div class="ml-4 flex items-center">
                             <input type="checkbox" id="pauseSchedule" disabled> 
                             <span class="ml-2">Pause Schedule</span>
@@ -131,6 +131,19 @@
                         <div class="ml-4 flex items-center">
                             <input type="checkbox" id="iqOption" name="iqOption" disabled> 
                             <span class="ml-2">Collect IQ</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-center mt-4 w-full"> <!-- Flex container for centering the content below -->
+                        <div id="bandConfig" class="flex justify-center items-center w-full"> <!-- This will center the band config -->
+                            <span class="text-center">Band Config:</span> <!-- Text center for the label -->
+                            <div class="flex items-center ml-4"> <!-- Container for radio buttons with a left margin -->
+                                <input type="radio" id="aws1" name="bandConfig" value="AWS1" checked>
+                                <label for="aws1" class="ml-2">AWS1</label>
+                            </div>
+                            <div class="flex items-center ml-2"> <!-- Container for radio buttons with a left margin -->
+                                <input type="radio" id="aws3" name="bandConfig" value="AWS3">
+                                <label for="aws3" class="ml-2">AWS3</label>
+                            </div>
                         </div>
                     </div>
                 </form>

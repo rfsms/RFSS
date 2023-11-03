@@ -16,7 +16,6 @@ logging.basicConfig(filename='/home/noaa_gms/RFSS/RFSS_SA.log', level=logging.IN
 # Initialize logger
 logger = logging.getLogger(__name__)
 
-TEMP_DIR = '/home/noaa_gms/RFSS/Received/'
 RESOURCE_STRING = 'TCPIP::192.168.1.101::hislip0'
 OPTION_STRING_FORCE_RS_VISA = 'SelectVisa=rs'
 FSV = RsInstrument(RESOURCE_STRING, False, False, OPTION_STRING_FORCE_RS_VISA)
@@ -46,11 +45,12 @@ def createSpectrogram(dirDate, csv_file_path, start_frequency_mhz, end_frequency
     plt.savefig(os.path.join(dirDate, f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}.png'))
     plt.close()
 
-def get_SpecAn_content_and_DL_locally(INSTR):
+def get_SpecAn_content_and_DL_locally(target_directory):
     try:
         # Set and list the current directory on the SA
-        INSTR.write(f'MMEM:CDIR "{INSTR_DIR}"')
-        response = INSTR.query('MMEM:CAT?')
+        FSV.write(f'MMEM:CDIR "{INSTR_DIR}"')
+        response = FSV.query('MMEM:CAT?')
+        logging.info(f'SA Response: {response}')
 
         # Process the response and log the content
         content_list = response.replace('\'', '').split(',')
@@ -59,26 +59,27 @@ def get_SpecAn_content_and_DL_locally(INSTR):
 
             # Download each file in the directory (skip directories)
             if not item.endswith('/'):  # Skip directories
-                temp_filename = TEMP_DIR + item  # Set the destination path on your PC
+                # temp_filename = dirDate + item  # Set the destination path on your PC
                 instrument_filename = INSTR_DIR + item  # Set the SA file path
+                local_file_path = os.path.join(target_directory, item)
 
                 try:
                     # Download the file
-                    data = INSTR.read_file_from_instrument_to_pc(instrument_filename, temp_filename)
+                    data = FSV.read_file_from_instrument_to_pc(instrument_filename, local_file_path)
 
                     # Check if data is not None before writing to the file
                     if data is not None:
-                        with open(temp_filename, 'wb') as f:
+                        logging.info(f'Target Dir: {target_directory}')
+                        with open(local_file_path, 'wb') as f:
                             f.write(data)
-
                     else:
                         continue
 
                 except Exception as e:
                     print(f"Error while downloading file '{item}': {str(e)}")
 
-        print('Removing files from Spectrum Analyzer')    
-        INSTR.write(f'MMEM:DEL "{INSTR_DIR}*"')
+        # print('Removing files from Spectrum Analyzer')    
+        FSV.write(f'MMEM:DEL "{INSTR_DIR}*"')
 
     except RsInstrException as e:
         if "-256," in str(e):
@@ -91,6 +92,7 @@ def instrument_scanning_setup():
     FSV.write("SENS:FREQ:CENT 1702.5MHz")
     FSV.write('SENS:FREQ:SPAN 8MHz')
     FSV.write("INST IQ")
+    FSV.write('TRAC:IQ:SRAT 6250000')
 
 def instrument_commutation_setup(center_frequency_MHz=1702.5, span_MHz=8, points=1001):
     try:
@@ -100,6 +102,7 @@ def instrument_commutation_setup(center_frequency_MHz=1702.5, span_MHz=8, points
         FSV.write(f"SENS:FREQ:CENT {center_frequency_MHz}MHz")
         FSV.write(f"SENS:FREQ:SPAN {span_MHz}MHz")
         FSV.write(f"SENS:SWE:WIND1:POIN {points}")
+        FSV.write(f"SENS:SWE:COUN 20")
 
     except KeyboardInterrupt:
         print(f"An error occurred in instrument setup")
@@ -109,26 +112,35 @@ def captureTrace(iq, set_az, band):
     try:
         FSV.write("INST:SEL 'Spectrum'")
         FSV.write("INIT:IMM")
-        if FSV.query('*OPC?') == '1':
-            trace_data = FSV.query('TRAC? TRACE2')
-        else:
-            # Handle the case where the *OPC? query does not return '1'
-            logging.error("Operation not complete (*OPC? did not return '1')")
-            return None  # Or handle this condition appropriately
+        opc_result = FSV.query('*OPC?')
+        if opc_result != '1':
+            logging.error(f"Operation not complete (*OPC? returned '{opc_result}')")
+            return None
+
+        trace_data = FSV.query('TRAC? TRACE2')
 
         if iq:
-            # logging.info(f"iq: {iq}, set_az: {set_az}, Band: {band}")
+            # logging.info(f'starting IQ with band: {band}')
             FSV.write("INST IQ")
-            FSV.write("INIT:IMM")
-            if FSV.query('*OPC?') == '1':
-                time_saved_IQ = f"'{set_az}'"
-                FSV.write(f"MMEM:STOR:IQ:STAT 1,{time_saved_IQ}")
+            if band == 'AWS1':
+                FSV.write('TRAC:IQ:SRAT 12500000')  # For 10Mhz ABW
+            elif band == 'AWS3':
+                FSV.write('TRAC:IQ:SRAT 6250000')  # For 5Mhz ABW
             else:
-                # Handle the case where the *OPC? query does not return '1' after setting to IQ
-                logging.error("IQ data not stored (*OPC? did not return '1' after setting to IQ)")
+                logging.error(f"Invalid band selection: {band}")
+                return None
 
-        return trace_data  # This needs to be outside the 'if iq' block
+            FSV.write("INIT:IMM")  # Small delay to allow instrument to process previous commands
+            opc_result_iq = FSV.query('*OPC?')
+            if opc_result_iq != '1':
+                logging.error(f"IQ data not stored (*OPC? returned '{opc_result_iq}' after setting to IQ)")
+                return None
+
+            time_saved_IQ = f"'{set_az}'"
+            FSV.write(f"MMEM:STOR:IQ:STAT 1,{time_saved_IQ}")
+
+        return trace_data
 
     except Exception as e:
         logging.error(f"An error occurred during captureTrace: {e}")
-        return None  # Ensure that a failure in capturing trace data does not break the calling code
+        return None
