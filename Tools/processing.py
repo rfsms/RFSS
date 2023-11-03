@@ -44,7 +44,18 @@ def run_script():
         time.sleep(1)
     else:
         # Process is still running after max_runtime_seconds, terminate it
+        logging("Sending SIGTERM to IQ process")
         process.terminate()
+
+        # Give it a few seconds to terminate
+        time.sleep(5)
+
+        # If the process is still running, kill it
+        if process.poll() is None:  # if poll() returns None, the process is still running
+            logging.info("Terminating IQ process failed -- Killing instead.")
+            process.kill()
+        else:
+            logging.info("IQ Processs successfully terminated")
 
     # Analyze results
     total_iq, pci_found = analyze_results(yesterday)
