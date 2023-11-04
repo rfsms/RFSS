@@ -150,8 +150,10 @@ def set_rotor_azimuth(iq_option, starting_az, ending_az, center_frequency_MHz, s
     timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     createSpectrogram(dirDate, csv_file_path, frequency_start_MHz, frequency_end_MHz, starting_az, ending_az, location)
     logging.info('Commutation scan complete')
-    get_SpecAn_content_and_DL_locally(dirDate)
-    logging.info(f'Transferred Commutation Data from SA to {dirDate} folder')
+    if iq_option:
+        get_SpecAn_content_and_DL_locally(dirDate)
+        logging.info(f'Transferred Commutation Data from SA to {dirDate} folder')
+        
     unpause_schedule()
     conn.close()
 

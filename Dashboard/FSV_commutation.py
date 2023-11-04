@@ -50,7 +50,7 @@ def get_SpecAn_content_and_DL_locally(target_directory):
         # Set and list the current directory on the SA
         FSV.write(f'MMEM:CDIR "{INSTR_DIR}"')
         response = FSV.query('MMEM:CAT?')
-        logging.info(f'SA Response: {response}')
+        # logging.info(f'SA Response: {response}')
 
         # Process the response and log the content
         content_list = response.replace('\'', '').split(',')
