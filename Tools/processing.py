@@ -28,7 +28,7 @@ def analyze_results(yesterday):
 
 def run_script():
     yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y_%m_%d')
-    logging.info(f"Processing started for {yesterday} folder")
+    logging.info(f"IQ Processing started for {yesterday} folder")
 
     command = f"/home/noaa_gms/Downloads/Both_vd6/run_RFSS_classifyidentifyPCI_15MHz_vd3.sh /usr/local/MATLAB/MATLAB_Runtime/R2023a /home/noaa_gms/RFSS/toDemod/{yesterday}/ /home/noaa_gms/RFSS/toDemod/{yesterday}/results/"
     process = subprocess.Popen(command, shell=True)
@@ -39,12 +39,12 @@ def run_script():
     # Monitor the process
     for _ in range(max_runtime_seconds):
         if process.poll() is not None:
-            # Process finished
+            # IQ Processing in progress...
             break
         time.sleep(1)
     else:
         # Process is still running after max_runtime_seconds, terminate it
-        logging("Sending SIGTERM to IQ process")
+        logging.info("Sending SIGTERM to IQ process")
         process.terminate()
 
         # Give it a few seconds to terminate
@@ -55,7 +55,7 @@ def run_script():
             logging.info("Terminating IQ process failed -- Killing instead.")
             process.kill()
         else:
-            logging.info("IQ Processs successfully terminated")
+            logging.info("IQ Processs successfully terminated with process.terminate()")
 
     # Analyze results
     total_iq, pci_found = analyze_results(yesterday)
