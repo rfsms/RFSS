@@ -112,13 +112,13 @@ def set_rotor_azimuth(iq_option, starting_az, ending_az, center_frequency_MHz, s
 
     def check_conditions():
         current_az, current_el = get_current_AzEl(conn)
-        logging.info(f"Checking conditions: Current Az: {current_az}, Current El: {current_el}")
+        # logging.info(f"Checking conditions: Current Az: {current_az}, Current El: {current_el}")
         return abs(current_az - float(starting_az)) <= 1.0 and abs(current_el) <= 1.0
 
     # print("Initial request and conditions check...")
     send_request(starting_az)
     while not check_conditions():
-        logging.info("Initial conditions not met. Retrying in 1 second.")
+        # logging.info("Initial conditions not met. Retrying in 1 second.")
         time.sleep(1)
     
     for set_az in range(int(starting_az), int(ending_az) + 1, 2):
