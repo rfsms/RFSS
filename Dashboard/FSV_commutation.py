@@ -22,6 +22,23 @@ FSV = RsInstrument(RESOURCE_STRING, False, False, OPTION_STRING_FORCE_RS_VISA)
 # FSV = RsInstrument(RESOURCE_STRING, False, False, 'simulate=True')
 INSTR_DIR = 'c:\\R_S\\Instr\\user\\RFSS\\'
 
+def check_instrument_state():
+    try:
+        # Check the instrument's event status register to ensure no errors
+        sesr = FSV.query("*ESR?")
+        logging.info(f"Instrument SESR: {sesr}")
+
+        # Check if the operation is complete
+        opc = FSV.query("*OPC?")
+        logging.info(f"Instrument Operation Complete: {opc}")
+        
+        # Check the status byte register
+        stb = FSV.query("*STB?")
+        logging.info(f"Instrument STB: {stb}")
+
+    except Exception as e:
+        logging.error(f"Error while checking instrument state: {e}")
+
 def createSpectrogram(dirDate, csv_file_path, start_frequency_mhz, end_frequency_mhz, starting_az, ending_az, location):
     df = pd.read_csv(csv_file_path)
     frequencies = df['Frequency (MHz)']
@@ -47,10 +64,13 @@ def createSpectrogram(dirDate, csv_file_path, start_frequency_mhz, end_frequency
 
 def get_SpecAn_content_and_DL_locally(target_directory):
     try:
+
+        check_instrument_state()
+
         # Set and list the current directory on the SA
         FSV.write(f'MMEM:CDIR "{INSTR_DIR}"')
         response = FSV.query('MMEM:CAT?')
-        # logging.info(f'SA Response: {response}')
+        logging.info(f'SA Response: {response}')
 
         # Process the response and log the content
         content_list = response.replace('\'', '').split(',')
@@ -69,12 +89,10 @@ def get_SpecAn_content_and_DL_locally(target_directory):
 
                     # Check if data is not None before writing to the file
                     if data is not None:
-                        logging.info(f'Target Dir: {target_directory}')
+                        # logging.info(f'Target Dir: {target_directory}')
+                        logging.info(f'Downloading {item} to {target_directory}')
                         with open(local_file_path, 'wb') as f:
                             f.write(data)
-                    else:
-                        continue
-
                 except Exception as e:
                     print(f"Error while downloading file '{item}': {str(e)}")
 
@@ -83,26 +101,33 @@ def get_SpecAn_content_and_DL_locally(target_directory):
 
     except RsInstrException as e:
         if "-256," in str(e):
-            print("No files on Spectrum Analyzer to process:", e)   
+            logging.warning("No files on Spectrum Analyzer to process:", e)
+        else:
+            logging.error(f"Error in get_SpecAn_content_and_DL_locally: {e}")
 
 def instrument_scanning_setup():
-    # Since FSV config between tabs is the same we need to reset the CF for IQ back
+    # Since FSV config between tabs is the same we need to reset the CF for IQ back -!! NOT TRUEE  mustfix...
     FSV.write("INST:SEL 'Spectrum'")
     FSV.write("SENS:SWE:WIND1:POIN 1001")
     FSV.write("SENS:FREQ:CENT 1702.5MHz")
     FSV.write('SENS:FREQ:SPAN 8MHz')
     FSV.write("INST IQ")
     FSV.write('TRAC:IQ:SRAT 6250000')
+    FSV.write("SENS:FREQ:CENT 1702.5MHz")
 
-def instrument_commutation_setup(center_frequency_MHz=1702.5, span_MHz=8, points=1001):
+def instrument_commutation_setup(center_frequency_MHz, span_MHz, points):
     try:
 
         FSV.visa_timeout = 5000
         FSV.write("INST:SEL 'Spectrum'")
+        # FSV.write("CALC1:SGR:STAT OFF")
         FSV.write(f"SENS:FREQ:CENT {center_frequency_MHz}MHz")
         FSV.write(f"SENS:FREQ:SPAN {span_MHz}MHz")
         FSV.write(f"SENS:SWE:WIND1:POIN {points}")
         FSV.write(f"SENS:SWE:COUN 20")
+        FSV.write("INST IQ")
+        FSV.write(f"SENS:FREQ:CENT {center_frequency_MHz}MHz")
+        FSV.write("INST:SEL 'Spectrum'")
 
     except KeyboardInterrupt:
         print(f"An error occurred in instrument setup")
