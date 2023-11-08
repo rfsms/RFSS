@@ -117,6 +117,7 @@ def instrument_scanning_setup():
 
 def instrument_commutation_setup(center_frequency_MHz, span_MHz, points):
     try:
+
         FSV.visa_timeout = 5000
         FSV.write("INST:SEL 'Spectrum'")
         # FSV.write("CALC1:SGR:STAT OFF")
@@ -127,14 +128,15 @@ def instrument_commutation_setup(center_frequency_MHz, span_MHz, points):
         FSV.write("INST IQ")
         FSV.write(f"SENS:FREQ:CENT {center_frequency_MHz}MHz")
         FSV.write("INST:SEL 'Spectrum'")
-    except Exception as e:
-        logging.info(f"An error occurred in instrument setup: {e}")
+
+    except KeyboardInterrupt:
+        print(f"An error occurred in instrument setup")
 
 # def captureTrace(set_az):
 def captureTrace(iq, set_az, band):
     try:
         FSV.write("INST:SEL 'Spectrum'")
-        FSV.write("INIT:IMM;*WAI")
+        FSV.write("INIT:IMM")
         opc_result = FSV.query('*OPC?')
         if opc_result != '1':
             logging.error(f"Operation not complete (*OPC? returned '{opc_result}')")
@@ -153,7 +155,7 @@ def captureTrace(iq, set_az, band):
                 logging.error(f"Invalid band selection: {band}")
                 return None
 
-            FSV.write("INIT:IMM;*WAI")
+            FSV.write("INIT:IMM")  # Small delay to allow instrument to process previous commands
             opc_result_iq = FSV.query('*OPC?')
             if opc_result_iq != '1':
                 logging.error(f"IQ data not stored (*OPC? returned '{opc_result_iq}' after setting to IQ)")
