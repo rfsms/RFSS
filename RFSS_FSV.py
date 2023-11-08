@@ -208,7 +208,7 @@ def process_schedule():
                     schedule_run.insert_one(document)
 
                 # Instrumentation happens here
-                INSTR.write('INST IQ')
+                # INSTR.write('INST IQ') # Not neccesary since we did this via setup
                 INSTR.write('INIT:IMM;*WAI')
                 current_datetime = datetime.datetime.utcnow()
                 formatted_current_datetime = current_datetime.strftime('%Y-%m-%d_%H_%M_%S_UTC') 
@@ -240,8 +240,8 @@ def main():
     INSTR.reset()
     INSTR.clear_status()
     INSTR.visa_timeout = 20000
-    INSTR.write('SYST:DISP:UPD ON')
-    INSTR.write('INIT:CONT ON')
+    INSTR.write('SYST:DISP:UPD ON') # OFF to turn the screen off
+    INSTR.write('INIT:CONT OFF')
     INSTR.write('SENS:FREQ:CENT 1702500000')
     INSTR.write('SENS:FREQ:SPAN 8000000')
     INSTR.write('SENS:BAND:RES 5000')
@@ -256,13 +256,14 @@ def main():
     INSTR.write('SENS:WIND1:DET2:FUNC RMS')
     INSTR.write('DISP:WIND1:SUBW:TRAC1:Y:SCAL 100') 
     INSTR.write('DISP:WIND1:SUBW:TRAC1:Y:SCAL:RPOS 110')
-    INSTR.write('CALC1:SGR:STAT ON')
-    INSTR.write('CALC2:SGR:COL RAD')
+    INSTR.write("SENS:SWE:COUN 20")
+    # INSTR.write('CALC1:SGR:STAT ON')  #Removing the spcetrogram from spectrum window
+    # INSTR.write('CALC2:SGR:COL RAD')
     INSTR.write("INST:CRE:NEW IQ, 'IQ Analyzer'")
     INSTR.write('INIT:CONT OFF')
-    INSTR.write('TRAC:IQ:SRAT 6250000') # For 5MHz channel, 10MHz==15.36MHz, 15MHz==18.75MHz
+    INSTR.write('TRAC:IQ:SRAT 6250000') # 5MHz == 6.25MHz, 10MHz==15.36MHz, 15MHz==18.75MHz
     INSTR.write('SENS:SWE:TIME 0.016')
-    INSTR.write('SENS:SWE:COUN 10')
+    # INSTR.write('SENS:SWE:COUN 1')
     INSTR.write('HCOP:DEV:LANG PNG')
 
     try:
