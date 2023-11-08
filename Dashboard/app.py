@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, Response
+from flask import Flask, render_template, request, Response, send_from_directory, abort
+from werkzeug.utils import safe_join
 import logging
 
 # Reset the Root Logger - this section is used to reset the root logger and then apply below configuration
@@ -341,6 +342,28 @@ def unpause_schedule():
 def check_pause_state():
     paused = os.path.exists("/home/noaa_gms/RFSS/pause_flag.txt")
     return Response(json.dumps({"paused": paused}), mimetype='application/json')
+
+@app.route('/commutationData')
+@app.route('/files/<path:path>')
+def list_files(path=''):
+    full_path = safe_join(commutateDir, path)
+    if os.path.isdir(full_path):
+        # List directory contents and sort them by descending (reverse=True) order
+        files_and_dirs = sorted(
+            os.listdir(full_path),
+            key=lambda x: os.path.getmtime(safe_join(full_path, x)),
+            reverse=True
+        )
+        # Then generate HTML for each of the clickable files
+        file_links = [
+            f'<li><a href="{os.path.join("/files", path, file)}">{file}</a></li>'
+            for file in files_and_dirs
+        ]
+        return f'<ul>{" ".join(file_links)}</ul>'
+    elif os.path.isfile(full_path):
+        return send_from_directory(os.path.dirname(full_path), os.path.basename(full_path), as_attachment=False)
+    else:
+        abort(404)
 
 if __name__ == '__main__':
     app.run(debug=False)
