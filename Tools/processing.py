@@ -2,6 +2,7 @@ import subprocess
 from datetime import datetime, timedelta
 import time
 import logging
+import requests
 
 # Reset the Root Logger
 for handler in logging.root.handlers[:]:
@@ -25,6 +26,30 @@ def analyze_results(yesterday):
         logging.info("IQ Processing Results file not found.")
 
     return total_count, pci_found_count
+
+def get_machine_id():
+    with open('/etc/machine-id', 'r') as file:
+        return file.read().strip()
+    
+def send_notification(total_iq, pci_found):
+    machine_id = get_machine_id()
+    url = f'https://ntfy.sh/{machine_id}'
+    message = f"Total IQ files processed: {total_iq}, PCI found in: {pci_found} files."
+    data = {'message': message}
+    
+    try:
+        response = requests.post(url, json=data)
+        response.raise_for_status()  # This will raise an exception for HTTP errors
+        return response.status_code
+    except requests.exceptions.HTTPError as http_err:
+        logging.error(f"HTTP error occurred while sending notification: {http_err}")
+    except requests.exceptions.ConnectionError as conn_err:
+        logging.error(f"Connection error occurred while sending notification: {conn_err}")
+    except requests.exceptions.Timeout as timeout_err:
+        logging.error(f"Timeout error occurred while sending notification: {timeout_err}")
+    except requests.exceptions.RequestException as err:
+        logging.error(f"An error occurred while sending notification: {err}")
+    return None
 
 def run_script():
     yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y_%m_%d')
@@ -60,6 +85,7 @@ def run_script():
     # Analyze results
     total_iq, pci_found = analyze_results(yesterday)
     logging.info(f"Total IQ files processed: {total_iq}, PCI found in: {pci_found} files.")
+    send_notification(total_iq, pci_found)  # send curl ntfy here.....
     logging.info(f"IQ Processing terminated as expected after running for {max_runtime_seconds / 3600} hours.")
 
 run_script()
