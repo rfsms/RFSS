@@ -136,7 +136,7 @@ def instrument_commutation_setup(center_frequency_MHz, span_MHz, points):
 def captureTrace(iq, set_az, band):
     try:
         FSV.write("INST:SEL 'Spectrum'")
-        FSV.write("INIT:IMM")
+        FSV.write("INIT:IMM;*WAI")
         opc_result = FSV.query('*OPC?')
         if opc_result != '1':
             logging.error(f"Operation not complete (*OPC? returned '{opc_result}')")
@@ -155,7 +155,7 @@ def captureTrace(iq, set_az, band):
                 logging.error(f"Invalid band selection: {band}")
                 return None
 
-            FSV.write("INIT:IMM")  # Small delay to allow instrument to process previous commands
+            FSV.write("INIT:IMM;*WAI")  # Small delay to allow instrument to process previous commands
             opc_result_iq = FSV.query('*OPC?')
             if opc_result_iq != '1':
                 logging.error(f"IQ data not stored (*OPC? returned '{opc_result_iq}' after setting to IQ)")
