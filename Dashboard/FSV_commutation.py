@@ -129,8 +129,8 @@ def instrument_commutation_setup(center_frequency_MHz, span_MHz, points):
         FSV.write(f"SENS:FREQ:CENT {center_frequency_MHz}MHz")
         FSV.write("INST:SEL 'Spectrum'")
 
-    except KeyboardInterrupt:
-        print(f"An error occurred in instrument setup")
+    except Exception as e:
+        logging.info(f"An error occurred in instrument setup: {e}")
 
 # def captureTrace(set_az):
 def captureTrace(iq, set_az, band):
