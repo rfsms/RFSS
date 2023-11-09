@@ -3,6 +3,8 @@ from datetime import datetime, timedelta
 import time
 import logging
 import requests
+import os
+import signal
 
 # Reset the Root Logger
 for handler in logging.root.handlers[:]:
@@ -39,16 +41,10 @@ def send_notification(total_iq, pci_found):
     
     try:
         response = requests.post(url, json=data)
-        response.raise_for_status()  # This will raise an exception for HTTP errors
+        response.raise_for_status()
         return response.status_code
-    except requests.exceptions.HTTPError as http_err:
-        logging.error(f"HTTP error occurred while sending notification: {http_err}")
-    except requests.exceptions.ConnectionError as conn_err:
-        logging.error(f"Connection error occurred while sending notification: {conn_err}")
-    except requests.exceptions.Timeout as timeout_err:
-        logging.error(f"Timeout error occurred while sending notification: {timeout_err}")
-    except requests.exceptions.RequestException as err:
-        logging.error(f"An error occurred while sending notification: {err}")
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Error occurred while sending notification: {e}")
     return None
 
 def run_script():
@@ -56,7 +52,7 @@ def run_script():
     logging.info(f"IQ Processing started for {yesterday} folder")
 
     command = f"/home/noaa_gms/Downloads/Both_vd6/run_RFSS_classifyidentifyPCI_15MHz_vd3.sh /usr/local/MATLAB/MATLAB_Runtime/R2023a /home/noaa_gms/RFSS/toDemod/{yesterday}/ /home/noaa_gms/RFSS/toDemod/{yesterday}/results/"
-    process = subprocess.Popen(command, shell=True)
+    process = subprocess.Popen(command, shell=True, preexec_fn=os.setsid)
 
     # Define maximum runtime (e.g., 23 hours)
     max_runtime_seconds = 12 * 3600
@@ -68,24 +64,19 @@ def run_script():
             break
         time.sleep(1)
     else:
-        # Process is still running after max_runtime_seconds, terminate it
-        logging.info("Sending SIGTERM to IQ process")
-        process.terminate()
-
-        # Give it a few seconds to terminate
+        # Terminate the process group
+        os.killpg(os.getpgid(process.pid), signal.SIGTERM)
         time.sleep(5)
-
-        # If the process is still running, kill it
-        if process.poll() is None:  # if poll() returns None, the process is still running
-            logging.info("Terminating IQ process failed -- Killing instead.")
-            process.kill()
+        if process.poll() is None:
+            os.killpg(os.getpgid(process.pid), signal.SIGKILL)
+            logging.info("IQ process group killed.")
         else:
-            logging.info("IQ Processs successfully terminated with process.terminate()")
+            logging.info("IQ process group terminated with SIGTERM.")
 
     # Analyze results
     total_iq, pci_found = analyze_results(yesterday)
     logging.info(f"Total IQ files processed: {total_iq}, PCI found in: {pci_found} files.")
-    send_notification(total_iq, pci_found)  # send curl ntfy here.....
+    send_notification(total_iq, pci_found)
     logging.info(f"IQ Processing terminated as expected after running for {max_runtime_seconds / 3600} hours.")
 
 run_script()
