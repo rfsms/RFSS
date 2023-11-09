@@ -352,7 +352,7 @@ def list_files(path=''):
         files_and_dirs = sorted(
             os.listdir(full_path),
             key=lambda x: os.path.getmtime(safe_join(full_path, x)),
-            reverse=True
+            reverse=False
         )
         # Then generate HTML for each of the clickable files
         file_links = [
