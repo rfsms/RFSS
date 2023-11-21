@@ -199,20 +199,6 @@
           exit
           EOF
 
-    - name: Git clone RFSS repository
-      git:
-        repo: 'https://github.com/noaa-rfss/RFSS.git'
-        dest: '/home/noaa_gms/RFSS'
-
-    - name: Create specified directories
-      file:
-        path: "{{ item }}"
-        state: directory
-      loop:
-        - /home/noaa_gms/RFSS/preUpload
-        - /home/noaa_gms/RFSS/Received
-        - /home/noaa_gms/RFSS/Tools/Report_Exports
-
     - name: Add cron job for tleUpdate.py
       cron:
         name: "Run tleUpdate.py every Saturday at 23:50"
@@ -262,7 +248,7 @@
 
     - name: Copy rsyncUpload.sh to /usr/local/bin
       copy:
-        src: /home/noaa_gms/RFSS/Tools/rsyncUpload.sh
+        src: /home/noaa_gms/RFSS/Tools/systemd/rsyncUpload.sh
         dest: /usr/local/bin/rsyncUpload.sh
         mode: '0775'
 

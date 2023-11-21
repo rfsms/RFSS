@@ -17,7 +17,7 @@ import subprocess
 result = subprocess.run(["systemctl", "show", "-p", "ExecStart", "RFSS.service"], capture_output=True, text=True)
 exec_start_line = result.stdout.strip()
 if "RFSS_PXA" in exec_start_line:
-    from PXA_commutation import instrument_commutation_setup, instrument_scanning_setup, captureTrace, createSpectrogram, get_SpecAn_content_and_DL_locally
+    from PXA_commutation import instrument_commutation_setup, instrument_scanning_setup, captureTrace, createSpectrogram
     logger.info("Imported PXA libraries")
 elif "RFSS_FSV" in exec_start_line:
     from FSV_commutation import instrument_commutation_setup, instrument_scanning_setup, captureTrace, createSpectrogram, get_SpecAn_content_and_DL_locally
