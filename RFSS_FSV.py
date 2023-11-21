@@ -261,8 +261,8 @@ def main():
     # INSTR.write('CALC2:SGR:COL RAD')
     INSTR.write("INST:CRE:NEW IQ, 'IQ Analyzer'")
     INSTR.write('INIT:CONT OFF')
-    INSTR.write('TRAC:IQ:SRAT 6250000') # 5MHz == 6.25MHz, 10MHz==15.36MHz, 15MHz==18.75MHz
-    INSTR.write('SENS:SWE:TIME 0.016')
+    INSTR.write('TRAC:IQ:SRAT 6250000') # 5MHz MeasBW == 6.25MHz SR, 10MHz MeasBW == 15.36MHz SR, 15MHz MeasBW==18.75MHz SR, 20MHz MeasBW==25.00MHz SR
+    INSTR.write('SENS:SWE:TIME 0.160')
     # INSTR.write('SENS:SWE:COUN 1')
     INSTR.write('HCOP:DEV:LANG PNG')
 
