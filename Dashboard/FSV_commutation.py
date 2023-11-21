@@ -148,9 +148,11 @@ def captureTrace(iq, set_az, band):
             # logging.info(f'starting IQ with band: {band}')
             FSV.write("INST IQ")
             if band == 'AWS1':
-                FSV.write('TRAC:IQ:SRAT 12500000')  # For 10Mhz ABW
+                FSV.write('TRAC:IQ:SRAT 15360000')  # For 10MHz ABW
+                # FSV.write('TRAC:IQ:SRAT 18750000')  # For 15MHz ABW
+                # FSV.write('TRAC:IQ:SRAT 25000000')  # For 20MHz ABW
             elif band == 'AWS3':
-                FSV.write('TRAC:IQ:SRAT 6250000')  # For 5Mhz ABW
+                FSV.write('TRAC:IQ:SRAT 6250000')  # For 5MHz ABW
             else:
                 logging.error(f"Invalid band selection: {band}")
                 return None
