@@ -77,7 +77,7 @@ def get_current_AzEl(conn):
 
 def set_rotor_azimuth(iq_option, starting_az, ending_az, center_frequency_MHz, span_MHz, points, location, band_config):
 
-    logging.info(f"Configuring SA for commutation mode and sending: CF: {center_frequency_MHz}, Span: {span_MHz}, Points: {points}, IQ Conf?: {iq_option}, Band Config: {band_config}")
+    logging.info(f"Configuring SA for commutation mode and sending: CF: {center_frequency_MHz}, Span: {span_MHz}, Points: {points}, IQ Conf?: {iq_option}, Band/SR Config: {band_config}")
     instrument_commutation_setup(center_frequency_MHz, span_MHz, points)
 
     # Calculate the frequency values in MHz with four decimal places
