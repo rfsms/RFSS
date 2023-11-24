@@ -1,9 +1,18 @@
 from flask import Flask, render_template, jsonify
 import os
-from PXA_commutation import instrument_setup, captureTrace
+from PXA_commutation import instrument_setup, captureTrace, closeConnection
+from multiprocessing import Process
+import time
 
 app = Flask(__name__)
 
+# Global process variable
+scan_process = None
+
+def continuous_capture():
+    while os.path.exists('/home/noaa_gms/RFSS/Tools/Testing/TRL8/flag.txt'):
+        captureTrace()
+        
 @app.route('/')
 def index():
     flag_exists = os.path.exists('/home/noaa_gms/RFSS/Tools/Testing/TRL8/flag.txt')
@@ -11,24 +20,34 @@ def index():
 
 @app.route('/start_scan', methods=['POST'])
 def start_scan():
-    open('/home/noaa_gms/RFSS/Tools/Testing/TRL8/flag.txt', 'w').close()  # Create an empty flag file
+    global scan_process
+    open('/home/noaa_gms/RFSS/Tools/Testing/TRL8/flag.txt', 'w').close()
     
-    # Setup the PXA
-    instrument_setup()
-    # Start capturing IQ and data
-    captureTrace()
+    if scan_process is None or not scan_process.is_alive():
+        # Setup the PXA
+        instrument_setup()
+        # Start capturing IQ and data in a separate process
+        scan_process = Process(target=continuous_capture)
+        scan_process.start()
 
     return jsonify({'status': 'Scanning Started'})
 
 @app.route('/stop_scan', methods=['POST'])
 def stop_scan():
+    global scan_process
     try:
-        os.remove('/home/noaa_gms/RFSS/Tools/Testing/TRL8/flag.txt')  # Remove the flag file
+        os.remove('/home/noaa_gms/RFSS/Tools/Testing/TRL8/flag.txt')
     except FileNotFoundError:
         pass
-    # Stop scan logic
-    return jsonify({'status': 'Scanning Stopped'})
 
+    if scan_process and scan_process.is_alive():
+        scan_process.terminate()
+        scan_process.join()
+        scan_process = None
+    
+    closeConnection()
+
+    return jsonify({'status': 'Scanning Stopped'})
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=8888, use_reloader=True)

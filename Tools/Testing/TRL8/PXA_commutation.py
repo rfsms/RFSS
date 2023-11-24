@@ -90,3 +90,9 @@ def captureTrace():
         logging.error(f"An error occurred during captureTrace: {e}")
         return None
     
+def closeConnection():
+    try:
+        PXA.close()
+        logging.info('Closing the SA connection')
+    except Exception as e:
+        logging.error(f"An error occurred during closing the connection: {e}")
