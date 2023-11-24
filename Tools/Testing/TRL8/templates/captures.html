@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.0.4/dist/tailwind.min.css" rel="stylesheet">
+    <title>TLR8 Auto Scans</title>
+    <style>
+        .blue {
+            background-color: blue;
+            color: white;
+            }
+        .yellow {
+            background-color: yellow;
+            }
+        .grey {
+            background-color: lightslategrey;
+            color: white;
+            }
+    </style>
+</head>
+<body class="text-base">
+
+    <div class="flex flex-col items-center">
+        <br></br>
+        <!-- FSV Config -->
+        <div id="formDiv" class="flex flex-col items-center mb-8">
+            <form id="Form" action="/start_scan" method="post" class="flex flex-col items-center">
+                <div class="bg-gray-400 w-72 text-white py-2 px-4 rounded text-center">
+                    Frequency Configuration
+                </div>
+                <div class="flex justify-center items-center mb-8">
+                    <div class="flex flex-col justify-center items-center mr-4">
+                        <label for="startFreq" class="text-center">Start Frequency (MHz):</label>
+                        <div id="startFreq" class="w-48 border border-gray-600 bg-white text-black py-2 px-4 rounded text-center">
+                            1695.0 MHz
+                        </div>                    
+                    </div>
+                    <div class="flex flex-col justify-center items-center mr-4">
+                        <label for="centerFreq" class="text-center">Center Frequency (MHz):</label>
+                        <div id="centerFreq" class="w-48 border border-gray-600 bg-white text-black py-2 px-4 rounded text-center">
+                            1702.5 MHz
+                        </div>
+                    </div>
+                    <div class="flex flex-col justify-center items-center mr-4">
+                        <label for="endFreq" class="text-center">End Frequency (MHz):</label>
+                        <div id="endFreq" class="w-48 border border-gray-600 bg-white text-black py-2 px-4 rounded text-center">
+                            1710.5 MHz
+                        </div>                    
+                    </div>
+                    <div class="flex flex-col justify-center items-center mr-4">
+                        <label for="span" class="text-center">Span (MHz):</label>
+                        <div id="span" class="w-48 border border-gray-600 bg-white text-black py-2 px-4 rounded text-center">
+                            15 MHz
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-400 w-72 text-white py-2 px-4 rounded text-center">
+                    IQ Capture Configuration
+                </div>
+                <div class="flex justify-center items-center mb-8">
+                    <div class="flex flex-col justify-center items-center mr-4">
+                        <label for="measTime" class="text-center">Meas Time (ms):</label>
+                        <div id="measTime" class="w-48 border border-gray-600 bg-white text-black py-2 px-4 rounded text-center">
+                            160 ms
+                        </div>                    
+                    </div>
+                    <div class="flex flex-col justify-center items-center mr-4">
+                        <label for="sampRate" class="text-center">Sample Rate (MHz):</label>
+                        <div id="sampRate" class="w-48 border border-gray-600 bg-white text-black py-2 px-4 rounded text-center">
+                            18.75 MHz
+                        </div>
+                    </div>
+                    <div class="flex flex-col justify-center items-center mr-4">
+                        <label for="measBW" class="text-center">Measurement BW (MHz):</label>
+                        <div id="measBW" class="w-48 border border-gray-600 bg-white text-black py-2 px-4 rounded text-center">
+                            15 MHz
+                        </div>                    
+                    </div>
+                </div>
+                <div class="flex items-center mt-4">
+                    <input type="button" id="scanButton" value="{{ 'Stop Scan' if flag_exists else 'Start Scan' }}" onclick="toggleScanState()" class="{{ 'bg-red-500' if flag_exists else 'bg-green-500' }} hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function toggleScanState() {
+            var button = document.getElementById('scanButton');
+            if (button.value === "Start Scan") {
+                fetch('/start_scan', {method: 'POST'})
+                    .then(response => response.json())
+                    .then(data => {
+                        // handle response, update button state
+                        console.log(data);
+                        button.value = "Stop Scan";
+                        button.className = "bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded";
+                    })
+                    .catch(error => {
+                        // handle error
+                        console.error('Error:', error);
+                    });
+            } else {
+                fetch('/stop_scan', {method: 'POST'})
+                    .then(response => response.json())
+                    .then(data => {
+                        // handle response, update button state
+                        console.log(data);
+                        button.value = "Start Scan";
+                        button.className = "bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded";
+                    })
+                    .catch(error => {
+                        // handle error
+                        console.error('Error:', error);
+                    });
+            }
+        }
+    </script>
+    
+</body>
+</html>
