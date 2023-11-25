@@ -37,6 +37,7 @@ def instrument_setup():
         PXA.write("INIT:CONT OFF")
         PXA.write("SENS:FREQ:SPAN 20000000")
         PXA.write("SENS:FREQ:CENT 1702500000")
+        # PXA.write("SENS:SWE:POIN 10")
         PXA.write("POW:ATT:AUTO OFF")
         PXA.write("POW:ATT 0")
         PXA.write("BAND 5000")
@@ -66,25 +67,25 @@ def instrument_setup():
 
 def captureTrace():
     try:
-        # PXA.write("INST:SCR:SEL 'Spectrum Analyzer 1'")
-        # PXA.write("INIT:IMM;*WAI")
-        # trace_data = PXA.query('TRAC? TRACE2')
-    
-        # PXA.write("INST IQ")
-
+        PXA.write("INST:SCR:SEL 'Spectrum Analyzer 1'")
         PXA.write("INIT:IMM;*WAI")
-        data = PXA.query_binary_values(":FETCH:WAV0?")
+        trace_data = PXA.query('TRAC? TRACE2')
+    
+        # PXA.write("INST:SCR:SEL 'IQ Analyzer 1'")
 
-        # Convert to separate I and Q arrays
-        i_data = data[::2]
-        q_data = data[1::2]
+        # PXA.write("INIT:IMM;*WAI")
+        # data = PXA.query_binary_values(":FETCH:WAV0?")
 
-        current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+        # # Convert to separate I and Q arrays
+        # i_data = data[::2]
+        # q_data = data[1::2]
 
-        # Save I/Q data to MAT file
-        savemat(f'{TEMP_DIR}{current_time}.mat', {'I_Data': i_data, 'Q_Data': q_data})
+        # current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-        # return trace_data
+        # # Save I/Q data to MAT file
+        # savemat(f'{TEMP_DIR}{current_time}.mat', {'I_Data': i_data, 'Q_Data': q_data})
+
+        return trace_data
     
     except Exception as e:
         logging.error(f"An error occurred during captureTrace: {e}")
