@@ -2,16 +2,21 @@ from flask import Flask, render_template, jsonify
 import os
 from PXA_commutation import instrument_setup, captureTrace, closeConnection
 from multiprocessing import Process
-import time
+import eventlet
+from flask_socketio import SocketIO
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'secret!'
+socketio = SocketIO(app)
 
 # Global process variable
 scan_process = None
 
 def continuous_capture():
     while os.path.exists('/home/noaa_gms/RFSS/Tools/Testing/TRL8/flag.txt'):
-        captureTrace()
+        trace_data = captureTrace()
+        socketio.emit('new_data', {'data': trace_data})
+        eventlet.sleep(1)
         
 @app.route('/')
 def index():
@@ -46,8 +51,7 @@ def stop_scan():
         scan_process = None
     
     closeConnection()
-
     return jsonify({'status': 'Scanning Stopped'})
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=8888, use_reloader=True)
+    socketio.run(app, debug=True, host='0.0.0.0', port=8888)
