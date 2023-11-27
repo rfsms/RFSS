@@ -129,5 +129,3 @@ Logging:</br>
 Side note:</br> 
 Instead of setting up quota's for preUpload folder when EC2 is not up, you can use `find preUpload/ -type f ! -newermt "2023-08-17 19:00" | xargs rm -rf` to remove files in preUpload newer than date (test it without teh pipe to xargs first, unless you're daring).  You  can also just use `find ~/RFSS/preUpload/ -name "*.tar.gz" -mtime +0 -delete` to delete all tar.gz files in dir older than 24 hours.
 
-testing
-
