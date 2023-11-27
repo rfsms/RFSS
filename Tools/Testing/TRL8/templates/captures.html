@@ -89,37 +89,67 @@
     <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script type="text/javascript" charset="utf-8">
-
         let spectrogramData = [];
+        let timeStamps = [];
+        let currentTitle = 'Spectrogram'; // Global variable for current title
 
         document.addEventListener('DOMContentLoaded', function() {
-                var socket = io.connect('http://' + document.domain + ':' + location.port);
+            var socket = io.connect('http://' + document.domain + ':' + location.port);
 
-                socket.on('new_data', function(data) {
-                    // Assuming each data.data is a single spectrum
-                    spectrogramData.push(data.data.split(',').map(Number));  // Convert string to numbers and add to array
-
-                    // Limit the size of the spectrogramData for performance
-                    if (spectrogramData.length > 100) {  // Adjust this limit as needed
-                        spectrogramData.shift();  // Remove the oldest spectrum
-                    }
-
-                    var trace = {
-                        z: spectrogramData,
-                        type: 'heatmap',
-                        colorscale: 'Jet',  // Optional: set colorscale
-                    };
-
-                    var layout = {
-                        title: 'Spectrogram',
-                        xaxis: { title: 'Time' },
-                        yaxis: { title: 'Frequency' }
-                    };
-
-                    Plotly.newPlot('plotlyDiv', [trace], layout);
-                });
-
+            // Update title on connect/disconnect
+            socket.on('connect', function() {
+                updatePlotTitle('Client Connected');
             });
+            socket.on('disconnect', function() {
+                updatePlotTitle('Client Disconnected');
+            });
+
+            socket.on('new_data', function(data) {
+                spectrogramData.push(data.data.split(',').map(Number));
+
+                // Add current timestamp to the timestamps array
+                var currentTime = new Date().toLocaleTimeString();
+                timeStamps.push(currentTime);
+
+                // Limit the size of the spectrogramData for performance
+                if (spectrogramData.length > 100) {
+                    spectrogramData.shift();  // Remove the oldest spectrum
+                    timeStamps.shift();       // Also remove the oldest timestamp
+                }
+
+                var trace = {
+                    z: spectrogramData,
+                    y: timeStamps,
+                    type: 'heatmap',
+                    colorscale: 'Jet',
+                };
+
+                var layout = {
+                    title: currentTitle,
+                    yaxis: { 
+                        showticklabels: true
+                    },
+                    xaxis: {
+                        tickvals: [0, spectrogramData[0].length / 2, spectrogramData[0].length - 1],
+                        ticktext: ['1692.5MHz', '1702.5MHz', '1712.5MHz'],
+                        showticklabels: true
+                    }
+                };
+
+                var config = {
+                    displayModeBar: false,
+                    responsive: true
+                };
+                Plotly.newPlot('plotlyDiv', [trace], layout, config);
+            });
+
+            //Update the title based on socket connectivity
+            function updatePlotTitle(newTitle) {
+                currentTitle = newTitle; // Update the global title variable
+                var update = { title: newTitle };
+                Plotly.relayout('plotlyDiv', update);
+            }
+        }); 
 
 
         function toggleScanState() {
