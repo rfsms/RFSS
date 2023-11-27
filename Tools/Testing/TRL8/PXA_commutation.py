@@ -59,7 +59,6 @@ def instrument_setup():
         PXA.write("FORM:BORD SWAP")
         PXA.write("FORM REAL,32")
 
-        PXA.close
         logging.info("Scanning setup complete")
 
     except Exception as e:
@@ -71,19 +70,19 @@ def captureTrace():
         PXA.write("INIT:IMM;*WAI")
         trace_data = PXA.query('TRAC? TRACE2')
     
-        # PXA.write("INST:SCR:SEL 'IQ Analyzer 1'")
+        PXA.write("INST:SCR:SEL 'IQ Analyzer 1'")
 
-        # PXA.write("INIT:IMM;*WAI")
-        # data = PXA.query_binary_values(":FETCH:WAV0?")
+        PXA.write("INIT:IMM;*WAI")
+        data = PXA.query_binary_values(":FETCH:WAV0?")
 
-        # # Convert to separate I and Q arrays
-        # i_data = data[::2]
-        # q_data = data[1::2]
+        # Convert to separate I and Q arrays
+        i_data = data[::2]
+        q_data = data[1::2]
 
-        # current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+        current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-        # # Save I/Q data to MAT file
-        # savemat(f'{TEMP_DIR}{current_time}.mat', {'I_Data': i_data, 'Q_Data': q_data})
+        # Save I/Q data to MAT file
+        savemat(f'{TEMP_DIR}{current_time}.mat', {'I_Data': i_data, 'Q_Data': q_data})
 
         return trace_data
     
@@ -94,6 +93,6 @@ def captureTrace():
 def closeConnection():
     try:
         PXA.close()
-        logging.info('Closing the SA connection')
+        logging.info('Closed the SA connection')
     except Exception as e:
         logging.error(f"An error occurred during closing the connection: {e}")
