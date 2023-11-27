@@ -1,24 +1,11 @@
-import pyvisa
+# import pyvisa
 from datetime import datetime
 from scipy.io import savemat
 import logging
 
-# Reset the Root Logger - this section is used to reset the root logger and then apply below configuration
-for handler in logging.root.handlers[:]:
-    logging.root.removeHandler(handler)
-
-# Setup logging
-logging.basicConfig(filename='/home/noaa_gms/RFSS/Tools/Testing/TRL8/scan.log', level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-
-# Initialize logger
-logger = logging.getLogger(__name__)
-
-RESOURCE_STRING = 'TCPIP::192.168.3.101::hislip0' 
-RM = pyvisa.ResourceManager()
-PXA = RM.open_resource(RESOURCE_STRING, timeout = 20000)
 TEMP_DIR = '/home/noaa_gms/RFSS/Tools/Testing/TRL8/TLR8_Data/'
 
-def instrument_setup():
+def instrument_setup(PXA, RESOURCE_STRING):
     try:
         logging.info("Starting PXA Instrument Scanning Setup")
 
@@ -64,7 +51,7 @@ def instrument_setup():
     except Exception as e:
         logging.error(f"Error while setting up instrument for scanning: {e}")
 
-def captureTrace():
+def captureTrace(PXA):
     try:
         PXA.write("INST:SCR:SEL 'Spectrum Analyzer 1'")
         PXA.write("INIT:IMM;*WAI")
@@ -90,9 +77,12 @@ def captureTrace():
         logging.error(f"An error occurred during captureTrace: {e}")
         return None
     
-def closeConnection():
-    try:
-        PXA.close()
-        logging.info('Closed the SA connection')
-    except Exception as e:
-        logging.error(f"An error occurred during closing the connection: {e}")
+# def closeConnection():
+#     try:
+#         if PXA:
+#             PXA.close()
+#             logging.info('Closed the SA connection')
+#     except Exception as e:
+#         logging.error(f"An error occurred during closing the connection: {e}")
+
+
