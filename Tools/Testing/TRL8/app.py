@@ -1,11 +1,9 @@
 from flask import Flask, render_template, jsonify
-import os
-from PXA_commutation import instrument_setup, captureTrace
-from multiprocessing import Process, Manager
 import eventlet
 from flask_socketio import SocketIO
 import pyvisa
 import logging
+from PXA_commutation import instrument_setup, captureTrace
 
 # Reset the Root Logger - this section is used to reset the root logger and then apply below configuration
 for handler in logging.root.handlers[:]:
@@ -23,36 +21,37 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
 
-manager = Manager()
-shared_data = manager.dict()
-shared_data['is_scanning'] = False  # Initialize the flag
+shared_data = {'is_scanning': False, 'trace_data': None}
+RESOURCE_STRING = 'TCPIP::192.168.3.101::hislip0' 
 
 # pyvisa.log_to_screen()
 
-# Global process variable
-scan_process = None
-RM = None
-PXA = None
-RESOURCE_STRING = 'TCPIP::192.168.3.101::hislip0' 
+# Custom log function for SocketIO
+def log_socketio_error(event, error_info):
+    logging.error(f"Error in SocketIO {event}: {error_info}")
 
-def continuous_capture(shared_data):
-    global PXA
-    while True:
-        if not shared_data.get('is_scanning'):
-            break
+def continuous_capture():
+    RM = pyvisa.ResourceManager() 
+    PXA = RM.open_resource(RESOURCE_STRING, timeout=20000)
+    instrument_setup(PXA, RESOURCE_STRING)
+    
+    try:
+        while shared_data['is_scanning']:
+            try:
+                trace_data = captureTrace(PXA)
+                shared_data['trace_data'] = trace_data
+            except Exception as e:
+                logging.info(f"Error in continuous_capture: {e}")
 
-        try:
-            trace_data = captureTrace(PXA)
-            shared_data['trace_data'] = trace_data
-        except Exception as e:
-            logging.info(f"Error in continuous_capture: {e}")
-        
-        eventlet.sleep(1)
+            eventlet.sleep(1)  # Non-blocking sleep
+    finally:
+        if PXA:
+            PXA.close()
 
 def emit_trace_data():
     with app.app_context():
         while True:
-            if shared_data.get('trace_data'):
+            if shared_data['trace_data']:
                 socketio.emit('new_data', {'data': shared_data['trace_data']})
                 shared_data['trace_data'] = None
             eventlet.sleep(1)
@@ -63,35 +62,32 @@ def index():
 
 @app.route('/start_scan', methods=['POST'])
 def start_scan():
-    global RM, PXA    
-    RM = pyvisa.ResourceManager() 
-    PXA = RM.open_resource(RESOURCE_STRING, timeout=20000)
-    instrument_setup(PXA, RESOURCE_STRING)
     shared_data['is_scanning'] = True
-    scan_process = Process(target=continuous_capture, args=(shared_data,))
-    scan_process.start()
+    eventlet.spawn(continuous_capture)
     eventlet.spawn(emit_trace_data)
     return jsonify({'status': 'Scanning Started'})
 
 @app.route('/stop_scan', methods=['POST'])
 def stop_scan():
-    global scan_process, PXA
     shared_data['is_scanning'] = False
-    if scan_process:
-        scan_process.join()
-        scan_process = None 
-    if PXA:
-        PXA.close()
-
     return jsonify({'status': 'Scanning Stopped'})
 
 @socketio.on('connect')
 def handle_connect():
-    logging.info("Client connected")
+    try:
+        # Your connect handling logic
+        logging.info("Client connected")
+    except Exception as e:
+        log_socketio_error('connect', str(e))
 
 @socketio.on('disconnect')
 def handle_disconnect():
-    logging.info("Client disconnected")
+    try:
+        # Your disconnect handling logic
+        logging.info("Client disconnected")
+    except Exception as e:
+        log_socketio_error('disconnect', str(e))
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True, host='0.0.0.0', port=8888)
+    # socketio.run(app, debug=True, host='0.0.0.0', port=8888)
+    pass
