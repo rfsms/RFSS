@@ -54,8 +54,8 @@ def emit_trace_data():
         while True:
             if shared_data.get('trace_data'):
                 socketio.emit('new_data', {'data': shared_data['trace_data']})
-                shared_data['trace_data'] = None  # Clear after emitting
-            eventlet.sleep(1)  # Adjust as needed
+                shared_data['trace_data'] = None
+            eventlet.sleep(1)
 
 @app.route('/')
 def index():

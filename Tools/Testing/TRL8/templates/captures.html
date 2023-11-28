@@ -113,15 +113,15 @@
 
                 // Limit the size of the spectrogramData for performance
                 if (spectrogramData.length > 100) {
-                    spectrogramData.shift();  // Remove the oldest spectrum
-                    timeStamps.shift();       // Also remove the oldest timestamp
+                    spectrogramData.shift();  
+                    timeStamps.shift();     
                 }
 
                 var trace = {
                     z: spectrogramData,
                     y: timeStamps,
                     type: 'heatmap',
-                    colorscale: 'Jet',
+                    colorscale: 'Viridis',
                 };
 
                 var layout = {
