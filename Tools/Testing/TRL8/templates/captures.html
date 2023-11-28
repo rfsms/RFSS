@@ -31,25 +31,25 @@
                 </div>
                 <div class="flex justify-center items-center mb-8">
                     <div class="flex flex-col justify-center items-center mr-4">
-                        <label for="startFreq" class="text-center">Start Frequency (MHz):</label>
+                        <label class="text-center">Start Frequency (MHz):</label>
                         <div id="startFreq" class="w-48 border border-gray-600 bg-white text-black py-2 px-4 rounded text-center">
                             1695.0 MHz
                         </div>                    
                     </div>
                     <div class="flex flex-col justify-center items-center mr-4">
-                        <label for="centerFreq" class="text-center">Center Frequency (MHz):</label>
+                        <label class="text-center">Center Frequency (MHz):</label>
                         <div id="centerFreq" class="w-48 border border-gray-600 bg-white text-black py-2 px-4 rounded text-center">
                             1702.5 MHz
                         </div>
                     </div>
                     <div class="flex flex-col justify-center items-center mr-4">
-                        <label for="endFreq" class="text-center">End Frequency (MHz):</label>
+                        <label class="text-center">End Frequency (MHz):</label>
                         <div id="endFreq" class="w-48 border border-gray-600 bg-white text-black py-2 px-4 rounded text-center">
                             1710.5 MHz
                         </div>                    
                     </div>
                     <div class="flex flex-col justify-center items-center mr-4">
-                        <label for="span" class="text-center">Span (MHz):</label>
+                        <label class="text-center">Span (MHz):</label>
                         <div id="span" class="w-48 border border-gray-600 bg-white text-black py-2 px-4 rounded text-center">
                             20 MHz
                         </div>
@@ -60,19 +60,19 @@
                 </div>
                 <div class="flex justify-center items-center mb-8">
                     <div class="flex flex-col justify-center items-center mr-4">
-                        <label for="measTime" class="text-center">Meas Time (ms):</label>
+                        <label class="text-center">Meas Time (ms):</label>
                         <div id="measTime" class="w-48 border border-gray-600 bg-white text-black py-2 px-4 rounded text-center">
                             160 ms
                         </div>                    
                     </div>
                     <div class="flex flex-col justify-center items-center mr-4">
-                        <label for="sampRate" class="text-center">Sample Rate (MHz):</label>
+                        <label class="text-center">Sample Rate (MHz):</label>
                         <div id="sampRate" class="w-48 border border-gray-600 bg-white text-black py-2 px-4 rounded text-center">
                             18.75 MHz
                         </div>
                     </div>
                     <div class="flex flex-col justify-center items-center mr-4">
-                        <label for="measBW" class="text-center">Measurement BW (MHz):</label>
+                        <label class="text-center">Measurement BW (MHz):</label>
                         <div id="measBW" class="w-48 border border-gray-600 bg-white text-black py-2 px-4 rounded text-center">
                             15 MHz
                         </div>                    
@@ -105,13 +105,13 @@
             });
 
             socket.on('new_data', function(data) {
-                spectrogramData.push(data.data.split(',').map(Number));
+                let newData = data.data.split(',').map(Number);
+                let currentTime = new Date().toLocaleTimeString();
+                // console.log(newData, currentTime);
 
-                // Add current timestamp to the timestamps array
-                var currentTime = new Date().toLocaleTimeString();
+                spectrogramData.push(newData);
                 timeStamps.push(currentTime);
 
-                // Limit the size of the spectrogramData for performance
                 if (spectrogramData.length > 100) {
                     spectrogramData.shift();  
                     timeStamps.shift();     
@@ -133,25 +133,39 @@
                         tickvals: [0, spectrogramData[0].length / 2, spectrogramData[0].length - 1],
                         ticktext: ['1692.5MHz', '1702.5MHz', '1712.5MHz'],
                         showticklabels: true
-                    }
+                    },
+                    height: 900,
+                    width: 1400
                 };
 
                 var config = {
                     displayModeBar: false,
                     responsive: true
                 };
-                Plotly.newPlot('plotlyDiv', [trace], layout, config);
+
+                var update = {
+                    z: [[newData]], // Ensure this is the correct structure
+                    y: [[currentTime]]
+                };
+
+                // Check if plotlyDiv already has a plot
+                if (document.getElementById('plotlyDiv').getAttribute('data-plotly')) {
+                    Plotly.extendTraces('plotlyDiv', update, [0]);
+                } else {
+                    Plotly.newPlot('plotlyDiv', [trace], layout, config);
+                }
             });
 
-            //Update the title based on socket connectivity
             function updatePlotTitle(newTitle) {
-                currentTitle = newTitle; // Update the global title variable
-                var update = { title: newTitle };
-                Plotly.relayout('plotlyDiv', update);
+                var plotElement = document.getElementById('plotlyDiv');
+                if (plotElement && plotElement.data && plotElement.layout) {
+                    currentTitle = newTitle;
+                    var update = { title: currentTitle };
+                    Plotly.relayout('plotlyDiv', update);
+                }
             }
-        }); 
 
-
+        });
         function toggleScanState() {
             var button = document.getElementById('scanButton');
             if (button.value === "Start Scan") {
