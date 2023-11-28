@@ -25,4 +25,4 @@ scanData/
 commutationData/
 output_map.html
 Tools/Testing/TRL8/scan.log
-Tools/Testing/TRL8/TLR8_Data/*.mat
+Tools/Testing/TRL8/TLR8_Data/*
