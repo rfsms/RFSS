@@ -51,7 +51,8 @@ def run_script():
     yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y_%m_%d')
     logging.info(f"IQ Processing started for {yesterday} folder")
 
-    command = f"/home/noaa_gms/Downloads/Both_vd6/run_RFSS_classifyidentifyPCI_15MHz_vd3.sh /usr/local/MATLAB/MATLAB_Runtime/R2023a /home/noaa_gms/RFSS/toDemod/{yesterday}/ /home/noaa_gms/RFSS/toDemod/{yesterday}/results/"
+    # command = f"/home/noaa_gms/Downloads/Both_vd6/run_RFSS_classifyidentifyPCI_15MHz_vd3.sh /usr/local/MATLAB/MATLAB_Runtime/R2023a /home/noaa_gms/RFSS/toDemod/{yesterday}/ /home/noaa_gms/RFSS/toDemod/{yesterday}/results/"
+    command = f"http://home/noaa_gms/RFSS/Tools/processing/RFSS_classifyidentifyPCI_bothBand_vd6/run_RFSS_classifyidentifyPCI_15MHz_vd3.sh%20/usr/local/MATLAB/MATLAB_Runtime/R2023a%20/home/noaa_gms/RFSS/toDemod/%7Byesterday%7D/%20/home/noaa_gms/RFSS/toDemod/%7Byesterday%7D/results/"
     process = subprocess.Popen(command, shell=True, preexec_fn=os.setsid)
 
     # Define maximum runtime (e.g., 23 hours)
