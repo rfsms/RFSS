@@ -13,7 +13,7 @@ Currently, this is designed to capture 16ms IQ samples every 8 seconds while a G
 
 All traffic between EC2 and RFSS is over a WireGuard based PTP VPN and public keys are used for SCP connections.
 
-![Alt text](image.png)
+![Alt text](image.png) 
 
 ## The following defines the architecture of the repository:
 
