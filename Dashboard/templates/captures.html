@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.0.4/dist/tailwind.min.css" rel="stylesheet">
+    <title>TLR8 Auto Scans</title>
+    <style>
+        .blue {
+            background-color: blue;
+            color: white;
+            }
+        .yellow {
+            background-color: yellow;
+            }
+        .grey {
+            background-color: lightslategrey;
+            color: white;
+            }
+    </style>
+</head>
+<body class="text-base">
+
+    <div class="flex flex-col items-center">
+        <br></br>
+        <!-- FSV Config -->
+        <div id="formDiv" class="flex flex-col items-center mb-8">
+            <form id="Form" action="/start_scan" method="post" class="flex flex-col items-center">
+                <div class="bg-gray-400 w-72 text-white py-2 px-4 rounded text-center">
+                    Frequency Configuration
+                </div>
+                <div class="flex justify-center items-center mb-8">
+                    <div class="flex flex-col justify-center items-center mr-4">
+                        <label class="text-center">Start Frequency (MHz):</label>
+                        <div id="startFreq" class="w-48 border border-gray-600 bg-white text-black py-2 px-4 rounded text-center">
+                            1695.0 MHz
+                        </div>                    
+                    </div>
+                    <div class="flex flex-col justify-center items-center mr-4">
+                        <label class="text-center">Center Frequency (MHz):</label>
+                        <div id="centerFreq" class="w-48 border border-gray-600 bg-white text-black py-2 px-4 rounded text-center">
+                            1702.5 MHz
+                        </div>
+                    </div>
+                    <div class="flex flex-col justify-center items-center mr-4">
+                        <label class="text-center">End Frequency (MHz):</label>
+                        <div id="endFreq" class="w-48 border border-gray-600 bg-white text-black py-2 px-4 rounded text-center">
+                            1712.5 MHz
+                        </div>                    
+                    </div>
+                    <div class="flex flex-col justify-center items-center mr-4">
+                        <label class="text-center">Span (MHz):</label>
+                        <div id="span" class="w-48 border border-gray-600 bg-white text-black py-2 px-4 rounded text-center">
+                            20 MHz
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-400 w-72 text-white py-2 px-4 rounded text-center">
+                    IQ Capture Configuration
+                </div>
+                <div class="flex justify-center items-center mb-8">
+                    <div class="flex flex-col justify-center items-center mr-4">
+                        <label class="text-center">Meas Time (ms):</label>
+                        <div id="measTime" class="w-48 border border-gray-600 bg-white text-black py-2 px-4 rounded text-center">
+                            160 ms
+                        </div>                    
+                    </div>
+                    <div class="flex flex-col justify-center items-center mr-4">
+                        <label class="text-center">Sample Rate (MHz):</label>
+                        <div id="sampRate" class="w-48 border border-gray-600 bg-white text-black py-2 px-4 rounded text-center">
+                            18.75 MHz
+                        </div>
+                    </div>
+                    <div class="flex flex-col justify-center items-center mr-4">
+                        <label class="text-center">Measurement BW (MHz):</label>
+                        <div id="measBW" class="w-48 border border-gray-600 bg-white text-black py-2 px-4 rounded text-center">
+                            15 MHz
+                        </div>                    
+                    </div>
+                </div>
+                <div class="flex items-center mt-4">
+                    <input type="button" id="scanButton" value="{{ 'Stop Scan' if flag_exists else 'Start Scan' }}" onclick="toggleScanState()" class="{{ 'bg-red-500' if flag_exists else 'bg-green-500' }} hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                </div>
+                <div id="plotlyDiv" style="width:100%;height:500px;"></div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script type="text/javascript" charset="utf-8">
+        let spectrogramData = [];
+        let timeStamps = [];
+        let currentTitle = 'Spectrogram'; // Global variable for current title
+
+        document.addEventListener('DOMContentLoaded', function() {
+            var socket = io.connect('http://' + document.domain + ':' + location.port);
+
+            // Update title on connect/disconnect
+            socket.on('connect', function() {
+                updatePlotTitle('Client Connected');
+            });
+            socket.on('disconnect', function() {
+                updatePlotTitle('Client Disconnected');
+            });
+
+            socket.on('new_data', function(data) {
+                let newData = data.data.split(',').map(Number);
+                let currentTime = new Date().toLocaleTimeString();
+                // console.log(newData, currentTime);
+
+                spectrogramData.push(newData);
+                timeStamps.push(currentTime);
+
+                if (spectrogramData.length > 100) {
+                    spectrogramData.shift();  
+                    timeStamps.shift();     
+                }
+
+                var trace = {
+                    z: spectrogramData,
+                    y: timeStamps,
+                    type: 'heatmap',
+                    colorscale: 'Viridis',
+                };
+
+                var layout = {
+                    title: currentTitle,
+                    yaxis: { 
+                        showticklabels: true
+                    },
+                    xaxis: {
+                        tickvals: [0, spectrogramData[0].length / 2, spectrogramData[0].length - 1],
+                        ticktext: ['1692.5MHz', '1702.5MHz', '1712.5MHz'],
+                        showticklabels: true
+                    },
+                    height: 900,
+                    width: 1400
+                };
+
+                var config = {
+                    displayModeBar: false,
+                    responsive: true
+                };
+
+                var update = {
+                    z: [[newData]], // Ensure this is the correct structure
+                    y: [[currentTime]]
+                };
+
+                // Check if plotlyDiv already has a plot
+                if (document.getElementById('plotlyDiv').getAttribute('data-plotly')) {
+                    Plotly.extendTraces('plotlyDiv', update, [0]);
+                } else {
+                    Plotly.newPlot('plotlyDiv', [trace], layout, config);
+                }
+            });
+
+            function updatePlotTitle(newTitle) {
+                var plotElement = document.getElementById('plotlyDiv');
+                if (plotElement && plotElement.data && plotElement.layout) {
+                    currentTitle = newTitle;
+                    var update = { title: currentTitle };
+                    Plotly.relayout('plotlyDiv', update);
+                }
+            }
+
+        });
+        function toggleScanState() {
+            var button = document.getElementById('scanButton');
+            if (button.value === "Start Scan") {
+                fetch('/start_scan', {method: 'POST'})
+                    .then(response => response.json())
+                    .then(data => {
+                        // handle response, update button state
+                        console.log(data);
+                        button.value = "Stop Scan";
+                        button.className = "bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded";
+                    })
+                    .catch(error => {
+                        // handle error
+                        console.error('Error:', error);
+                    });
+            } else {
+                fetch('/stop_scan', {method: 'POST'})
+                    .then(response => response.json())
+                    .then(data => {
+                        // handle response, update button state
+                        console.log(data);
+                        button.value = "Start Scan";
+                        button.className = "bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded";
+                    })
+                    .catch(error => {
+                        // handle error
+                        console.error('Error:', error);
+                    });
+            }
+        }
+    </script>
+    
+</body>
+</html>
