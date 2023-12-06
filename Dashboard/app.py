@@ -48,15 +48,20 @@ schedule_run = db['schedule_run']
 is_paused = False
 commutateDir = '/home/noaa_gms/RFSS/commutationData'
 shared_data = {'is_scanning': False, 'trace_data': None}
-RESOURCE_STRING = 'TCPIP::192.168.3.101::hislip0'
+ip_address = os.environ.get('IP_ADDRESS')
 
 # pyvisa.log_to_screen()
+
+# If you're running the application from the command line, 
+# you can set the environment variable in the same command, 
+# like this: IP_ADDRESS=192.168.x. python3 app.py.
 
 # Custom log function for SocketIO
 def log_socketio_error(event, error_info):
     logging.error(f"Error in SocketIO {event}: {error_info}")
 
 def continuous_capture():
+    RESOURCE_STRING = f'TCPIP::{ip_address}::hislip0'
     RM = pyvisa.ResourceManager() 
     PXA = RM.open_resource(RESOURCE_STRING, timeout=20000)
     instrument_setup(PXA, RESOURCE_STRING)
