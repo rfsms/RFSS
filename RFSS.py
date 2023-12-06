@@ -9,8 +9,8 @@ import json
 from pymongo import MongoClient
 import sys
 
-if len(sys.argv) < 2:
-    raise ValueError("Please provide either 'RFSS_FSV' or 'RFSS_PXA' as an argument.")
+if len(sys.argv) < 3:
+    raise ValueError("Please provide either 'RFSS_FSV' or 'RFSS_PXA' as an argument, and ensure an IP is defined for your spectrum analyzer.")
 
 runningModule = None
 
@@ -38,12 +38,13 @@ logging.basicConfig(filename='/home/noaa_gms/RFSS/RFSS_SA.log', level=logging.IN
 # Change this to increase/decrease schedule based on minimum elevation
 minElevation = 5.0
 
-# Check if the current time is 00:00 UTC or later, and if so, call RFSS_{SPECAN}.main()
+# Check if the current time is 00:00 UTC or later, and if so, call RFSS_{SPECAN}.main(IP_ADDRESS)
+# For cases where RFSS is started without a schedule (after 00:00 UTC)
 if datetime.datetime.utcnow().time() >= datetime.time(0, 0):
     logging.info('-----------------------------------------------------')
     logging.info('RFSS service restarted. Using current schedule.')
-    runningModule.main()
-
+    runningModule.main(sys.argv[2])
+ 
 # Fetch report is done daily using schedule at 00:00 UTC
 def fetchReport():
     try:
@@ -110,7 +111,8 @@ def fetchReport():
             logging.info("Attempting check_and_set_rotator function")
             check_and_set_rotator()
 
-            runningModule.main()
+            # call RFSS_{SPECAN}.main(IP_ADDRESS)
+            runningModule.main(sys.argv[2])
 
     except Exception as e:
         logging.error(f'An error occuredL {e}')

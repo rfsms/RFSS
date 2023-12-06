@@ -9,6 +9,7 @@ import subprocess
 import logging
 from pymongo import MongoClient
 from scipy.io import savemat
+import sys
 
 # Connection for MongoDB
 client = MongoClient('localhost', 27017)
@@ -28,9 +29,6 @@ TEMP_DIR = '/home/noaa_gms/RFSS/Received/'
 REMOTE_IP = 'noaa-gms-ec2'
 REMOTE_USERNAME = 'Administrator'
 REMOTE_PATH = '/'
-RESOURCE_STRING = 'TCPIP::192.168.2.101::hislip0' 
-RM = pyvisa.ResourceManager()
-INSTR = RM.open_resource(RESOURCE_STRING, timeout = 20000)
 INSTR_DIR = 'D:\\Users\\Instrument\\Documents\\BASIC\\data\\WAV\\results\\RFSS\\'
 
 # Once the files are removed fromSpecAn, tar/gz'd in TEMP_DIR folder, then this function moves the file into
@@ -80,7 +78,7 @@ def local_tgz_and_rm_IQ(directory, satellite):
         logging.error(f"No '{gz_file}' found. Skipping scp_gz_files_and_delete.")
         return False
 
-def handle_pause(log_message, restart_message=None, sleep_time=5, loop_completed=None):
+def handle_pause(INSTR, log_message, restart_message=None, sleep_time=5, loop_completed=None):
     log_flag = True
     was_paused = False
     while os.path.exists("/home/noaa_gms/RFSS/pause_flag.txt"):
@@ -118,7 +116,7 @@ def handle_pause(log_message, restart_message=None, sleep_time=5, loop_completed
 # aos/los, etc and compares against current time.  If older entries exist continue, if current time meet aos time then 
 # wait.  once current time matches an aos data is being captured until los.
 # Finally, get_SpecAn_content_and_DL_locally(INSTR) & local_tgz_and_rm_IQ(TEMP_DIR, satellite_name) are processed
-def process_schedule():
+def process_schedule(INSTR):
     """Process the CSV schedule."""
     # Initializing pause flag
     loop_completed = [True]
@@ -131,7 +129,7 @@ def process_schedule():
         # Go through rows
         for row in csvreader:
             # Check for pause flag at the start of each row
-            handle_pause("Pause flag detected at start of row.", "Pause_flag removed. Restarting schedule...", loop_completed=loop_completed)
+            handle_pause(INSTR, "Pause flag detected at start of row.", "Pause_flag removed. Restarting schedule...", loop_completed=loop_completed)
 
             if len(row) < 5:
                 logging.info(f"End of rows in schedule")
@@ -159,7 +157,7 @@ def process_schedule():
 
             # If current time is before the scheduled aos_datetime, wait until aos_datetime is reached
             while now < aos_datetime:
-                handle_pause("Pause flag detected. Pausing pass schedule.", "Pause_flag removed. Restarting schedule...", sleep_time=1, loop_completed=loop_completed)
+                handle_pause(INSTR, "Pause flag detected. Pausing pass schedule.", "Pause_flag removed. Restarting schedule...", sleep_time=1, loop_completed=loop_completed)
                 now = datetime.datetime.utcnow()
                 time.sleep(1)
 
@@ -168,7 +166,7 @@ def process_schedule():
 
             #Between AOL/LOS time
             while True:
-                handle_pause("Schedule paused. Waiting for flag to be removed.", "Pause_flag removed. Restarting schedule...", loop_completed=loop_completed)
+                handle_pause(INSTR, "Schedule paused. Waiting for flag to be removed.", "Pause_flag removed. Restarting schedule...", loop_completed=loop_completed)
 
                 now = datetime.datetime.utcnow()  # Update current time at the start of each iteration
                 if now >= los_datetime:
@@ -213,7 +211,12 @@ def process_schedule():
                 }
                 schedule_run.update_one({"timestamp": document["timestamp"]}, document_update)
 
-def main():
+def main(ip_address):
+
+    RESOURCE_STRING = f'TCPIP::{ip_address}::hislip0' 
+    RM = pyvisa.ResourceManager()
+    INSTR = RM.open_resource(RESOURCE_STRING, timeout = 20000)
+
     logging.info("Starting RFSS_PXA main routine")
 
     # Instrument reset/setup
@@ -254,11 +257,16 @@ def main():
     INSTR.write("FORM REAL,32")
 
     try:
-        process_schedule()
+        process_schedule(INSTR)
         INSTR.write("DISP:ENAB ON")
         logging.info("Schedule finished for the day.\n")
     except Exception as e:
         logging.info(f"An error occurred: {e}")
 
+## Added commented if statement below in cases where RFSS_PXA will be run as standalone 
 if __name__ == "__main__":
+    # if len(sys.argv) < 2:
+    #     raise ValueError("Please provide an IP address for your spectrum analyzer.")
+    # ip_address = sys.argv[1]
+    # main(ip_address)
     main()
