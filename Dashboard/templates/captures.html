@@ -33,7 +33,7 @@
                     <div class="flex flex-col justify-center items-center mr-4">
                         <label class="text-center">Start Frequency (MHz):</label>
                         <div id="startFreq" class="w-48 border border-gray-600 bg-white text-black py-2 px-4 rounded text-center">
-                            1695.0 MHz
+                            1692.5 MHz
                         </div>                    
                     </div>
                     <div class="flex flex-col justify-center items-center mr-4">
@@ -91,7 +91,6 @@
     <script type="text/javascript" charset="utf-8">
         let spectrogramData = [];
         let timeStamps = [];
-        let currentTitle = 'Spectrogram'; // Global variable for current title
 
         document.addEventListener('DOMContentLoaded', function() {
             var socket = io.connect('http://' + document.domain + ':' + location.port);
@@ -125,7 +124,6 @@
                 };
 
                 var layout = {
-                    title: currentTitle,
                     yaxis: { 
                         showticklabels: true
                     },
@@ -155,15 +153,6 @@
                     Plotly.newPlot('plotlyDiv', [trace], layout, config);
                 }
             });
-
-            function updatePlotTitle(newTitle) {
-                var plotElement = document.getElementById('plotlyDiv');
-                if (plotElement && plotElement.data && plotElement.layout) {
-                    currentTitle = newTitle;
-                    var update = { title: currentTitle };
-                    Plotly.relayout('plotlyDiv', update);
-                }
-            }
 
         });
         function toggleScanState() {
