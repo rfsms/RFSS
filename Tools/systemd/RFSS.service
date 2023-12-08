@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python3 /home/noaa_gms/RFSS/RFSS.py RFSS_FSV
+ExecStart=/usr/bin/python3 /home/noaa_gms/RFSS/RFSS.py RFSS_xxx 192.168.x.x
 Restart=on-failure
 User=noaa_gms
 Group=noaa_gms
