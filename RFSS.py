@@ -43,7 +43,12 @@ minElevation = 5.0
 if datetime.datetime.utcnow().time() >= datetime.time(0, 0):
     logging.info('-----------------------------------------------------')
     logging.info('RFSS service restarted. Using current schedule.')
-    runningModule.main(sys.argv[2])
+    if runningModule:
+        ip_address = sys.argv[2] if len(sys.argv) > 2 else None
+        if ip_address:
+            runningModule.main(ip_address)
+        else:
+            logging.error("No IP address provided for spectrum analyzer.")
  
 # Fetch report is done daily using schedule at 00:00 UTC
 def fetchReport():
@@ -112,7 +117,15 @@ def fetchReport():
             check_and_set_rotator()
 
             # call RFSS_{SPECAN}.main(IP_ADDRESS)
-            runningModule.main(sys.argv[2])
+            if datetime.datetime.utcnow().time() >= datetime.time(0, 0):
+                logging.info('-----------------------------------------------------')
+                logging.info('RFSS service restarted. Using current schedule.')
+                if runningModule:
+                    ip_address = sys.argv[2] if len(sys.argv) > 2 else None
+                    if ip_address:
+                        runningModule.main(ip_address)
+                    else:
+                        logging.error("No IP address provided for spectrum analyzer.")
 
     except Exception as e:
         logging.error(f'An error occuredL {e}')
