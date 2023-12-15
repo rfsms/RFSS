@@ -29,6 +29,9 @@ TEMP_DIR = '/home/noaa_gms/RFSS/Received/'
 REMOTE_IP = 'noaa-gms-ec2'
 REMOTE_USERNAME = 'Administrator'
 REMOTE_PATH = '/'
+RESOURCE_STRING = 'TCPIP::192.168.3.101::hislip0' 
+RM = pyvisa.ResourceManager()
+INSTR = RM.open_resource(RESOURCE_STRING, timeout = 20000)
 INSTR_DIR = 'D:\\Users\\Instrument\\Documents\\BASIC\\data\\WAV\\results\\RFSS\\'
 
 # Once the files are removed fromSpecAn, tar/gz'd in TEMP_DIR folder, then this function moves the file into
