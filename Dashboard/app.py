@@ -1,8 +1,5 @@
-from flask import Flask, render_template, request, Response, send_from_directory, abort, jsonify
-import eventlet
+from flask import Flask, render_template, request, Response, send_from_directory, abort
 from werkzeug.utils import safe_join
-from flask_socketio import SocketIO
-import pyvisa
 import logging
 
 # Reset the Root Logger - this section is used to reset the root logger and then apply below configuration
@@ -20,10 +17,12 @@ import subprocess
 result = subprocess.run(["systemctl", "show", "-p", "ExecStart", "RFSS.service"], capture_output=True, text=True)
 exec_start_line = result.stdout.strip()
 if "RFSS_PXA" in exec_start_line:
-    from PXA_commutation import instrument_setup, instrument_commutation_setup, instrument_scanning_setup, captureTrace, createSpectrogram
+    from PXA_commutation import instrument_commutation_setup, instrument_scanning_setup, captureTrace, createSpectrogram
+    SA_type = "PXA"
     logger.info("Imported PXA libraries")
 elif "RFSS_FSV" in exec_start_line:
-    from FSV_commutation import instrument_setup, instrument_scanning_setup, captureTrace, createSpectrogram, get_SpecAn_content_and_DL_locally
+    from FSV_commutation import instrument_commutation_setup, instrument_scanning_setup, captureTrace, createSpectrogram, get_SpecAn_content_and_DL_locally
+    SA_type = "FSV"
     logger.info("Imported FSV libraries")
 
 import pymongo
@@ -36,56 +35,16 @@ from multiprocessing import Process
 import time
 import csv
 
-eventlet.monkey_patch()
-
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'secret!'
-socketio = SocketIO(app)
 client = pymongo.MongoClient("mongodb://localhost:27017/")
 db = client["status_db"]
 collection = db["schedule_daily"]
 schedule_run = db['schedule_run']
+
 is_paused = False
+
 commutateDir = '/home/noaa_gms/RFSS/commutationData'
-shared_data = {'is_scanning': False, 'trace_data': None}
-ip_address = os.environ.get('IP_ADDRESS')
-
-# pyvisa.log_to_screen()
-
-# If you're running the application from the command line, 
-# you can set the environment variable in the same command, 
-# like this: IP_ADDRESS=192.168.x. python3 app.py.
-
-# Custom log function for SocketIO
-def log_socketio_error(event, error_info):
-    logging.error(f"Error in SocketIO {event}: {error_info}")
-
-def continuous_capture():
-    RESOURCE_STRING = f'TCPIP::{ip_address}::hislip0'
-    RM = pyvisa.ResourceManager() 
-    PXA = RM.open_resource(RESOURCE_STRING, timeout=20000)
-    instrument_setup(PXA, RESOURCE_STRING)
-    
-    try:
-        while shared_data['is_scanning']:
-            try:
-                trace_data = captureTrace(PXA)
-                shared_data['trace_data'] = trace_data
-            except Exception as e:
-                logging.info(f"Error in continuous_capture: {e}")
-
-            eventlet.sleep(1)  # Non-blocking sleep
-    finally:
-        if PXA:
-            PXA.close()
-
-def emit_trace_data():
-    with app.app_context():
-        while True:
-            if shared_data['trace_data']:
-                socketio.emit('new_data', {'data': shared_data['trace_data']})
-                shared_data['trace_data'] = None
-            eventlet.sleep(1)
+SA_type = None
 
 def get_location():
     try:
@@ -160,8 +119,9 @@ def set_rotor_azimuth(iq_option, starting_az, ending_az, center_frequency_MHz, s
         # logging.info(f"Checking conditions: Current Az: {current_az}, Current El: {current_el}")
         return abs(current_az - float(starting_az)) <= 1.0 and abs(current_el) <= 1.0
 
-    # print("Initial request and conditions check...")
+    # logging.info("Initial request and conditions check...")
     send_request(starting_az)
+
     while not check_conditions():
         # logging.info("Initial conditions not met. Retrying in 1 second.")
         time.sleep(1)
@@ -169,14 +129,14 @@ def set_rotor_azimuth(iq_option, starting_az, ending_az, center_frequency_MHz, s
     for set_az in range(int(starting_az), int(ending_az) + 1, 2):
         if os.path.exists("/home/noaa_gms/RFSS/pause_flag.txt"):
             send_request(set_az)
-            trace_data = captureTrace(iq=iq_option, set_az=set_az, band=band_config)
+            trace_data = captureTrace(iq=iq_option, set_az=set_az, band=band_config, dirDate=dirDate)
             
             data_iterations.append([float(x) for x in trace_data.split(',')])
             timestamp_iterations.append(datetime.datetime.now().strftime("%Y%m%d_%H%M%S") + f'_{set_az}')
 
         else:
-                logging.info("Pause flag removal detected, exiting.")
-                return
+            logging.info("Pause flag removal detected, exiting.")
+            return
         
     # Writing to the CSV
     with open(csv_file_path, 'w', newline='') as csv_file:
@@ -195,7 +155,7 @@ def set_rotor_azimuth(iq_option, starting_az, ending_az, center_frequency_MHz, s
     timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     createSpectrogram(dirDate, csv_file_path, frequency_start_MHz, frequency_end_MHz, starting_az, ending_az, location)
     logging.info('Commutation scan complete')
-    if iq_option:
+    if iq_option and SA_type == "FSV":
         get_SpecAn_content_and_DL_locally(dirDate)
         logging.info(f'Transferred Commutation Data from SA to {dirDate} folder')
         
@@ -254,7 +214,7 @@ def calendar():
             item['LOS_EST'] = convert_to_EST(item['LOS'])
 
     current_utc_time_str = current_utc_time.strftime("%m/%d/%Y %H:%M")
-    return render_template('calendar.html', current_utc_time=current_utc_time_str, event=event['schedule'] if event else None, date_from_db=date_from_db_str, location=location_data, flag_exists=shared_data['is_scanning'])
+    return render_template('calendar.html', current_utc_time=current_utc_time_str, event=event['schedule'] if event else None, date_from_db=date_from_db_str, location=location_data)
 
 @app.route('/events', methods=['POST'])
 def events():
@@ -278,39 +238,7 @@ def events():
             item['AOS_EST'] = convert_to_EST(item['AOS'])
             item['LOS_EST'] = convert_to_EST(item['LOS'])
     current_utc_time = datetime.datetime.utcnow().strftime("%m/%d/%Y %H:%M")
-    return render_template('events.html', event=event if event else None, selected_date=selected_date, date_from_db=date_from_db_str)
-
-@app.route('/captures')
-def captures():
-    return render_template('captures.html', flag_exists=shared_data['is_scanning'])
-
-@app.route('/start_scan', methods=['POST'])
-def start_scan():
-    shared_data['is_scanning'] = True
-    eventlet.spawn(continuous_capture)
-    eventlet.spawn(emit_trace_data)
-    return jsonify({'status': 'Scanning Started'})
-
-@app.route('/stop_scan', methods=['POST'])
-def stop_scan():
-    shared_data['is_scanning'] = False
-    return jsonify({'status': 'Scanning Stopped'})
-
-@socketio.on('connect')
-def handle_connect():
-    try:
-        # Your connect handling logic
-        logging.info("Client connected")
-    except Exception as e:
-        log_socketio_error('connect', str(e))
-
-@socketio.on('disconnect')
-def handle_disconnect():
-    try:
-        # Your disconnect handling logic
-        logging.info("Client disconnected")
-    except Exception as e:
-        log_socketio_error('disconnect', str(e))
+    return render_template('events.html', event=event if event else None, selected_date=selected_date, date_from_db=date_from_db_str, location=location_data)
 
 @app.route('/get_actual_AzEl')
 def get_actual_AzEl():
@@ -442,5 +370,4 @@ def list_files(path=''):
         abort(404)
 
 if __name__ == '__main__':
-    # app.run(debug=False)
-    pass
+    app.run(host='0.0.0.0',port=8080,debug=False) 

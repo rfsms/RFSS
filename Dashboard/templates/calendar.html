@@ -162,10 +162,23 @@
             const points = document.getElementById('points');
             const iqOption = document.getElementById('iqOption');
 
-            // Set initial state based on checkbox state
-            function toggleFormState(isEnabled) {
-                azFormDiv.style.opacity = isEnabled ? "1" : "0.5";
-                [startingAZ, endingAZ, centerFreq, span, points, submitAzButton, iqOption].forEach(elem => elem.disabled = !isEnabled);
+            function toggleFormState(disabled) {
+                azFormDiv.style.opacity = disabled ? "1" : "0.5";
+                [startingAZ, endingAZ, centerFreq, span, points, submitAzButton, iqOption].forEach(elem => elem.disabled = !disabled);
+
+                var actualAzDiv = document.getElementById('actualAzimuth');
+                var actualElDiv = document.getElementById('actualElevation');
+
+                if (disabled) {
+                    // Checkbox is unchecked - apply red background and white text
+                    actualAzDiv.className = 'mr-4 py-2 px-4 bg-red-500 text-white rounded';
+                    actualElDiv.className = 'mr-4 py-2 px-4 bg-red-500 text-white rounded';
+                } else {
+                    // Checkbox is checked - revert to default styles
+                    actualAzDiv.className = 'mr-4 py-2 px-4 bg-blue-200 rounded';
+                    actualElDiv.className = 'mr-4 py-2 px-4 bg-blue-200 rounded';
+
+                }
             }
 
             toggleFormState(checkbox.checked);        
