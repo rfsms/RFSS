@@ -34,7 +34,7 @@ INSTR = RM.open_resource(RESOURCE_STRING, timeout = 20000)
 DEMOD_DIR = '/home/noaa_gms/RFSS/toDemod/'
 
 def move_iq_files_toDemod(temp_dir, to_demod_path):
-    logging.info('Running move_iq_files_toDemod()')
+    # logging.info('Running move_iq_files_toDemod()')
     try:
         iq_files = [file for file in os.listdir(temp_dir) if file.endswith('.mat')]
     except FileNotFoundError:

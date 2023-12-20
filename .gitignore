@@ -26,5 +26,5 @@ commutationData/
 output_map.html
 Tools/Testing/TRL8/scan.log
 Tools/Testing/TRL8/TLR8_Data/*
-Tools/processing/*
+Tools/processing/RFSS*
 *signal-analysis.log
