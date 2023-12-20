@@ -27,12 +27,12 @@
           document.getElementsByName("date")[0].setAttribute('max', today);
         });
     </script>
-    <h1 class="flex justify-center text-lg mb-8">
+    <h1 class="flex justify-center text-lg mb-2">
         Today's Events - {{ current_utc_time }} UTC for GridID:&emsp;
         <a href="https://www.karhukoti.com/maidenhead-grid-square-locator-desktop-map/?grid={{ location }}" target="_blank" style="color: blue; text-decoration: underline; font-weight: bold;">{{ location }}</a>
     </h1>
     <!-- Date selection form elements -->
-    <div class="flex justify-center items-center mb-8">
+    <div class="flex justify-center items-center mb-2">
         <form action="/events" method="post" class="flex justify-center">
             <input type="date" name="date" class="mr-4">
             <input type="submit" value="Show Events for Selected Date" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
@@ -91,7 +91,7 @@
     <div class="flex flex-col items-center">
         <br></br>
         <!-- Elements for displaying azimuth and elevation -->
-        <div class="flex justify-center items-center mb-8">
+        <div class="flex justify-center items-center mb-2">
             <div id="actualAzimuth" class="mr-4 py-2 px-4 bg-blue-200 p-2 rounded"></div>
             <div id="actualElevation" class="mr-4 py-2 px-4 bg-blue-200 rounded"></div>
         </div>
