@@ -49,18 +49,30 @@ SA_type = None
 def get_location():
     try:
         conn = http.client.HTTPConnection("192.168.4.1", 80)
-        
+
         def get_track_data():
             conn.request("GET", "/track")
             response = conn.getresponse()
+            data = response.read()
             conn.close()
-            return json.loads(response.read()) if response.status == 200 else None
+            return json.loads(data) if response.status == 200 else None
 
         data = get_track_data()
-        return data['gpsgr']
-            
+        if 'gpsgr' in data and data['gpsgr']:
+            return data['gpsgr']
+        
+        coords = (round(float(data['lat']), 2), round(float(data['lon']), 2))    
+        if coords == (25.77, -80.38):
+            return "EL95TS"
+        elif coords == (25.73, -80.13):
+            return "EL95wr"
+        elif coords == (21.35, -157.96):
+            return "BL11ai"
+        else:
+            return f"Coordinates: {coords}"
+
     except Exception as e:
-        return (f'An error occurred checking the location: {e}')
+        return f'An error occurred checking the location: {e}'
 
 def format_time(time_tuple):
     return f"{time_tuple[0]:02d}:{time_tuple[1]:02d}:{time_tuple[2]:02d}"
