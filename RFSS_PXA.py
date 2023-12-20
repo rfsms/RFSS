@@ -4,11 +4,11 @@ import csv
 import time
 import datetime
 import os 
-import glob
-import subprocess
 import logging
 from pymongo import MongoClient
+import shutil
 from scipy.io import savemat
+import re
 
 # Connection for MongoDB
 client = MongoClient('localhost', 27017)
@@ -31,60 +31,40 @@ REMOTE_PATH = '/'
 RESOURCE_STRING = 'TCPIP::192.168.3.101::hislip0' 
 RM = pyvisa.ResourceManager()
 INSTR = RM.open_resource(RESOURCE_STRING, timeout = 20000)
-INSTR_DIR = 'D:\\Users\\Instrument\\Documents\\BASIC\\data\\WAV\\results\\RFSS\\'
+DEMOD_DIR = '/home/noaa_gms/RFSS/toDemod/'
 
-
-def mv_tar_files_to_preUpload(source_dir):
-    """
-    Once the files are removed fromSpecAn, tar/gz'd in TEMP_DIR folder, then this function moves the file into
-    preUpload to get rsync'd when connectivity to EC2 is available.  
-    Uploads is triggered by/usr/local/bin/rsyncUpload.sh service and happens whenever a new file is placed in the dir.
-    """
-    file_list = glob.glob(os.path.join(source_dir, '*tar.gz'))
-    if not file_list:
-        logging.info('No *.tar.gz files found in the source directory.')
-        return
-
-    destination_path = "/home/noaa_gms/RFSS/preUpload/"
-    process = subprocess.run(["mv", *file_list, destination_path])
-
-    if process.returncode == 0:
-        # Removing all files in the source directory
-        subprocess.run(["rm", "-f", os.path.join(source_dir, '*')])
-        logging.info('All tar.gz files in the "Received" directory have been moved to preUpload.')
-        logging.info('----------------------------------------------------')
-    else:
-        logging.info('Error while moving files.')
-
-
-def local_tgz_and_rm_IQ(directory, satellite):
-    """
-    Function to tar.gz all files in /home/noaa_gms/RFSS/Received/* with a satName_timestamp and then delete all *.iq.tar.  Then scp all files to E2 using the scp function
-    These files will be called someting like "NOAA15_2023-08-02_19_00_00_UTC.tar.gz" and will be comprised of the above *.iq.tar files
-    After calling, this function calls mv_tar_files_to_preUpload for rsync
-    """
-    current_datetime = datetime.datetime.utcnow()
-    formatted_current_datetime = current_datetime.strftime('%Y-%m-%d_%H_%M_%S_UTC')
-    
-    all_files = [file for file in os.listdir(directory)]
-    gz_file = os.path.join(directory, f'{formatted_current_datetime}_{satellite}.tar.gz')
-    
-    process = subprocess.run(['tar', 'czf', gz_file, '-C', directory] + all_files)
-    
-    if process.returncode == 0:
-        for file in all_files:
-            os.remove(os.path.join(directory, file))
-    else:
-        logging.error(f'Error creating tar.gz file: {gz_file}')
+def move_iq_files_toDemod(temp_dir, to_demod_path):
+    logging.info('Running move_iq_files_toDemod()')
+    try:
+        iq_files = [file for file in os.listdir(temp_dir) if file.endswith('.mat')]
+    except FileNotFoundError:
         return False
 
-    if os.path.exists(gz_file):
-        logging.info('All files have been tar/compressed and will be moved to preUpload')
-        mv_tar_files_to_preUpload(TEMP_DIR)
-        return True
-    else:
-        logging.error(f"No '{gz_file}' found. Skipping scp_gz_files_and_delete.")
+    if not iq_files:
+        logging.info('No IQ files found')
         return False
+    
+    try:
+        earliest_file = min(iq_files)
+        dest_folder_name = re.search(r'(\d{4}-\d{2}-\d{2})', earliest_file).group(1).replace('-', '_')
+    except AttributeError:
+        return False
+
+    dest_folder = os.path.join(to_demod_path, dest_folder_name)
+    
+    try:
+        os.makedirs(dest_folder, exist_ok=True)
+        os.makedirs(os.path.join(dest_folder, 'results'), exist_ok=True)
+    except PermissionError:
+        return False
+
+    for file in iq_files:
+        try:
+            shutil.move(os.path.join(temp_dir, file), os.path.join(dest_folder, file))
+        except (FileNotFoundError, PermissionError):
+            return False
+
+    return True
 
 def handle_pause(log_message, restart_message=None, sleep_time=5, loop_completed=None):
     log_flag = True
@@ -120,13 +100,12 @@ def handle_pause(log_message, restart_message=None, sleep_time=5, loop_completed
 
     return was_paused
 
-
 def process_schedule():
     """
     This function is the timing behind RFSS data capture.  Reads the CSV_FILE_PATH and goes through each row determining
     aos/los, etc and compares against current time.  If older entries exist continue, if current time meet aos time then 
-    wait.  once current time matches an aos data is being captured until los.
-    Finally, get_SpecAn_content_and_DL_locally(INSTR) & local_tgz_and_rm_IQ(TEMP_DIR, satellite_name) are processed
+    wait.  Once current time matches an aos, data is being captured until los.
+    FOR MXA, between aos/los capture induvidual IQs send to Received from SA.  Finally after los, move Received/*.mat to toDemod for processing.
     """
     # Process the CSV schedule.
     loop_completed = [True]
@@ -210,7 +189,7 @@ def process_schedule():
                 time.sleep(5)  # Sleep for 5 second for PXA
             
             # get_SpecAn_content_and_DL_locally(INSTR) -> unnecesary for PXA    
-            success = local_tgz_and_rm_IQ(TEMP_DIR, satellite_name)
+            success = move_iq_files_toDemod(TEMP_DIR, DEMOD_DIR)
             
             # Only execute this part if the loop was not broken by the pause flag
             if loop_completed:
