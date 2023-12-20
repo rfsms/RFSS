@@ -1,0 +1,52 @@
+{"events": [{"PCI": 854, "_id": "65550941cfc51ffcb40a37ff", "beam": 
+"upper hemisphere scanning", "carrierID": "Unknown", "cellID": 
+"Unknown", "eNodeB": "Unknown", "elevationAngle": 0, 
+"elevationAngleUnits": "degrees", "eventID": "1-2023319180817005S001", 
+"headingAzimuth": 9.9, "headingAzimuthUnits": "degrees", 
+"inverseAxialRatio": -0.19, "labels": ["1-1-2023319175803027S001"], 
+"locationLat": 40.131186, "locationLatUnits": "degrees", "locationLon": 
+-105.240135, "locationLonUnits": "degrees", "maxBandwidth": 180, 
+"maxBandwidthUnits": "kHz", "maxFrequency": 1702.492, 
+"maxFrequencyUnits": "MHz", "maxPower": -120.1, "maxPowerUnits": "dBm / 
+180kHz", "mode": "Operational", "notifyCarrier": true, "remoteID": 1, 
+"severityLevel": "warning", "signalType": "5G NR", "tiltAngle": 18.2, 
+"tiltAngleUnits": "degrees", "timestamp": "2023-11-15T18:08:17.005Z"}, 
+{"PCI": 854, "_id": "65550941cfc51ffcb40a3802", "beam": "horizon 
+staring", "carrierID": "Unknown", "cellID": "Unknown", "eNodeB": 
+"Unknown", "elevationAngle": 0, "elevationAngleUnits": "degrees", 
+"eventID": "1-2023319180805862H001", "headingAzimuth": 147, 
+"headingAzimuthUnits": "degrees", "inverseAxialRatio": -0.59, "labels": 
+["1-1-2023319175803027S001"], "locationLat": 40.131186, 
+"locationLatUnits": "degrees", "locationLon": -105.240135, 
+"locationLonUnits": "degrees", "maxBandwidth": 180, "maxBandwidthUnits":
+ "kHz", "maxFrequency": 1702.492, "maxFrequencyUnits": "MHz", 
+"maxPower": -105.3, "maxPowerUnits": "dBm / 180kHz", "mode": 
+"Operational", "notifyCarrier": true, "remoteID": 1, "severityLevel": 
+"warning", "signalType": "5G NR", "tiltAngle": 177.7, "tiltAngleUnits": 
+"degrees", "timestamp": "2023-11-15T18:08:05.862Z"}, {"PCI": 854, "_id":
+ "65550927cfc51ffcb40a37f3", "beam": "horizon staring", "carrierID": 
+"Unknown", "cellID": "Unknown", "eNodeB": "Unknown", "elevationAngle": 
+0, "elevationAngleUnits": "degrees", "eventID": 
+"1-2023319180802769H001", "headingAzimuth": 183, "headingAzimuthUnits": 
+"degrees", "inverseAxialRatio": 0.45, "labels": 
+["1-1-2023319175803027S001"], "locationLat": 40.131186, 
+"locationLatUnits": "degrees", "locationLon": -105.240135, 
+"locationLonUnits": "degrees", "maxBandwidth": 180, "maxBandwidthUnits":
+ "kHz", "maxFrequency": 1702.492, "maxFrequencyUnits": "MHz", 
+"maxPower": -104.4, "maxPowerUnits": "dBm / 180kHz", "mode": 
+"Operational", "notifyCarrier": true, "remoteID": 1, "severityLevel": 
+"warning", "signalType": "5G NR", "tiltAngle": 70, "tiltAngleUnits": 
+"degrees", "timestamp": "2023-11-15T18:08:02.769Z"}, {"PCI": 854, "_id":
+ "65550927cfc51ffcb40a37ef", "beam": "upper hemisphere scanning", 
+"carrierID": "Unknown", "cellID": "Unknown", "eNodeB": "Unknown", 
+"elevationAngle": 10.8, "elevationAngleUnits": "degrees", "eventID": 
+"1-2023319180801288S001", "headingAzimuth": 7, "headingAzimuthUnits": 
+"degrees", "inverseAxialRatio": 0.22, "labels": 
+["1-1-2023319175803027S001"], "locationLat": 40.131186, 
+"locationLatUnits": "degrees", "locationLon": -105.240135, 
+"locationLonUnits": "degrees", "maxBandwidth": 180, "maxBandwidthUnits":
+ "kHz", "maxFrequency": 1702.492, "maxFrequencyUnits": "MHz", 
+"maxPower": -116.2, "maxPowerUnits": "dBm / 180kHz", "mode": 
+"Operational", "notifyCarrier": true, "remoteID": 1, "severityLevel": 
+"warning", "signalType": "5G NR", "tiltAngle": 179.9, "tiltAngleUnits": 
+"degrees", "timestamp": "2023-11-15T18:08:01.288Z"}]}
