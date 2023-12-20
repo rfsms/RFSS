@@ -50,7 +50,7 @@ def createSpectrogram(dirDate, csv_file_path, start_frequency_mhz, end_frequency
     plt.imshow(data, aspect='auto', cmap='viridis', origin='lower',
                extent=[0, len(timestamps) - 1, frequencies.iloc[0], frequencies.iloc[-1]],
                vmin=-140, vmax=-40)
-    plt.colorbar(label='Amplitude (dB)')
+    plt.colorbar(label='Amplitude (dBm)')
     plt.xticks(range(len(timestamps)), timestamps, rotation=45, ha="right", rotation_mode="anchor")
     plt.yticks(np.arange(frequencies.iloc[0], frequencies.iloc[-1], step=0.5))
     plt.xlabel('Timestamp')
