@@ -156,7 +156,7 @@ def process_schedule():
                 os.makedirs(dest_folder, exist_ok=True)
 
                 # Save I/Q data to MAT file directly to the toDemod folder
-                formatted_current_datetime = current_datetime.strftime('%Y-%m-%d_%H_%M_%S_UTC') 
+                formatted_current_datetime = current_datetime.strftime('%Y%m%d_%H%M%S_UTC') 
                 mat_file_path = os.path.join(dest_folder, f'{formatted_current_datetime}_{satellite_name}.mat')
                 savemat(mat_file_path, {'I_Data': i_data, 'Q_Data': q_data})
             
