@@ -15,7 +15,8 @@ for handler in logging.root.handlers[:]:
 logging.basicConfig(filename='/home/noaa_gms/RFSS/RFSS_SA.log', level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
 def analyze_results(yesterday):
-    results_file_path = "/home/noaa_gms/RFSS/toDemod/{yesterday}/results/results.csv"
+    results_file_path = f"/home/noaa_gms/RFSS/toDemod/{yesterday}/results/results.csv"
+    total_iq_processed = 0 
 
     try:
         # Read the CSV file
@@ -35,6 +36,7 @@ def analyze_results(yesterday):
         total_5g_count, total_lte_count = 0, 0
         pci_found_5g_count, pci_found_lte_count = 0, 0
 
+
     # print(f"Total 5G: {total_5g_count}, Total LTE: {total_lte_count}")
     return total_iq_processed, pci_found_5g_count, pci_found_lte_count
     # print(f"PCI found in 5G: {pci_found_5g_count}, PCI found in LTE: {pci_found_lte_count}")
@@ -47,7 +49,7 @@ def send_notification(total_iq_processed, pci_found_5g_count, pci_found_lte_coun
     machine_id = get_machine_id()
     url = f'https://ntfy.sh/{machine_id}'
     message = f"Total IQ files processed: {total_iq_processed} - 5G PCI found in: {pci_found_5g_count} files / LTE PCI found in: {pci_found_lte_count} files."
-    data = {'message': message}
+    data = {'IQ Analysis': message}
     
     try:
         response = requests.post(url, json=data)
@@ -62,7 +64,6 @@ def run_script():
     logging.info(f"IQ Processing started for {yesterday} folder")
 
     command = f"/home/noaa_gms/RFSS/Tools/processing/RFSS_classifyidentifyPCI_AWS1_AWS3_160ms_mat_CSV_vd8/run_RFSS_classifyidentifyPCI_AWS1_AWS3_160ms_mat_CSV_vd8.sh /usr/local/MATLAB/MATLAB_Runtime/R2023a /home/noaa_gms/RFSS/toDemod/{yesterday}/ /home/noaa_gms/RFSS/toDemod/{yesterday}/results/ '1' '0'"
-    # command = f"/home/noaa_gms/RFSS/Tools/processing/RFSS_classifyidentifyPCI_AWS1_AWS3_160ms_mat_CSV_vd8/run_RFSS_classifyidentifyPCI_AWS1_AWS3_160ms_mat_CSV_vd8.sh /usr/local/MATLAB/MATLAB_Runtime/R2023a /home/noaa_gms/RFSS/toDemod/temp/ /home/noaa_gms/RFSS/toDemod/temp/results/ '1' '0'"
 
     process = subprocess.Popen(command, shell=True, preexec_fn=os.setsid)
 
@@ -89,6 +90,6 @@ def run_script():
     total_iq_processed, pci_found_5g_count, pci_found_lte_count = analyze_results(yesterday)
     logging.info(f"Total IQ files processed: {total_iq_processed}, 5G PCI found in: {pci_found_5g_count} files / LTE PCI found in: {pci_found_lte_count} files.")
     send_notification(total_iq_processed, pci_found_5g_count, pci_found_lte_count)
-    logging.info(f"IQ Processing terminated as expected after running for {max_runtime_seconds / 3600} hours.")
+    logging.info(f"IQ Processing terminated as expected.")
 
 run_script()
