@@ -6,6 +6,10 @@ import requests
 import os
 import signal
 import pandas as pd
+import requests
+from datetime import datetime
+import json
+from datetime import datetime, timezone
 
 # Reset the Root Logger
 for handler in logging.root.handlers[:]:
@@ -13,6 +17,9 @@ for handler in logging.root.handlers[:]:
 
 # Setup logging
 logging.basicConfig(filename='/home/noaa_gms/RFSS/RFSS_SA.log', level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+
+def iso_format_utc(dt):
+    return dt.astimezone(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
 
 def analyze_results(yesterday):
     results_file_path = f"/home/noaa_gms/RFSS/toDemod/{yesterday}/results/results.csv"
@@ -36,28 +43,86 @@ def analyze_results(yesterday):
         total_5g_count, total_lte_count = 0, 0
         pci_found_5g_count, pci_found_lte_count = 0, 0
 
-
-    # print(f"Total 5G: {total_5g_count}, Total LTE: {total_lte_count}")
-    return total_iq_processed, pci_found_5g_count, pci_found_lte_count
-    # print(f"PCI found in 5G: {pci_found_5g_count}, PCI found in LTE: {pci_found_lte_count}")
+    return df, total_iq_processed, pci_found_5g_count, pci_found_lte_count
 
 def get_machine_id():
     with open('/etc/machine-id', 'r') as file:
         return file.read().strip()
-    
-def send_notification(total_iq_processed, pci_found_5g_count, pci_found_lte_count):
+
+def send_notification(df, total_iq_processed, pci_found_5g_count, pci_found_lte_count):
     machine_id = get_machine_id()
-    url = f'https://ntfy.sh/{machine_id}'
-    message = f"Total IQ files processed: {total_iq_processed} - 5G PCI found in: {pci_found_5g_count} files / LTE PCI found in: {pci_found_lte_count} files."
-    data = {'IQ Analysis': message}
-    
+
+    # Notification to ntfy.sh
+    ntfy_url = f'https://ntfy.sh/{machine_id}'
+    ntfy_message = f"Total IQ files processed: {total_iq_processed} - 5G PCI found in: {pci_found_5g_count} files / LTE PCI found in: {pci_found_lte_count} files."
+    ntfy_data = {'IQ Analysis': ntfy_message}
+
     try:
-        response = requests.post(url, json=data)
-        response.raise_for_status()
-        return response.status_code
+        ntfy_response = requests.post(ntfy_url, json=ntfy_data)
+        ntfy_response.raise_for_status()
+        logging.info("Notification sent to ntfy.sh successfully.")
     except requests.exceptions.RequestException as e:
-        logging.error(f"Error occurred while sending notification: {e}")
-    return None
+        logging.info("Error occurred while sending notification to ntfy.sh:", str(e))
+
+    # Transform DataFrame into the specified JSON structure for the API POST
+    events = []
+    for _, row in df.iterrows():
+        if row["PCI"] != -1:  # Check if PCI is not -1
+            event = {
+                "PCI": row["PCI"],
+                "_id": 0,
+                "beam": "upper hemisphere scanning",
+                "carrierID": "Unknown",
+                "cellID": "Unknown",
+                "eNodeB": "Unknown",
+                "elevationAngle": 0,
+                "elevationAngleUnits": "degrees",
+                "eventID": row["timestamp"],
+                "headingAzimuth": 0,
+                "headingAzimuthUnits": "degrees",
+                "inverseAxialRatio": 0,
+                "labels": "None",
+                "locationLat": 0,
+                "locationLatUnits": "degrees",
+                "locationLon": 0,
+                "locationLonUnits": "degrees",
+                "maxBandwidth": 0,
+                "maxBandwidthUnits": "kHz",
+                "maxFrequency": 0,
+                "maxFrequencyUnits": "MHz",
+                "maxPower": row["SNR(dB)"] if row["SNR(dB)"] != "" else 0,
+                "maxPowerUnits": "dBm",
+                "mode": "Operational",
+                "notifyCarrier": None,
+                "remoteID": 3003,
+                "severityLevel": "warning",
+                "signalType": row["5G/LTE"],
+                "tiltAngle": 0,
+                "tiltAngleUnits": "degrees",
+                "timestamp": iso_format_utc(datetime.now())
+            }
+            
+            events.append(event)
+
+    # Prepare data for API POST request
+    api_url = "https://ec2-52-61-173-155.us-gov-west-1.compute.amazonaws.com/api/data"
+    api_data = {'events': events}
+
+    logging.info("Sending the following data to API: %s", json.dumps(api_data, indent=4))
+
+    # Send POST request to API
+    try:
+        api_response = requests.post(api_url, json=api_data, verify=False)
+        logging.info("Request sent to API successfully.")
+
+        if api_response.status_code == 200:
+            logging.info("API Response: %s", api_response.text)
+        else:
+            logging.info("Eresponse from API server: %s", api_response.text)
+    except requests.exceptions.RequestException as e:
+        logging.error("An error occurred during the API request: %s", str(e))
+
+
 
 def run_script():
     yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y_%m_%d')
@@ -67,7 +132,7 @@ def run_script():
 
     process = subprocess.Popen(command, shell=True, preexec_fn=os.setsid)
 
-    # Define maximum runtime (e.g., 23 hours)
+    # Define maximum runtime (e.g., 23 hours) - eventually this and monitor needs to be removed due to clumsiness
     max_runtime_seconds = 12 * 3600
 
     # Monitor the process
@@ -86,10 +151,12 @@ def run_script():
         else:
             logging.info("IQ process group terminated with SIGTERM.")
 
-    # Analyze results
-    total_iq_processed, pci_found_5g_count, pci_found_lte_count = analyze_results(yesterday)
+    # Analyze results and process
+    # total_iq_processed, pci_found_5g_count, pci_found_lte_count = analyze_results(yesterday)
+    df, total_iq_processed, pci_found_5g_count, pci_found_lte_count = analyze_results(yesterday)
     logging.info(f"Total IQ files processed: {total_iq_processed}, 5G PCI found in: {pci_found_5g_count} files / LTE PCI found in: {pci_found_lte_count} files.")
-    send_notification(total_iq_processed, pci_found_5g_count, pci_found_lte_count)
+    # send_notification(total_iq_processed, pci_found_5g_count, pci_found_lte_count)
+    send_notification(df, total_iq_processed, pci_found_5g_count, pci_found_lte_count)
     logging.info(f"IQ Processing terminated as expected.")
 
 run_script()
