@@ -120,7 +120,7 @@ def set_rotor_azimuth(iq_option, starting_az, ending_az, center_frequency_MHz, s
         # logging.info(f"Sending request for azimuth: {az}")
         for _ in range(3):
             try:
-                conn.request("GET", f"/cmd?a=P|{az}|{0}|")
+                conn.request("GET", f"/cmd?a=P|{az}|0|")
                 return conn.getresponse()
             except RemoteDisconnected:
                 time.sleep(2)
@@ -141,7 +141,7 @@ def set_rotor_azimuth(iq_option, starting_az, ending_az, center_frequency_MHz, s
     for set_az in range(int(starting_az), int(ending_az) + 1, 2):
         if os.path.exists("/home/noaa_gms/RFSS/pause_flag.txt"):
             send_request(set_az)
-            trace_data = captureTrace(iq=iq_option, set_az=set_az, band=band_config, dirDate=dirDate)
+            trace_data = captureTrace(iq=iq_option, set_az=set_az, band=band_config)
             
             data_iterations.append([float(x) for x in trace_data.split(',')])
             timestamp_iterations.append(datetime.datetime.now().strftime("%Y%m%d_%H%M%S") + f'_{set_az}')
@@ -164,7 +164,6 @@ def set_rotor_azimuth(iq_option, starting_az, ending_az, center_frequency_MHz, s
             csv_writer.writerow(row_to_write)
 
     # Create a spectrogram in the same directory as the CSV file
-    timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     createSpectrogram(dirDate, csv_file_path, frequency_start_MHz, frequency_end_MHz, starting_az, ending_az, location)
     logging.info('Commutation scan complete')
     if iq_option and SA_type == "FSV":
