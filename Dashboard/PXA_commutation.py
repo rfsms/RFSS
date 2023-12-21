@@ -81,7 +81,7 @@ def instrument_commutation_setup(center_frequency_MHz=1702.5, span_MHz=20, point
         logging.info(f"An error occurred in instrument setup: {e}")
 
 # def captureTrace(set_az):
-def captureTrace(iq, set_az, band, dirDate):
+def captureTrace(iq, set_az, band):
     try:
         PXA.write("INST:SCR:SEL 'Spectrum Analyzer 1'")
         PXA.write("INIT:IMM;*WAI")
@@ -106,10 +106,12 @@ def captureTrace(iq, set_az, band, dirDate):
             i_data = data[::2]
             q_data = data[1::2]
 
-            current_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-
             # Save I/Q data to MAT file
-            mat_file_path = os.path.join(dirDate, f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_AZ_{set_az}.mat')
+            iq_dir = '/home/noaa_gms/RFSS/toDemod/' + datetime.datetime.now().strftime("%Y_%m_%d")
+            if not os.path.exists(iq_dir):
+                os.makedirs(iq_dir)
+            
+            mat_file_path = os.path.join(iq_dir, f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}_UTC_MANUAL_AZ_{set_az}.mat')
             savemat(mat_file_path, {'I_Data': i_data, 'Q_Data': q_data})
 
         return trace_data
