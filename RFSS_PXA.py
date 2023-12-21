@@ -33,39 +33,6 @@ RM = pyvisa.ResourceManager()
 INSTR = RM.open_resource(RESOURCE_STRING, timeout = 20000)
 DEMOD_DIR = '/home/noaa_gms/RFSS/toDemod/'
 
-def move_iq_files_toDemod(temp_dir, to_demod_path):
-    # logging.info('Running move_iq_files_toDemod()')
-    try:
-        iq_files = [file for file in os.listdir(temp_dir) if file.endswith('.mat')]
-    except FileNotFoundError:
-        return False
-
-    if not iq_files:
-        logging.info('No IQ files found')
-        return False
-    
-    try:
-        earliest_file = min(iq_files)
-        dest_folder_name = re.search(r'(\d{4}-\d{2}-\d{2})', earliest_file).group(1).replace('-', '_')
-    except AttributeError:
-        return False
-
-    dest_folder = os.path.join(to_demod_path, dest_folder_name)
-    
-    try:
-        os.makedirs(dest_folder, exist_ok=True)
-        os.makedirs(os.path.join(dest_folder, 'results'), exist_ok=True)
-    except PermissionError:
-        return False
-
-    for file in iq_files:
-        try:
-            shutil.move(os.path.join(temp_dir, file), os.path.join(dest_folder, file))
-        except (FileNotFoundError, PermissionError):
-            return False
-
-    return True
-
 def handle_pause(log_message, restart_message=None, sleep_time=5, loop_completed=None):
     log_flag = True
     was_paused = False
@@ -182,23 +149,37 @@ def process_schedule():
                 q_data = data[1::2]
 
                 current_datetime = datetime.datetime.utcnow()
-                formatted_current_datetime = current_datetime.strftime('%Y-%m-%d_%H_%M_%S_UTC') 
+                dest_folder_name = current_datetime.strftime('%Y_%m_%d')
+                dest_folder = os.path.join(DEMOD_DIR, dest_folder_name) 
 
-                # Save I/Q data to MAT file
-                savemat(f'{TEMP_DIR}{formatted_current_datetime}_{satellite_name}.mat', {'I_Data': i_data, 'Q_Data': q_data})
-                time.sleep(5)  # Sleep for 5 second for PXA
+                # Ensure the destination folder exists
+                os.makedirs(dest_folder, exist_ok=True)
+
+                # Save I/Q data to MAT file directly to the toDemod folder
+                formatted_current_datetime = current_datetime.strftime('%Y-%m-%d_%H_%M_%S_UTC') 
+                mat_file_path = os.path.join(dest_folder, f'{formatted_current_datetime}_{satellite_name}.mat')
+                savemat(mat_file_path, {'I_Data': i_data, 'Q_Data': q_data})
             
-            # get_SpecAn_content_and_DL_locally(INSTR) -> unnecesary for PXA    
-            success = move_iq_files_toDemod(TEMP_DIR, DEMOD_DIR)
+            # # get_SpecAn_content_and_DL_locally(INSTR) -> unnecesary for PXA    
+            # success = move_iq_files_toDemod(TEMP_DIR, DEMOD_DIR)
             
             # Only execute this part if the loop was not broken by the pause flag
-            if loop_completed:
+            if loop_completed[0]:  # Check if loop completed successfully
                 document_update = {
                     "$set": {
-                        "processed": str(success)  # Assuming success is either "true" or "false"
+                        "processed": "true"  # Set processed to "true" as the loop completed successfully
                     }
                 }
                 schedule_run.update_one({"timestamp": document["timestamp"]}, document_update)
+                logging.info("Scheduled row completed successfully!")
+            else:
+                document_update = {
+                    "$set": {
+                        "processed": "false"  # Set processed to "false" as the loop did not complete successfully
+                    }
+                }
+                schedule_run.update_one({"timestamp": document["timestamp"]}, document_update)
+                logging.info("Scheduled row encountered errors.")
 
 def main():
     logging.info("Starting RFSS_PXA main routine")
