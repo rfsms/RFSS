@@ -63,12 +63,10 @@ def createSpectrogram(dirDate, csv_file_path, start_frequency_mhz, end_frequency
     plt.close()
 
 def instrument_scanning_setup():
-    # For MXA (without IQ, no need to change anything...will need to modify once we add IQ extract)
     PXA.write("INST:SCR:SEL 'IQ Analyzer 1'")
-    # PXA.write("SENS:SWE:WIND1:POIN 1001")
-    # PXA.write("SENS:FREQ:CENT 1702.5MHz")
-    # PXA.write('SENS:FREQ:SPAN 8MHz')
-    # PXA.write("INST IQ")
+    PXA.write("SENS:FREQ:CENT 1702500000")
+    PXA.write('WAV:SRAT 18.75MHz')
+    PXA.write("WAV:SWE:TIME 160ms")
 
 def instrument_commutation_setup(center_frequency_MHz=1702.5, span_MHz=20, points=1001):
     try:
@@ -91,13 +89,14 @@ def captureTrace(iq, set_az, band):
         # logging.info(f'starting IQ with band: {band}')
             PXA.write("INST:SCR:SEL 'IQ Analyzer 1'")
 
-            # if band == 'AWS1':
-            #     PXA.write('TRAC:IQ:SRAT 12500000')  # For 10Mhz ABW
-            # elif band == 'AWS3':
-            #     PXA.write('TRAC:IQ:SRAT 6250000')  # For 5Mhz ABW
-            # else:
-            #     logging.error(f"Invalid band selection: {band}")
-            #     return None
+            if band == 'AWS1': #For LTE test
+                PXA.write('WAV:SWE:TIME .016')
+                PXA.write('WAV:SRAT 56250000')  # 56.25MHz SR (for 45MH MeasBW)
+            elif band == 'AWS3': # For 5G test
+                PXA.write('WAV:SRAT 6250000')  # For 5Mhz ABW (AOML/NHC)
+            else:
+                logging.error(f"Invalid band selection: {band}")
+                return None
  
             PXA.write("INIT:IMM;*WAI")
             data = PXA.query_binary_values(":FETCH:WAV0?")
