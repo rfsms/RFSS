@@ -134,15 +134,15 @@
                         </div>
                     </div>
                     <div class="flex flex-col items-center mt-4 w-full"> <!-- Flex container for centering the content below -->
-                        <div id="bandConfig" class="flex justify-center items-center w-full"> <!-- This will center the band config -->
-                            <span class="text-center">Band Config:</span> <!-- Text center for the label -->
-                            <div class="flex items-center ml-4"> <!-- Container for radio buttons with a left margin -->
+                        <span class="text-center text-lg mb-2 underline">Band Config:</span> <!-- Text center for the label -->
+                        <div id="bandConfig" class="flex flex-col items-center w-full"> <!-- This will center the band config -->
+                            <div class="flex items-center text-lg mb-2"> <!-- Container for radio button AWS1 with a bottom margin -->
                                 <input type="radio" id="aws1" name="bandConfig" value="AWS1" checked>
-                                <label for="aws1" class="ml-2">AWS1</label>
+                                <label for="aws1" class="ml-2">AWS1 (56.25MHz SR, 45MHz BW, 16ms Meas Time)</label>
                             </div>
-                            <div class="flex items-center ml-2"> <!-- Container for radio buttons with a left margin -->
+                            <div class="flex items-center text-lg mb-2"> <!-- Container for radio button AWS3 -->
                                 <input type="radio" id="aws3" name="bandConfig" value="AWS3">
-                                <label for="aws3" class="ml-2">AWS3</label>
+                                <label for="aws3" class="ml-2">AWS3 (6.25MHz SR, 5MHz BW, 160ms Meas Time)</label>
                             </div>
                         </div>
                     </div>
