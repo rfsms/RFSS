@@ -150,10 +150,12 @@ def process_schedule():
 
                 current_datetime = datetime.datetime.utcnow()
                 dest_folder_name = current_datetime.strftime('%Y_%m_%d')
-                dest_folder = os.path.join(DEMOD_DIR, dest_folder_name) 
+                dest_folder = os.path.join(DEMOD_DIR, dest_folder_name)
+                results_folder = os.path.join(dest_folder, 'results')
 
-                # Ensure the destination folder exists
+                # Ensure the destination folders exists
                 os.makedirs(dest_folder, exist_ok=True)
+                os.makedirs(results_folder, exist_ok=True)
 
                 # Save I/Q data to MAT file directly to the toDemod folder
                 formatted_current_datetime = current_datetime.strftime('%Y%m%d_%H%M%S_UTC') 
