@@ -1,4 +1,3 @@
-from RsInstrument import RsInstrument, RsInstrException
 import datetime
 import matplotlib.pyplot as plt
 import numpy as np
@@ -16,24 +15,20 @@ logging.basicConfig(filename='/home/noaa_gms/RFSS/RFSS_SA.log', level=logging.IN
 # Initialize logger
 logger = logging.getLogger(__name__)
 
-RESOURCE_STRING = 'TCPIP::192.168.1.101::hislip0'
-OPTION_STRING_FORCE_RS_VISA = 'SelectVisa=rs'
-FSV = RsInstrument(RESOURCE_STRING, False, False, OPTION_STRING_FORCE_RS_VISA)
-# FSV = RsInstrument(RESOURCE_STRING, False, False, 'simulate=True')
 INSTR_DIR = 'c:\\R_S\\Instr\\user\\RFSS\\'
 
-def check_instrument_state():
+def check_instrument_state(instr):
     try:
         # Check the instrument's event status register to ensure no errors
-        sesr = FSV.query("*ESR?")
+        sesr = instr.query("*ESR?")
         logging.info(f"Instrument SESR: {sesr}")
 
         # Check if the operation is complete
-        opc = FSV.query("*OPC?")
+        opc = instr.query("*OPC?")
         logging.info(f"Instrument Operation Complete: {opc}")
         
         # Check the status byte register
-        stb = FSV.query("*STB?")
+        stb = instr.query("*STB?")
         logging.info(f"Instrument STB: {stb}")
 
     except Exception as e:
@@ -62,14 +57,14 @@ def createSpectrogram(dirDate, csv_file_path, start_frequency_mhz, end_frequency
     plt.savefig(os.path.join(dirDate, f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}.png'))
     plt.close()
 
-def get_SpecAn_content_and_DL_locally(target_directory):
+def get_SpecAn_content_and_DL_locally(instr, target_directory):
     try:
 
-        check_instrument_state()
+        check_instrument_state(instr)
 
         # Set and list the current directory on the SA
-        FSV.write(f'MMEM:CDIR "{INSTR_DIR}"')
-        response = FSV.query('MMEM:CAT?')
+        instr.write(f'MMEM:CDIR "{INSTR_DIR}"')
+        response = instr.query('MMEM:CAT?')
         logging.info(f'SA Response: {response}')
 
         # Process the response and log the content
@@ -85,7 +80,7 @@ def get_SpecAn_content_and_DL_locally(target_directory):
 
                 try:
                     # Download the file
-                    data = FSV.read_file_from_instrument_to_pc(instrument_filename, local_file_path)
+                    data = instr.read_file_from_instrument_to_pc(instrument_filename, local_file_path)
 
                     # Check if data is not None before writing to the file
                     if data is not None:
@@ -97,74 +92,71 @@ def get_SpecAn_content_and_DL_locally(target_directory):
                     print(f"Error while downloading file '{item}': {str(e)}")
 
         # print('Removing files from Spectrum Analyzer')    
-        FSV.write(f'MMEM:DEL "{INSTR_DIR}*"')
+        instr.write(f'MMEM:DEL "{INSTR_DIR}*"')
 
-    except RsInstrException as e:
-        if "-256," in str(e):
-            logging.warning("No files on Spectrum Analyzer to process:", e)
-        else:
-            logging.error(f"Error in get_SpecAn_content_and_DL_locally: {e}")
+    except Exception as e:
+        logging.error(f"Error while checking instrument state: {e}")
 
-def instrument_scanning_setup():
+def instrument_scanning_setup(instr):
     # Since FSV config between tabs is the same we need to reset the CF for IQ back -!! NOT TRUEE  mustfix...
-    FSV.write("INST:SEL 'Spectrum'")
-    FSV.write("SENS:SWE:WIND1:POIN 1001")
-    FSV.write("SENS:FREQ:CENT 1702.5MHz")
-    FSV.write('SENS:FREQ:SPAN 8MHz')
-    FSV.write("INST IQ")
-    FSV.write('TRAC:IQ:SRAT 6250000')
-    FSV.write("SENS:FREQ:CENT 1702.5MHz")
+    instr.write("INST:SEL 'Spectrum'")
+    instr.write("SENS:SWE:WIND1:POIN 1001")
+    instr.write("SENS:FREQ:CENT 1702.5MHz")
+    instr.write('SENS:FREQ:SPAN 8MHz')
+    instr.write("INST IQ")
+    instr.write('TRAC:IQ:SRAT 6250000')
+    instr.write("SENS:FREQ:CENT 1702.5MHz")
 
-def instrument_commutation_setup(center_frequency_MHz, span_MHz, points):
+def instrument_commutation_setup(instr, center_frequency_MHz, span_MHz, points):
     try:
 
-        FSV.visa_timeout = 5000
-        FSV.write("INST:SEL 'Spectrum'")
+        instr.visa_timeout = 5000
+        instr.write("INST:SEL 'Spectrum'")
         # FSV.write("CALC1:SGR:STAT OFF")
-        FSV.write(f"SENS:FREQ:CENT {center_frequency_MHz}MHz")
-        FSV.write(f"SENS:FREQ:SPAN {span_MHz}MHz")
-        FSV.write(f"SENS:SWE:WIND1:POIN {points}")
-        FSV.write(f"SENS:SWE:COUN 20")
-        FSV.write("INST IQ")
-        FSV.write(f"SENS:FREQ:CENT {center_frequency_MHz}MHz")
-        FSV.write("INST:SEL 'Spectrum'")
+        instr.write(f"SENS:FREQ:CENT {center_frequency_MHz}MHz")
+        instr.write(f"SENS:FREQ:SPAN {span_MHz}MHz")
+        instr.write(f"SENS:SWE:WIND1:POIN {points}")
+        instr.write(f"SENS:SWE:COUN 20")
+        instr.write("INST IQ")
+        instr.write(f"SENS:FREQ:CENT {center_frequency_MHz}MHz")
+        instr.write("INST:SEL 'Spectrum'")
 
     except Exception as e:
         logging.info(f"An error occurred in instrument setup: {e}")
 
 # def captureTrace(set_az):
-def captureTrace(iq, set_az, band):
+def captureTrace(instr, iq, set_az, band):
     try:
-        FSV.write("INST:SEL 'Spectrum'")
-        FSV.write("INIT:IMM;*WAI")
-        opc_result = FSV.query('*OPC?')
+        instr.write("INST:SEL 'Spectrum'")
+        instr.write("INIT:IMM;*WAI")
+        opc_result = instr.query('*OPC?')
         if opc_result != '1':
             logging.error(f"Operation not complete (*OPC? returned '{opc_result}')")
             return None
 
-        trace_data = FSV.query('TRAC? TRACE2')
+        trace_data = instr.query('TRAC? TRACE2')
 
         if iq:
             # logging.info(f'starting IQ with band: {band}')
-            FSV.write("INST IQ")
+            instr.write("INST IQ")
             if band == 'AWS1':
-                FSV.write('TRAC:IQ:SRAT 15360000')  # For 10MHz ABW
+                instr.write('TRAC:IQ:SRAT 15360000')  # For 10MHz ABW
                 # FSV.write('TRAC:IQ:SRAT 18750000')  # For 15MHz ABW
                 # FSV.write('TRAC:IQ:SRAT 25000000')  # For 20MHz ABW
             elif band == 'AWS3':
-                FSV.write('TRAC:IQ:SRAT 6250000')  # For 5MHz ABW
+                instr.write('TRAC:IQ:SRAT 6250000')  # For 5MHz ABW
             else:
                 logging.error(f"Invalid band selection: {band}")
                 return None
 
-            FSV.write("INIT:IMM;*WAI")  # Small delay to allow instrument to process previous commands
-            opc_result_iq = FSV.query('*OPC?')
+            instr.write("INIT:IMM;*WAI")  # Small delay to allow instrument to process previous commands
+            opc_result_iq = instr.query('*OPC?')
             if opc_result_iq != '1':
                 logging.error(f"IQ data not stored (*OPC? returned '{opc_result_iq}' after setting to IQ)")
                 return None
 
             time_saved_IQ = f"'{set_az}'"
-            FSV.write(f"MMEM:STOR:IQ:STAT 1,{time_saved_IQ}")
+            instr.write(f"MMEM:STOR:IQ:STAT 1,{time_saved_IQ}")
 
         return trace_data
 

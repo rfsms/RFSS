@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, Response, send_from_directory, abort
 from werkzeug.utils import safe_join
 import logging
+import subprocess
 
 # Reset the Root Logger - this section is used to reset the root logger and then apply below configuration
 for handler in logging.root.handlers[:]:
@@ -12,17 +13,27 @@ logging.basicConfig(filename='/home/noaa_gms/RFSS/RFSS_SA.log', level=logging.IN
 # Initialize logger
 logger = logging.getLogger(__name__)
 
-import subprocess
+RESOURCE_STRING = 'TCPIP::192.168.3.101::hislip0' 
+OPTION_STRING_FORCE_RS_VISA = 'SelectVisa=rs'
+PXA = None
+FSV = None
+SA_type = None
+
 # Check RFSS service status and log it
 result = subprocess.run(["systemctl", "show", "-p", "ExecStart", "RFSS.service"], capture_output=True, text=True)
 exec_start_line = result.stdout.strip()
 if "RFSS_PXA" in exec_start_line:
+    import pyvisa
     from PXA_commutation import instrument_commutation_setup, instrument_scanning_setup, captureTrace, createSpectrogram
     SA_type = "PXA"
+    RM = pyvisa.ResourceManager()
+    PXA = RM.open_resource(RESOURCE_STRING, timeout=20000)
     logger.info("Imported PXA libraries")
 elif "RFSS_FSV" in exec_start_line:
+    import RsInstrument
     from FSV_commutation import instrument_commutation_setup, instrument_scanning_setup, captureTrace, createSpectrogram, get_SpecAn_content_and_DL_locally
     SA_type = "FSV"
+    FSV = RsInstrument(RESOURCE_STRING, False, False, OPTION_STRING_FORCE_RS_VISA)
     logger.info("Imported FSV libraries")
 
 import pymongo
@@ -42,9 +53,7 @@ collection = db["schedule_daily"]
 schedule_run = db['schedule_run']
 
 is_paused = False
-
 commutateDir = '/home/noaa_gms/RFSS/commutationData'
-SA_type = None
 
 def get_location():
     try:
@@ -90,10 +99,10 @@ def get_current_AzEl(conn):
     data = json.loads(response.read())
     return round(data['az'], 1), round(data['el'], 1)
 
-def set_rotor_azimuth(iq_option, starting_az, ending_az, center_frequency_MHz, span_MHz, points, location, band_config):
+def set_rotor_azimuth(instr, iq_option, starting_az, ending_az, center_frequency_MHz, span_MHz, points, location, band_config):
 
     logging.info(f"Configuring SA for commutation mode and sending: CF: {center_frequency_MHz}, Span: {span_MHz}, Points: {points}, IQ Conf?: {iq_option}, Band/SR Config: {band_config}")
-    instrument_commutation_setup(center_frequency_MHz, span_MHz, points)
+    instrument_commutation_setup(instr, center_frequency_MHz, span_MHz, points)
 
     # Calculate the frequency values in MHz with four decimal places
     frequency_start_MHz = center_frequency_MHz - span_MHz / 2
@@ -141,7 +150,7 @@ def set_rotor_azimuth(iq_option, starting_az, ending_az, center_frequency_MHz, s
     for set_az in range(int(starting_az), int(ending_az) + 1, 2):
         if os.path.exists("/home/noaa_gms/RFSS/pause_flag.txt"):
             send_request(set_az)
-            trace_data = captureTrace(iq=iq_option, set_az=set_az, band=band_config)
+            trace_data = captureTrace(instr, iq=iq_option, set_az=set_az, band=band_config)
             
             data_iterations.append([float(x) for x in trace_data.split(',')])
             timestamp_iterations.append(datetime.datetime.now().strftime("%Y%m%d_%H%M%S") + f'_{set_az}')
@@ -265,6 +274,9 @@ def get_actual_AzEl():
 
 @app.route('/set_az', methods=['POST'])
 def set_az_path():
+    global PXA, FSV, SA_type
+    instr = PXA if SA_type == "PXA" else FSV
+
     starting_az = float(request.form['startingAZ'])
     ending_az = float(request.form['endingAZ'])
     center_frequency_MHz = float(request.form['centerFreq'])
@@ -275,7 +287,7 @@ def set_az_path():
     band_config = request.form['bandConfig']
     
     try:
-        p = Process(target=set_rotor_azimuth, args=(iq_option, starting_az, ending_az, center_frequency_MHz, span_MHz, points, location, band_config))
+        p = Process(target=set_rotor_azimuth, args=(instr, iq_option, starting_az, ending_az, center_frequency_MHz, span_MHz, points, location, band_config))
         p.start()
         return json.dumps({"message": "Data capture started"}), 200
     except Exception as e:
@@ -299,8 +311,16 @@ def pause_schedule():
 @app.route('/unpause_schedule', methods=['POST'])
 def unpause_schedule():
 
+    global PXA, FSV, SA_type
+    instr = PXA if SA_type == "PXA" else FSV
+
+    # Check if instr is not None
+    if instr is None:
+        logging.error("Instrument not initialized")
+        return json.dumps({"error": "Instrument not initialized"}), 500
+
     logging.info('Returned SA back to scanning mode')
-    instrument_scanning_setup()
+    instrument_scanning_setup(instr)
 
     if os.path.exists("/home/noaa_gms/RFSS/pause_flag.txt"):
         os.remove("/home/noaa_gms/RFSS/pause_flag.txt")

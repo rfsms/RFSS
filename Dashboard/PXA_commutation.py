@@ -1,4 +1,3 @@
-import pyvisa
 import datetime
 import matplotlib.pyplot as plt
 import numpy as np
@@ -17,27 +16,7 @@ logging.basicConfig(filename='/home/noaa_gms/RFSS/RFSS_SA.log', level=logging.IN
 # Initialize logger
 logger = logging.getLogger(__name__)
 
-RESOURCE_STRING = 'TCPIP::192.168.3.101::hislip0' 
-RM = pyvisa.ResourceManager()
-PXA = RM.open_resource(RESOURCE_STRING, timeout = 20000)
 TEMP_DIR = '/home/noaa_gms/RFSS/Received/'
-
-def check_instrument_state():
-    try:
-        # Check the instrument's event status register to ensure no errors
-        sesr = PXA.query("*ESR?")
-        logging.info(f"Instrument SESR: {sesr}")
-
-        # Check if the operation is complete
-        opc = PXA.query("*OPC?")
-        logging.info(f"Instrument Operation Complete: {opc}")
-        
-        # Check the status byte register
-        stb = PXA.query("*STB?")
-        logging.info(f"Instrument STB: {stb}")
-
-    except Exception as e:
-        logging.error(f"Error while checking instrument state: {e}")
 
 def createSpectrogram(dirDate, csv_file_path, start_frequency_mhz, end_frequency_mhz, starting_az, ending_az, location):
     df = pd.read_csv(csv_file_path)
@@ -62,44 +41,43 @@ def createSpectrogram(dirDate, csv_file_path, start_frequency_mhz, end_frequency
     plt.savefig(os.path.join(dirDate, f'{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}.png'))
     plt.close()
 
-def instrument_scanning_setup():
-    PXA.write("INST:SCR:SEL 'IQ Analyzer 1'")
-    PXA.write("SENS:FREQ:CENT 1702500000")
-    PXA.write('WAV:SRAT 18.75MHz')
-    PXA.write("WAV:SWE:TIME 160ms")
+def instrument_scanning_setup(instr):
+    instr.write("INST:SCR:SEL 'IQ Analyzer 1'")
+    instr.write("SENS:FREQ:CENT 1702500000")
+    instr.write('WAV:SRAT 18.75MHz')
+    instr.write("WAV:SWE:TIME 160ms")
 
-def instrument_commutation_setup(center_frequency_MHz=1702.5, span_MHz=20, points=1001):
+def instrument_commutation_setup(instr, center_frequency_MHz=1702.5, span_MHz=20, points=1001):
     try:
         # PXA.visa_timeout = 20000
-        PXA.write("INST:SCR:SEL 'Spectrum Analyzer 1'")
-        PXA.write(f"SENS:FREQ:CENT {center_frequency_MHz}MHz")
-        PXA.write(f"SENS:FREQ:SPAN {span_MHz}MHz")
-        PXA.write(f"SWE:POIN {points}")
+        instr.write("INST:SCR:SEL 'Spectrum Analyzer 1'")
+        instr.write(f"SENS:FREQ:CENT {center_frequency_MHz}MHz")
+        instr.write(f"SENS:FREQ:SPAN {span_MHz}MHz")
+        instr.write(f"SWE:POIN {points}")
     except Exception as e:
         logging.info(f"An error occurred in instrument setup: {e}")
 
-# def captureTrace(set_az):
-def captureTrace(iq, set_az, band):
+def captureTrace(instr, iq, set_az, band):
     try:
-        PXA.write("INST:SCR:SEL 'Spectrum Analyzer 1'")
-        PXA.write("INIT:IMM;*WAI")
-        trace_data = PXA.query('TRAC? TRACE2')
+        instr.write("INST:SCR:SEL 'Spectrum Analyzer 1'")
+        instr.write("INIT:IMM;*WAI")
+        trace_data = instr.query('TRAC? TRACE2')
     
         if iq:
         # logging.info(f'starting IQ with band: {band}')
-            PXA.write("INST:SCR:SEL 'IQ Analyzer 1'")
+            instr.write("INST:SCR:SEL 'IQ Analyzer 1'")
 
             if band == 'AWS1': #For LTE test
-                PXA.write('WAV:SWE:TIME .016')
-                PXA.write('WAV:SRAT 56250000')  # 56.25MHz SR (for 45MH MeasBW)
+                instr.write('WAV:SWE:TIME .016')
+                instr.write('WAV:SRAT 56250000')  # 56.25MHz SR (for 45MH MeasBW)
             elif band == 'AWS3': # For 5G test
-                PXA.write('WAV:SRAT 6250000')  # For 5Mhz ABW (AOML/NHC)
+                instr.write('WAV:SRAT 6250000')  # For 5Mhz ABW (AOML/NHC)
             else:
                 logging.error(f"Invalid band selection: {band}")
                 return None
  
-            PXA.write("INIT:IMM;*WAI")
-            data = PXA.query_binary_values(":FETCH:WAV0?")
+            instr.write("INIT:IMM;*WAI")
+            data = instr.query_binary_values(":FETCH:WAV0?")
             
             # Convert to separate I and Q arrays
             i_data = data[::2]
