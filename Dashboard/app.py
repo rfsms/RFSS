@@ -1,17 +1,25 @@
 from flask import Flask, render_template, request, Response, send_from_directory, abort
+import eventlet
 from werkzeug.utils import safe_join
 import logging
 import subprocess
+import pymongo
+import datetime
+from pytz import timezone
+from http.client import http, RemoteDisconnected
+import json
+import os
+from multiprocessing import Process
+import time
+import csv
 
-# Reset the Root Logger - this section is used to reset the root logger and then apply below configuration
+# Logging setup
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
-
-# Setup logging
 logging.basicConfig(filename='/home/noaa_gms/RFSS/RFSS_SA.log', level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-
-# Initialize logger
 logger = logging.getLogger(__name__)
+
+eventlet.monkey_patch()
 
 RESOURCE_STRING = 'TCPIP::192.168.3.101::hislip0' 
 OPTION_STRING_FORCE_RS_VISA = 'SelectVisa=rs'
@@ -36,17 +44,8 @@ elif "RFSS_FSV" in exec_start_line:
     FSV = RsInstrument(RESOURCE_STRING, False, False, OPTION_STRING_FORCE_RS_VISA)
     logger.info("Imported FSV libraries")
 
-import pymongo
-import datetime
-from pytz import timezone
-from http.client import http, RemoteDisconnected
-import json
-import os
-from multiprocessing import Process
-import time
-import csv
-
 app = Flask(__name__)
+
 client = pymongo.MongoClient("mongodb://localhost:27017/")
 db = client["status_db"]
 collection = db["schedule_daily"]
@@ -287,8 +286,7 @@ def set_az_path():
     band_config = request.form['bandConfig']
     
     try:
-        p = Process(target=set_rotor_azimuth, args=(instr, iq_option, starting_az, ending_az, center_frequency_MHz, span_MHz, points, location, band_config))
-        p.start()
+        eventlet.spawn_n(set_rotor_azimuth, instr, iq_option, starting_az, ending_az, center_frequency_MHz, span_MHz, points, location, band_config)
         return json.dumps({"message": "Data capture started"}), 200
     except Exception as e:
         return json.dumps({"message": f"An error occurred: {str(e)}"}), 500
