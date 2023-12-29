@@ -95,8 +95,7 @@
             <div id="actualAzimuth" class="mr-4 py-2 px-4 bg-blue-200 p-2 rounded"></div>
             <div id="actualElevation" class="mr-4 py-2 px-4 bg-blue-200 rounded"></div>
         </div>
-    <!-- Form elements for manual scanning -->
-        <div id="azFormDiv" class="flex flex-col items-center mb-8">
+        <div id="azFormDiv" class="flex flex-col items-center mb-2">
             <form id="azForm" action="/set_az" method="post" class="flex flex-col items-center">
                 <div class="flex justify-center">
                     <div class="flex flex-col justify-center items-center mr-4">
@@ -122,33 +121,34 @@
                         <input type="text" id="points" name="points" class="border border-gray-600 bg-white text-black py-2 px-4 rounded text-center" style="opacity: 0.5">
                     </div>
                 </div>
-                    <div class="flex items-center">
-                        <input type="submit" id="submitAzButton" value="Submit Scan" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
-                        <div class="ml-4 flex items-center">
-                            <input type="checkbox" id="pauseSchedule" disabled> 
-                            <span class="ml-2">Pause Schedule</span>
+                <div class="flex items-center">
+                    <input type="submit" id="submitAzButton" value="Submit Scan" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                    <div class="ml-4 flex items-center">
+                        <input type="checkbox" id="pauseSchedule" disabled> 
+                        <span class="ml-2">Pause Schedule</span>
+                    </div>
+                    <div class="ml-4 flex items-center">
+                        <input type="checkbox" id="iqOption" name="iqOption" disabled> 
+                        <span class="ml-2">Collect IQ</span>
+                    </div>
+                </div>
+                <div class="flex flex-col items-center mt-4 w-full"> <!-- Flex container for centering the content below -->
+                    <span class="text-center mb-2 underline">Band Config:</span> <!-- Text center for the label -->
+                    <div id="bandConfig" class="flex flex-col items-center w-full"> <!-- This will center the band config -->
+                        <div class="flex items-center mb-2"> <!-- Container for radio button AWS1 with a bottom margin -->
+                            <input type="radio" id="aws1" name="bandConfig" value="AWS1" checked>
+                            <label for="aws1" class="ml-2">AWS1 (56.25MHz SR, 45MHz BW, 16ms Meas Time)</label>
                         </div>
-                        <div class="ml-4 flex items-center">
-                            <input type="checkbox" id="iqOption" name="iqOption" disabled> 
-                            <span class="ml-2">Collect IQ</span>
+                        <div class="flex items-center mb-2"> <!-- Container for radio button AWS3 -->
+                            <input type="radio" id="aws3" name="bandConfig" value="AWS3">
+                            <label for="aws3" class="ml-2">AWS3 (6.25MHz SR, 5MHz BW, 160ms Meas Time)</label>
                         </div>
                     </div>
-                    <div class="flex flex-col items-center mt-4 w-full"> <!-- Flex container for centering the content below -->
-                        <span class="text-center text-lg mb-2 underline">Band Config:</span> <!-- Text center for the label -->
-                        <div id="bandConfig" class="flex flex-col items-center w-full"> <!-- This will center the band config -->
-                            <div class="flex items-center text-lg mb-2"> <!-- Container for radio button AWS1 with a bottom margin -->
-                                <input type="radio" id="aws1" name="bandConfig" value="AWS1" checked>
-                                <label for="aws1" class="ml-2">AWS1 (56.25MHz SR, 45MHz BW, 16ms Meas Time)</label>
-                            </div>
-                            <div class="flex items-center text-lg mb-2"> <!-- Container for radio button AWS3 -->
-                                <input type="radio" id="aws3" name="bandConfig" value="AWS3">
-                                <label for="aws3" class="ml-2">AWS3 (6.25MHz SR, 5MHz BW, 160ms Meas Time)</label>
-                            </div>
-                        </div>
-                    </div>
-                    <div id="plotlyDiv" style="width:100%;height:500px;"></div>
-                </form>
-            </div>
+                </div>
+            </form>
+        </div>
+        <div class="flex justify-center items-center">
+            <div id="plotlyDiv" style="width:100%; height:500px;"></div>
         </div>
     </div>
 
@@ -169,7 +169,7 @@
 
             let spectrogramData = [];
             let timeStamps = [];
-            let currentTitle = 'Real-time Spectrogram';
+            let currentTitle = '';
 
             // Update title on connect/disconnect
             socket.on('connect', function() {
@@ -187,7 +187,7 @@
                 spectrogramData.push(newData);
                 timeStamps.push(currentTime);
 
-                if (spectrogramData.length > 100) {
+                if (spectrogramData.length > 360) {
                     spectrogramData.shift();  
                     timeStamps.shift();     
                 }
@@ -197,19 +197,26 @@
                     y: timeStamps,
                     type: 'heatmap',
                     colorscale: 'Viridis',
+                    zmin: -140,
+                    zmax: -40,
+                    colorbar: {
+                        title: 'Power (dBm)',
+                        titleside: 'right',
+                    },
                 };
 
                 var layout = {
-                    title: currentTitle,
-                    yaxis: { 
-                        showticklabels: true
-                    },
-                    xaxis: {
+                    xaxis: { 
+                        title: 'Frequency (MHz)',
                         tickvals: [0, spectrogramData[0].length / 2, spectrogramData[0].length - 1],
                         ticktext: ['1692.5MHz', '1702.5MHz', '1712.5MHz'],
+                        showticklabels: true,
+                    },
+                    yaxis: {
+                        title: 'Timestamp',
                         showticklabels: true
                     },
-                    height: 900,
+                    height: 700,
                     width: 1400
                 };
 
@@ -240,10 +247,12 @@
                 }
             }
 
-
             function toggleFormState(disabled) {
                 azFormDiv.style.opacity = disabled ? "1" : "0.5";
-                [startingAZ, endingAZ, centerFreq, span, points, submitAzButton, iqOption].forEach(elem => elem.disabled = !disabled);
+                [startingAZ, endingAZ, centerFreq, span, points, submitAzButton, iqOption].forEach(elem => {
+                    elem.disabled = !disabled;
+                    elem.style.opacity = disabled ? "1" : "0.5"; // Set opacity per element
+                });
 
                 var actualAzDiv = document.getElementById('actualAzimuth');
                 var actualElDiv = document.getElementById('actualElevation');
