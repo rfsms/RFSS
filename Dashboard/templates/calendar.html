@@ -146,11 +146,14 @@
                             </div>
                         </div>
                     </div>
+                    <div id="plotlyDiv" style="width:100%;height:500px;"></div>
                 </form>
             </div>
         </div>
     </div>
 
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const checkbox = document.getElementById('pauseSchedule');
@@ -161,6 +164,82 @@
             const span = document.getElementById('span');
             const points = document.getElementById('points');
             const iqOption = document.getElementById('iqOption');
+
+            var socket = io.connect('http://' + document.domain + ':' + location.port);               
+
+            let spectrogramData = [];
+            let timeStamps = [];
+            let currentTitle = 'Real-time Spectrogram';
+
+            // Update title on connect/disconnect
+            socket.on('connect', function() {
+                updatePlotTitle('Client Connected');
+            });
+            socket.on('disconnect', function() {
+                updatePlotTitle('Client Disconnected');
+            });
+
+            socket.on('new_data', function(data) {
+                let newData = data.data;
+                let currentTime = new Date().toLocaleTimeString();
+                // console.log(newData, currentTime);
+
+                spectrogramData.push(newData);
+                timeStamps.push(currentTime);
+
+                if (spectrogramData.length > 100) {
+                    spectrogramData.shift();  
+                    timeStamps.shift();     
+                }
+
+                var trace = {
+                    z: spectrogramData,
+                    y: timeStamps,
+                    type: 'heatmap',
+                    colorscale: 'Viridis',
+                };
+
+                var layout = {
+                    title: currentTitle,
+                    yaxis: { 
+                        showticklabels: true
+                    },
+                    xaxis: {
+                        tickvals: [0, spectrogramData[0].length / 2, spectrogramData[0].length - 1],
+                        ticktext: ['1692.5MHz', '1702.5MHz', '1712.5MHz'],
+                        showticklabels: true
+                    },
+                    height: 900,
+                    width: 1400
+                };
+
+                var config = {
+                    displayModeBar: false,
+                    responsive: true
+                };
+
+                var update = {
+                    z: [[newData]], // Ensure this is the correct structure
+                    y: [[currentTime]]
+                };
+
+                // Check if plotlyDiv already has a plot
+                if (document.getElementById('plotlyDiv').getAttribute('data-plotly')) {
+                    Plotly.extendTraces('plotlyDiv', update, [0]);
+                } else {
+                    Plotly.newPlot('plotlyDiv', [trace], layout, config);
+                }
+            });
+
+            function updatePlotTitle(newTitle) {
+                var plotElement = document.getElementById('plotlyDiv');
+                if (plotElement && plotElement.data && plotElement.layout) {
+                    currentTitle = newTitle;
+                    var update = { title: currentTitle };
+                    Plotly.relayout('plotlyDiv', update);
+                }
+            }
+
 
             function toggleFormState(disabled) {
                 azFormDiv.style.opacity = disabled ? "1" : "0.5";
