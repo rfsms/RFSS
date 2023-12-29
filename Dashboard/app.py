@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, Response, send_from_directory, abort
 import eventlet
+from flask_socketio import SocketIO
 from werkzeug.utils import safe_join
 import logging
 import subprocess
@@ -9,7 +10,6 @@ from pytz import timezone
 from http.client import http, RemoteDisconnected
 import json
 import os
-from multiprocessing import Process
 import time
 import csv
 
@@ -18,8 +18,6 @@ for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
 logging.basicConfig(filename='/home/noaa_gms/RFSS/RFSS_SA.log', level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger(__name__)
-
-eventlet.monkey_patch()
 
 RESOURCE_STRING = 'TCPIP::192.168.3.101::hislip0' 
 OPTION_STRING_FORCE_RS_VISA = 'SelectVisa=rs'
@@ -45,14 +43,29 @@ elif "RFSS_FSV" in exec_start_line:
     logger.info("Imported FSV libraries")
 
 app = Flask(__name__)
+eventlet.monkey_patch()
+socketio = SocketIO(app)
 
 client = pymongo.MongoClient("mongodb://localhost:27017/")
 db = client["status_db"]
 collection = db["schedule_daily"]
 schedule_run = db['schedule_run']
 
+# shared_data = {'is_scanning': False, 'trace_data': None}
 is_paused = False
 commutateDir = '/home/noaa_gms/RFSS/commutationData'
+
+# Custom log function for SocketIO
+def log_socketio_error(event, error_info):
+    logging.error(f"Error in SocketIO {event}: {error_info}")
+
+def emit_trace_data(trace_data):
+    try:
+        formatted_data = [float(i) for i in trace_data.split(',')]
+        # logger.info(f"Emitting trace data: {formatted_data}")
+        socketio.emit('new_data', {'data': formatted_data})
+    except Exception as e:
+        logging.error(f"Error emitting trace data: {e}")
 
 def get_location():
     try:
@@ -150,6 +163,7 @@ def set_rotor_azimuth(instr, iq_option, starting_az, ending_az, center_frequency
         if os.path.exists("/home/noaa_gms/RFSS/pause_flag.txt"):
             send_request(set_az)
             trace_data = captureTrace(instr, iq=iq_option, set_az=set_az, band=band_config)
+            emit_trace_data(trace_data)
             
             data_iterations.append([float(x) for x in trace_data.split(',')])
             timestamp_iterations.append(datetime.datetime.now().strftime("%Y%m%d_%H%M%S") + f'_{set_az}')
@@ -398,5 +412,21 @@ def list_files(path=''):
     else:
         abort(404)
 
+@socketio.on('connect')
+def handle_connect():
+    try:
+        # Your connect handling logic
+        logging.info("Client connected")
+    except Exception as e:
+        log_socketio_error('connect', str(e))
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    try:
+        # Your disconnect handling logic
+        logging.info("Client disconnected")
+    except Exception as e:
+        log_socketio_error('disconnect', str(e))
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0',port=8080,debug=False) 
+    socketio.run(app, host='0.0.0.0',port=8080, debug=False) 
