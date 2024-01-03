@@ -94,7 +94,7 @@ def send_notification(df, total_iq_processed, pci_found_5g_count, pci_found_lte_
                 "maxPowerUnits": "dBm",
                 "mode": "Operational",
                 "notifyCarrier": None,
-                "remoteID": 3003,
+                "remoteID": 1003,
                 "severityLevel": "warning",
                 "signalType": row["5G/LTE"],
                 "tiltAngle": 0,
