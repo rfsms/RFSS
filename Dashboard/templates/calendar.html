@@ -132,10 +132,10 @@
                         <span class="ml-2">Collect IQ</span>
                     </div>
                 </div>
-                <div class="flex flex-col items-center mt-4 w-full"> <!-- Flex container for centering the content below -->
-                    <span class="text-center mb-2 underline">Band Config:</span> <!-- Text center for the label -->
-                    <div id="bandConfig" class="flex flex-col items-center w-full"> <!-- This will center the band config -->
-                        <div class="flex items-center mb-2"> <!-- Container for radio button AWS1 with a bottom margin -->
+                <div class="flex flex-col items-center mt-4 w-full">
+                    <span class="text-center mb-2 underline">Band Config:</span> 
+                    <div id="bandConfig" class="flex flex-col items-center w-full">
+                        <div class="flex items-center mb-2"> 
                             <input type="radio" id="aws1" name="bandConfig" value="AWS1" checked>
                             <label for="aws1" class="ml-2">AWS1 (56.25MHz SR, 45MHz BW, 16ms Meas Time)</label>
                         </div>
@@ -226,7 +226,7 @@
                 };
 
                 var update = {
-                    z: [[newData]], // Ensure this is the correct structure
+                    z: [[newData]], 
                     y: [[currentTime]]
                 };
 
