@@ -10,7 +10,7 @@ for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
 
 # Setup logging
-logging.basicConfig(filename='/home/noaa_gms/RFSS/Tools/Testing/TRL8/scan.log', level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+logging.basicConfig(filename='/home/its/RFSS/Tools/Testing/TRL8/scan.log', level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -18,11 +18,11 @@ logger = logging.getLogger(__name__)
 eventlet.monkey_patch()
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
 
 shared_data = {'is_scanning': False, 'trace_data': None}
-RESOURCE_STRING = 'TCPIP::192.168.3.101::hislip0' 
+RESOURCE_STRING = 'TCPIP::192.168.130.206::hislip0' 
+# TCPIP::192.168.3.101::hislip0
 
 # pyvisa.log_to_screen()
 

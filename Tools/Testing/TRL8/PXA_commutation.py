@@ -3,7 +3,7 @@ from datetime import datetime
 from scipy.io import savemat
 import logging
 
-TEMP_DIR = '/home/noaa_gms/RFSS/Tools/Testing/TRL8/TLR8_Data/'
+TEMP_DIR = '/home/its/RFSS/Tools/Testing/TRL8/TLR8_Data/'
 
 def instrument_setup(PXA, RESOURCE_STRING):
     try:
@@ -35,8 +35,9 @@ def instrument_setup(PXA, RESOURCE_STRING):
         PXA.write("DET:TRAC2 POS")
         PXA.write("AVER:COUNT 10")
         #Create IQ window
-        PXA.write("INST:SCR:CRE")
-        PXA.write("INST:NSEL 8")
+        # # PXA.write("INST:SCR:CRE") # MXB
+        # PXA.write("INST:NSEL 8") # MXB
+        PXA.write("INST:SEL BASIC") # MXA
         PXA.write("CONF:WAV")
         PXA.write("SENS:FREQ:CENT 1702500000")
         PXA.write("POW:GAIN ON")
@@ -53,11 +54,13 @@ def instrument_setup(PXA, RESOURCE_STRING):
 
 def captureTrace(PXA):
     try:
-        PXA.write("INST:SCR:SEL 'Spectrum Analyzer 1'")
+        # PXA.write("INST:SCR:SEL 'Spectrum Analyzer 1'") #MXB
+        PXA.write("INST:SEL SA") #MXA
         PXA.write("INIT:IMM;*WAI")
         trace_data = PXA.query('TRAC? TRACE2')
     
-        PXA.write("INST:SCR:SEL 'IQ Analyzer 1'")
+        # PXA.write("INST:SCR:SEL 'IQ Analyzer 1'") #MXB
+        PXA.write("INST:SEL BASIC") #MXA
 
         PXA.write("INIT:IMM;*WAI")
         data = PXA.query_binary_values(":FETCH:WAV0?")

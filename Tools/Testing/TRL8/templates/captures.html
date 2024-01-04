@@ -45,7 +45,7 @@
                     <div class="flex flex-col justify-center items-center mr-4">
                         <label class="text-center">End Frequency (MHz):</label>
                         <div id="endFreq" class="w-48 border border-gray-600 bg-white text-black py-2 px-4 rounded text-center">
-                            1710.5 MHz
+                            1712.5 MHz
                         </div>                    
                     </div>
                     <div class="flex flex-col justify-center items-center mr-4">
@@ -122,6 +122,12 @@
                     y: timeStamps,
                     type: 'heatmap',
                     colorscale: 'Viridis',
+                    zmin: -140,
+                    zmax: -40,
+                    colorbar: {
+                        title: 'Power (dBm)',
+                        titleside: 'right',
+                    },
                 };
 
                 var layout = {
