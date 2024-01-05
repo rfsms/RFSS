@@ -62,6 +62,7 @@ def index():
 
 @app.route('/start_scan', methods=['POST'])
 def start_scan():
+
     shared_data['is_scanning'] = True
     eventlet.spawn(continuous_capture)
     eventlet.spawn(emit_trace_data)
