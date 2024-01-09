@@ -149,28 +149,34 @@ def process_schedule():
                 q_data = data[1::2]
 
                 current_datetime = datetime.datetime.utcnow()
-                # Daily Folders
-                # dest_folder_name = current_datetime.strftime('%Y_%m_%d')
 
+                # Daily Folders
                 daily_folder_name = current_datetime.strftime('%Y_%m_%d')
                 daily_folder = os.path.join(DEMOD_DIR, daily_folder_name)
                 os.makedirs(daily_folder, exist_ok=True)
 
-                # Hourly Folders
-                hourly_folder_name = current_datetime.strftime('%Y_%m_%d_%H00')
-                hourly_folder = os.path.join(daily_folder, hourly_folder_name)
-                os.makedirs(hourly_folder, exist_ok=True)
+                # Determine Quarter of the Day
+                hour = current_datetime.hour
+                if hour < 6:
+                    quarter_folder_name = '0000-0559'
+                elif hour < 12:
+                    quarter_folder_name = '0600-1159'
+                elif hour < 18:
+                    quarter_folder_name = '1200-1759'
+                else:
+                    quarter_folder_name = '1800-2359'
+
+                # Quarter Folder
+                quarter_folder = os.path.join(daily_folder, quarter_folder_name)
+                os.makedirs(quarter_folder, exist_ok=True)
 
                 results_folder = os.path.join(daily_folder, 'results')
                 os.makedirs(results_folder, exist_ok=True)
 
-                # Save I/Q data to MAT file directly to the toDemod folder
+                # Save I/Q data to MAT file in the Quarter Folder
                 formatted_current_datetime = current_datetime.strftime('%Y%m%d_%H%M%S_UTC') 
-                mat_file_path = os.path.join(hourly_folder, f'{formatted_current_datetime}_{satellite_name}.mat')
+                mat_file_path = os.path.join(quarter_folder, f'{formatted_current_datetime}_{satellite_name}.mat')
                 savemat(mat_file_path, {'I_Data': i_data, 'Q_Data': q_data})
-            
-            # # get_SpecAn_content_and_DL_locally(INSTR) -> unnecesary for PXA    
-            # success = move_iq_files_toDemod(TEMP_DIR, DEMOD_DIR)
             
             # Only execute this part if the loop was not broken by the pause flag
             if loop_completed[0]:  # Check if loop completed successfully

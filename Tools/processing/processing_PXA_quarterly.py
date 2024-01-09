@@ -20,8 +20,8 @@ logging.basicConfig(filename='/home/noaa_gms/RFSS/RFSS_SA.log', level=logging.IN
 def iso_format_utc(dt):
     return dt.astimezone(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
 
-def analyze_results(daily_folder, quarter_folder):
-    results_file_path = f"/home/noaa_gms/RFSS/toDemod/{daily_folder}/results/{quarter_folder}/results.csv"
+def analyze_results(daily_folder):
+    results_file_path = f"/home/noaa_gms/RFSS/toDemod/{daily_folder}/results/results.csv"
     
     total_iq_processed = 0 
 
@@ -184,7 +184,7 @@ def run_script():
 
     # Analyze results and process
 
-    df, total_iq_processed, pci_found_5g_count, pci_found_lte_count = analyze_results(daily_folder_name, quarter_folder_name)
+    df, total_iq_processed, pci_found_5g_count, pci_found_lte_count = analyze_results(daily_folder_name)
     logging.info(f"Total IQ files processed: {total_iq_processed}, 5G PCI found in: {pci_found_5g_count} files / LTE PCI found in: {pci_found_lte_count} files.")
 
     send_notification(df, total_iq_processed, pci_found_5g_count, pci_found_lte_count)
