@@ -149,17 +149,24 @@ def process_schedule():
                 q_data = data[1::2]
 
                 current_datetime = datetime.datetime.utcnow()
-                dest_folder_name = current_datetime.strftime('%Y_%m_%d')
-                dest_folder = os.path.join(DEMOD_DIR, dest_folder_name)
-                results_folder = os.path.join(dest_folder, 'results')
+                # Daily Folders
+                # dest_folder_name = current_datetime.strftime('%Y_%m_%d')
 
-                # Ensure the destination folders exists
-                os.makedirs(dest_folder, exist_ok=True)
+                daily_folder_name = current_datetime.strftime('%Y_%m_%d')
+                daily_folder = os.path.join(DEMOD_DIR, daily_folder_name)
+                os.makedirs(daily_folder, exist_ok=True)
+
+                # Hourly Folders
+                hourly_folder_name = current_datetime.strftime('%Y_%m_%d_%H00')
+                hourly_folder = os.path.join(daily_folder, hourly_folder_name)
+                os.makedirs(hourly_folder, exist_ok=True)
+
+                results_folder = os.path.join(daily_folder, 'results')
                 os.makedirs(results_folder, exist_ok=True)
 
                 # Save I/Q data to MAT file directly to the toDemod folder
                 formatted_current_datetime = current_datetime.strftime('%Y%m%d_%H%M%S_UTC') 
-                mat_file_path = os.path.join(dest_folder, f'{formatted_current_datetime}_{satellite_name}.mat')
+                mat_file_path = os.path.join(hourly_folder, f'{formatted_current_datetime}_{satellite_name}.mat')
                 savemat(mat_file_path, {'I_Data': i_data, 'Q_Data': q_data})
             
             # # get_SpecAn_content_and_DL_locally(INSTR) -> unnecesary for PXA    
