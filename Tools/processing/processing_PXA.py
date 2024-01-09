@@ -1,5 +1,5 @@
 import subprocess
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 import time
 import logging
 import requests
@@ -7,9 +7,7 @@ import os
 import signal
 import pandas as pd
 import requests
-from datetime import datetime
 import json
-from datetime import datetime, timezone
 
 # Reset the Root Logger
 for handler in logging.root.handlers[:]:
@@ -121,8 +119,6 @@ def send_notification(df, total_iq_processed, pci_found_5g_count, pci_found_lte_
             logging.info("Eresponse from API server: %s", api_response.text)
     except requests.exceptions.RequestException as e:
         logging.error("An error occurred during the API request: %s", str(e))
-
-
 
 def run_script():
     yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y_%m_%d')
