@@ -6,7 +6,9 @@ import datetime
 import os 
 import logging
 from pymongo import MongoClient
+import shutil
 from scipy.io import savemat
+import re
 
 # Connection for MongoDB
 client = MongoClient('localhost', 27017)
@@ -21,25 +23,15 @@ for handler in logging.root.handlers[:]:
 logging.basicConfig(filename='/home/noaa_gms/RFSS/RFSS_SA.log', level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
 # For production
-csv_file_path = '/home/noaa_gms/RFSS/Tools/Report_Exports/schedule.csv'
-temp_dir = '/home/noaa_gms/RFSS/Received/'
-resource_string= 'TCPIP::192.168.3.101::hislip0' 
-rm = pyvisa.ResourceManager()
-instr = rm.open_resource(resource_string, timeout = 5000)
-demod_dir = '/home/noaa_gms/RFSS/toDemod/'
-trigger = -56
-
-def opc_check():
-    """ Check if all preceding commands are completed """
-    instr.write('*OPC')
-    opc_value = instr.query('*OPC?').strip()
-    # print(f"Initial *OPC? response: {opc_value}")
-
-    # If *OPC? is not 1, enter a loop and wait for it to become 1
-    while opc_value != '1':
-        time.sleep(0.1)
-        opc_value = instr.query('*OPC?').strip()
-        print(f"Current *OPC? response: {opc_value}")
+CSV_FILE_PATH = '/home/noaa_gms/RFSS/Tools/Report_Exports/schedule.csv'
+TEMP_DIR = '/home/noaa_gms/RFSS/Received/'
+REMOTE_IP = 'noaa-gms-ec2'
+REMOTE_USERNAME = 'Administrator'
+REMOTE_PATH = '/'
+RESOURCE_STRING = 'TCPIP::192.168.3.101::hislip0' 
+RM = pyvisa.ResourceManager()
+INSTR = RM.open_resource(RESOURCE_STRING, timeout = 20000)
+DEMOD_DIR = '/home/noaa_gms/RFSS/toDemod/'
 
 def handle_pause(log_message, restart_message=None, sleep_time=5, loop_completed=None):
     log_flag = True
@@ -52,9 +44,21 @@ def handle_pause(log_message, restart_message=None, sleep_time=5, loop_completed
         time.sleep(sleep_time)
     
     if was_paused:
-        #Re-setup SpecAn
-        instr.write("INST:SCR:SEL 'IQ Analyzer 1'")
-        opc_check()
+        #Resetup SpecAn
+        INSTR.write("INST:SCR:SEL 'IQ Analyzer 1'")
+        # INSTR.write("INST:NSEL 8")
+        # INSTR.write("CONF:WAV")
+        # INSTR.write("INIT:CONT OFF")
+        # INSTR.write('SENS:FREQ:CENT 1702500000')
+        # INSTR.write('POW:ATT:AUTO ON')
+        # # INSTR.write('POW:ATT 0')
+        # INSTR.write('DISP:WAV:VIEW:NSEL 1')
+        # INSTR.write('POW:GAIN ON')
+        # INSTR.write('WAV:SRAT 18.75MHz')
+        # INSTR.write('WAV:SWE:TIME 160ms')
+        # INSTR.write('DISP:WAV:VIEW:WIND:TRAC:Y:COUP ON')
+        # INSTR.write("FORM:BORD SWAP")
+        # INSTR.write("FORM REAL,32")
 
         if restart_message:
             logging.info(restart_message)
@@ -73,7 +77,7 @@ def process_schedule():
     # Process the CSV schedule.
     loop_completed = [True]
 
-    with open(csv_file_path, 'r') as csvfile:
+    with open(CSV_FILE_PATH, 'r') as csvfile:
         # Create a CSV reader object
         csvreader = csv.reader(csvfile)
         next(csvreader)
@@ -135,49 +139,44 @@ def process_schedule():
                         }
                     schedule_run.insert_one(document)
 
-                operation_status_str = instr.query(':STATus:OPERation:CONDition?').strip()
-                operation_status_dec = int(operation_status_str)
-                
-                # Interpret the operation status and print the corresponding state
-                if operation_status_dec == 24:
-                    print(f"Operation Status Register (DEC): {operation_status_dec} -- Triggered, Fetching Data")
-                    
-                    # Fetch and process data
-                    data = instr.query_binary_values(":FETCH:WAV0?")
+                # Intrumentation happens here
+                INSTR.write('INIT:IMM;*WAI')
+                # INSTR.write('DISP:WAV:VIEW:WIND:TRAC:Y:COUP ON')
+                data = INSTR.query_binary_values(":FETCH:WAV0?")
 
-                    # Convert to separate I and Q arrays
-                    i_data = data[::2]
-                    q_data = data[1::2]
+                # Convert to separate I and Q arrays
+                i_data = data[::2]
+                q_data = data[1::2]
 
-                    current_datetime = datetime.datetime.utcnow()
+                current_datetime = datetime.datetime.utcnow()
 
-                    # Determine daily folders and file path
-                    daily_folder_name = current_datetime.strftime('%Y_%m_%d')
-                    daily_folder = os.path.join(demod_dir, daily_folder_name)
-                    os.makedirs(daily_folder, exist_ok=True)
+                # Daily Folders
+                daily_folder_name = current_datetime.strftime('%Y_%m_%d')
+                daily_folder = os.path.join(DEMOD_DIR, daily_folder_name)
+                os.makedirs(daily_folder, exist_ok=True)
 
-                    # Determine Quarter of the Day for quarterly folder saves
-                    hour = current_datetime.hour
-                    if hour < 6:
-                        quarter_folder_name = '0000-0559'
-                    elif hour < 12:
-                        quarter_folder_name = '0600-1159'
-                    elif hour < 18:
-                        quarter_folder_name = '1200-1759'
-                    else:
-                        quarter_folder_name = '1800-2359'
+                # Determine Quarter of the Day
+                hour = current_datetime.hour
+                if hour < 6:
+                    quarter_folder_name = '0000-0559'
+                elif hour < 12:
+                    quarter_folder_name = '0600-1159'
+                elif hour < 18:
+                    quarter_folder_name = '1200-1759'
+                else:
+                    quarter_folder_name = '1800-2359'
 
-                    # Quarter Folder saves
-                    quarter_folder = os.path.join(daily_folder, quarter_folder_name)
-                    os.makedirs(quarter_folder, exist_ok=True)
+                # Quarter Folder
+                quarter_folder = os.path.join(daily_folder, quarter_folder_name)
+                os.makedirs(quarter_folder, exist_ok=True)
 
-                    results_folder = os.path.join(daily_folder, 'results')
-                    os.makedirs(results_folder, exist_ok=True)
+                results_folder = os.path.join(daily_folder, 'results')
+                os.makedirs(results_folder, exist_ok=True)
 
-                    # Save I/Q data to MAT file in the Quarter Folder
-                    formatted_current_datetime = current_datetime.strftime('%Y%m%d_%H%M%S_UTC') 
-                    mat_file_path = os.path.join(quarter_folder, f'{formatted_current_datetime}_{satellite_name}.mat')
-                    savemat(mat_file_path, {'I_Data': i_data, 'Q_Data': q_data})
+                # Save I/Q data to MAT file in the Quarter Folder
+                formatted_current_datetime = current_datetime.strftime('%Y%m%d_%H%M%S_UTC') 
+                mat_file_path = os.path.join(quarter_folder, f'{formatted_current_datetime}_{satellite_name}.mat')
+                savemat(mat_file_path, {'I_Data': i_data, 'Q_Data': q_data})
             
             # Only execute this part if the loop was not broken by the pause flag
             if loop_completed[0]:  # Check if loop completed successfully
@@ -201,63 +200,47 @@ def main():
     logging.info("Starting RFSS_PXA main routine")
 
     # Instrument reset/setup
-    idn = instr.query("ID?")
+    idn = INSTR.query("ID?")
     # instrument = idn.replace("Hello, I am: ", "")
-    logging.info(f"Setting Up {idn.split()} at {resource_string}")
+    logging.info(f"Setting Up {idn.split()} at {RESOURCE_STRING}")
     
     #Reset SpecAn
-    instr.write("*RST")
-    instr.write("*CLS")
-    instr.write("SYST:DEF SCR")
+    INSTR.write("*RST")
+    INSTR.write("*CLS")
+    INSTR.write("SYST:DEF SCR")
 
     # Setup Spectrum Analyzer
-    instr.write("INST:NSEL 1")
-    instr.write("INIT:CONT OFF")
-    instr.write("SENS:FREQ:SPAN 20000000")
-    instr.write("SENS:FREQ:CENT 1702500000")
-    instr.write("POW:ATT:AUTO ON")
-    # instr.write("POW:ATT 0")
-    instr.write("POW:GAIN ON")
-    instr.write("BAND 5000")
-    instr.write("DISP:WIND:TRAC:Y:RLEV -20dBm")
-    instr.write("TRAC1:TYPE WRIT")
-    instr.write("DET:TRAC1 NORM")
-    instr.write("TRAC2:TYPE MAXH")
-    instr.write("DET:TRAC2 POS")
-    instr.write("AVER:COUNT 10")
-    opc_check()
-    # print("SA Setup Complete")
-
+    INSTR.write("INST:NSEL 1")
+    INSTR.write("INIT:CONT OFF")
+    INSTR.write("SENS:FREQ:SPAN 20000000")
+    INSTR.write("SENS:FREQ:CENT 1702500000")
+    INSTR.write("POW:ATT:AUTO ON")
+    # INSTR.write("POW:ATT 0")
+    INSTR.write("POW:GAIN ON")
+    INSTR.write("BAND 5000")
+    INSTR.write("DISP:WIND:TRAC:Y:RLEV -20dBm")
+    INSTR.write("TRAC1:TYPE WRIT")
+    INSTR.write("DET:TRAC1 NORM")
+    INSTR.write("TRAC2:TYPE MAXH")
+    INSTR.write("DET:TRAC2 POS")
+    INSTR.write("AVER:COUNT 10")
     #Create IQ window
-    instr.write("INST:SCR:CRE")
-    instr.write("INST:NSEL 8")
-    instr.write("INIT:CONT ON")
-    opc_check()
-    # print("IQ Window Setup Complete")
-
-    #Conf IQ 
-    instr.write("CONF:WAV")
-    instr.write("SENS:FREQ:CENT 1702500000")
-    instr.write("POW:GAIN ON")
-    instr.write("WAV:SRAT 18.75MHz")
-    instr.write("WAV:SWE:TIME 160ms")
-    instr.write("DISP:WAV:VIEW:WIND:TRAC:Y:COUP ON")
-    instr.write("FORM:BORD SWAP")
-    instr.write("FORM REAL,32")    
-    opc_check()
-    # print("IQ Setup Complete")
-
-    #Conf Video Trigger
-    instr.write("TRIG:WAV:SOUR VID")
-    instr.write(f"TRIG:VID:LEV {trigger}")
-    opc_check()
-    # print("Video Setup Complete")
+    INSTR.write("INST:SCR:CRE")
+    INSTR.write("INST:NSEL 8")
+    INSTR.write("CONF:WAV")
+    INSTR.write("SENS:FREQ:CENT 1702500000")
+    # INSTR.write("DISP:WAV:VIEW:NSEL 1")
+    INSTR.write("POW:GAIN ON")
+    INSTR.write("WAV:SRAT 18.75MHz")
+    INSTR.write("WAV:SWE:TIME 160ms")
+    INSTR.write("DISP:WAV:VIEW:WIND:TRAC:Y:COUP ON")
+    INSTR.write("FORM:BORD SWAP")
+    INSTR.write("FORM REAL,32")
 
     try:
         process_schedule()
-        instr.write("DISP:ENAB ON")
+        INSTR.write("DISP:ENAB ON")
         logging.info("Schedule finished for the day.\n")
-        instr.close()
     except Exception as e:
         logging.info(f"An error occurred: {e}")
 
