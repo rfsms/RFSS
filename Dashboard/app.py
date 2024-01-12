@@ -34,13 +34,13 @@ if "RFSS_PXA" in exec_start_line:
     SA_type = "PXA"
     RM = pyvisa.ResourceManager()
     PXA = RM.open_resource(RESOURCE_STRING, timeout=20000)
-    logger.info("Imported PXA libraries")
+    logging.info("Imported PXA libraries")
 elif "RFSS_FSV" in exec_start_line:
     import RsInstrument
     from FSV_commutation import instrument_commutation_setup, instrument_scanning_setup, captureTrace, createSpectrogram, get_SpecAn_content_and_DL_locally
     SA_type = "FSV"
     FSV = RsInstrument(RESOURCE_STRING, False, False, OPTION_STRING_FORCE_RS_VISA)
-    logger.info("Imported FSV libraries")
+    logging.info("Imported FSV libraries")
 
 app = Flask(__name__)
 eventlet.monkey_patch()
@@ -62,7 +62,7 @@ def log_socketio_error(event, error_info):
 def emit_trace_data(trace_data):
     try:
         formatted_data = [float(i) for i in trace_data.split(',')]
-        # logger.info(f"Emitting trace data: {formatted_data}")
+        # logging.info(f"Emitting trace data: {formatted_data}")
         socketio.emit('new_data', {'data': formatted_data})
     except Exception as e:
         logging.error(f"Error emitting trace data: {e}")
@@ -138,7 +138,7 @@ def set_rotor_azimuth(instr, iq_option, starting_az, ending_az, center_frequency
     conn = http.client.HTTPConnection("192.168.4.1", 80)
     
     def send_request(az):
-        # logging.info(f"Sending request for azimuth: {az}")
+        logging.info(f"Sending request for azimuth: {az}")
         for _ in range(3):
             try:
                 conn.request("GET", f"/cmd?a=P|{az}|0|")
@@ -149,14 +149,14 @@ def set_rotor_azimuth(instr, iq_option, starting_az, ending_az, center_frequency
 
     def check_conditions():
         current_az, current_el = get_current_AzEl(conn)
-        # logging.info(f"Checking conditions: Current Az: {current_az}, Current El: {current_el}")
+        logging.info(f"Checking conditions: Current Az: {current_az}, Current El: {current_el}")
         return abs(current_az - float(starting_az)) <= 1.0 and abs(current_el) <= 1.0
 
     # logging.info("Initial request and conditions check...")
     send_request(starting_az)
 
     while not check_conditions():
-        # logging.info("Initial conditions not met. Retrying in 1 second.")
+        logging.info("Initial conditions not met. Retrying in 1 second.")
         time.sleep(1)
     
     for set_az in range(int(starting_az), int(ending_az) + 1, 2):
