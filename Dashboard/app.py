@@ -138,7 +138,7 @@ def set_rotor_azimuth(instr, iq_option, starting_az, ending_az, center_frequency
     conn = http.client.HTTPConnection("192.168.4.1", 80)
     
     def send_request(az):
-        logging.info(f"Sending request for azimuth: {az}")
+        # logging.info(f"Sending request for azimuth: {az}")
         for _ in range(3):
             try:
                 conn.request("GET", f"/cmd?a=P|{az}|0|")
