@@ -24,6 +24,7 @@ def analyze_results(daily_folder):
     results_file_path = f"/home/noaa_gms/RFSS/toDemod/{daily_folder}/results/results.csv"
     
     total_iq_processed = 0 
+    total_dropped = 0
 
     # Initialize an empty DataFrame
     df = pd.DataFrame()
@@ -32,21 +33,24 @@ def analyze_results(daily_folder):
         # Read the CSV file
         df = pd.read_csv(results_file_path)
 
-        # Count the number of 5G and LTE entries
-        total_5g_count = len(df[df["5G/LTE"] == "5G"])
-        total_lte_count = len(df[df["5G/LTE"] == "LTE"])
-        total_iq_processed = int((total_5g_count + total_lte_count) / 20)
+        # Extract unique timestamp prefixes
+        unique_timestamp_prefixes = df['timestamp'].str.extract(r'(\d{8}_\d{6})')[0].unique()
+
+         # Count the number of unique timestamp prefixes
+        total_iq_processed = len(unique_timestamp_prefixes)
 
         # Count the number of entries where PCI is not -1 for both 5G and LTE
         pci_found_5g_count = len(df[(df["5G/LTE"] == "5G") & (df["PCI"] != -1)])
         pci_found_lte_count = len(df[(df["5G/LTE"] == "LTE") & (df["PCI"] != -1)])
+
+        # Count the number of 'DROPPED' entries
+        total_dropped = len(df[df["Processed/NotProcessed"] == "DROPPED"])
         
     except FileNotFoundError:
         logging.info(f"Results file not found at {results_file_path}")
-        total_5g_count, total_lte_count = 0, 0
-        pci_found_5g_count, pci_found_lte_count = 0, 0
+        pci_found_5g_count, pci_found_lte_count, total_dropped = 0, 0, 0
 
-    return df, total_iq_processed, pci_found_5g_count, pci_found_lte_count
+    return df, total_iq_processed, pci_found_5g_count, pci_found_lte_count, total_dropped
 
 
 def get_machine_id():
@@ -71,7 +75,10 @@ def send_notification(df, total_iq_processed, pci_found_5g_count, pci_found_lte_
     # Transform DataFrame into the specified JSON structure for the API POST
     events = []
     for _, row in df.iterrows():
-        if row["PCI"] != -1:  # Check if PCI is not -1
+        # Create an event only if the PCI value is valid (not NaN, not -1), 
+        # the signal type (5G/LTE) is specified and not NaN, 
+        # and the power level (SNR(dB)) is available
+        if pd.notna(row["PCI"]) and row["PCI"] != -1 and pd.notna(row["5G/LTE"]):
             event = {
                 "PCI": row["PCI"],
                 "_id": 0,
@@ -158,7 +165,8 @@ def run_script():
 
     logging.info(f"IQ Processing started for {quarter_folder_name} folder")
 
-    command = f"/home/noaa_gms/RFSS/Tools/processing/RFSS_classifyidentifyPCI_AWS1_AWS3_160ms_mat_CSV_vd8/run_RFSS_classifyidentifyPCI_AWS1_AWS3_160ms_mat_CSV_vd8.sh /usr/local/MATLAB/MATLAB_Runtime/R2023a /home/noaa_gms/RFSS/toDemod/{daily_folder_name}/{quarter_folder_name}/ {results_folder_path}/ '1' '0'"
+    command = f"/home/noaa_gms/RFSS/Tools/processing/RFSS_classifyidentifyPCI_AWS1_AWS3_160ms_thresholdSNR_vd9/run_RFSS_classifyidentifyPCI_AWS1_AWS3_160ms_thresholdSNR_vd9.sh /usr/local/MATLAB/MATLAB_Runtime/R2023a /home/noaa_gms/RFSS/toDemod/{daily_folder_name}/{quarter_folder_name} /home/noaa_gms/RFSS/toDemod/{daily_folder_name}/results '1' '0' '5'"
+    # command = f"/home/noaa_gms/RFSS/Tools/processing/RFSS_classifyidentifyPCI_AWS1_AWS3_160ms_thresholdSNR_vd9/run_RFSS_classifyidentifyPCI_AWS1_AWS3_160ms_thresholdSNR_vd9.sh /usr/local/MATLAB/MATLAB_Runtime/R2023a /home/noaa_gms/RFSS/toDemod/2024_01_13/0000-0559 /home/noaa_gms/RFSS/toDemod/2024_01_13/results '1' '0' '5'"
     logging.info(f"Executing command: {command}")
 
     process = subprocess.Popen(command, shell=True, preexec_fn=os.setsid)
@@ -183,9 +191,8 @@ def run_script():
             logging.info("IQ process group terminated with SIGTERM.")
 
     # Analyze results and process
-
-    df, total_iq_processed, pci_found_5g_count, pci_found_lte_count = analyze_results(daily_folder_name)
-    logging.info(f"Total IQ files processed: {total_iq_processed}, 5G PCI found in: {pci_found_5g_count} files / LTE PCI found in: {pci_found_lte_count} files.")
+    df, total_iq_processed, pci_found_5g_count, pci_found_lte_count, total_dropped = analyze_results(daily_folder_name)
+    logging.info(f"Total IQ files processed: {total_iq_processed}, 5G PCI found in: {pci_found_5g_count} files / LTE PCI found in: {pci_found_lte_count} files. Dropped .mat files: {total_dropped}.")
 
     send_notification(df, total_iq_processed, pci_found_5g_count, pci_found_lte_count)
     logging.info(f"IQ Processing terminated as expected.")
