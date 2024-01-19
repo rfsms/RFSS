@@ -20,8 +20,8 @@ logging.basicConfig(filename='/home/noaa_gms/RFSS/RFSS_SA.log', level=logging.IN
 def iso_format_utc(dt):
     return dt.astimezone(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
 
-def analyze_results(daily_folder):
-    results_file_path = f"/home/noaa_gms/RFSS/toDemod/{daily_folder}/results/results.csv"
+def analyze_results(daily_folder, quarter_folder):
+    results_file_path = f"/home/noaa_gms/RFSS/toDemod/{daily_folder}/{quarter_folder}/results/results.csv"
     
     total_iq_processed = 0 
     total_dropped = 0
@@ -135,20 +135,20 @@ def send_notification(df, total_iq_processed, pci_found_5g_count, pci_found_lte_
 
 def run_script():
     last_hour = datetime.utcnow() - timedelta(hours=1)
-    daily_folder_name = last_hour.strftime('%Y_%m_%d')
+    daily_folder = last_hour.strftime('%Y_%m_%d')
 
     # Determine the quarter of the day
     hour = last_hour.hour
     if hour < 6:
-        quarter_folder_name = '0000-0559'
+        quarter_folder = '0000-0559'
     elif hour < 12:
-        quarter_folder_name = '0600-1159'
+        quarter_folder = '0600-1159'
     elif hour < 18:
-        quarter_folder_name = '1200-1759'
+        quarter_folder = '1200-1759'
     else:
-        quarter_folder_name = '1800-2359'
+        quarter_folder = '1800-2359'
 
-    mat_files_path = f"/home/noaa_gms/RFSS/toDemod/{daily_folder_name}/{quarter_folder_name}/*.mat"
+    mat_files_path = f"/home/noaa_gms/RFSS/toDemod/{daily_folder}/{quarter_folder}/*.mat"
 
     # Log the path being checked
     logging.info(f"Checking for .mat files in: {mat_files_path}")
@@ -156,42 +156,23 @@ def run_script():
     # Check if there are .mat files in the last hour's folder
     mat_files = glob.glob(mat_files_path)
     if not mat_files:
-        logging.info(f"No .mat files found in {quarter_folder_name}, skipping processing.")
+        logging.info(f"No .mat files found in {quarter_folder}, skipping processing.")
         return
 
     # Set up the results folder for today
-    results_folder_path = f"/home/noaa_gms/RFSS/toDemod/{daily_folder_name}/results"
+    results_folder_path = f"/home/noaa_gms/RFSS/toDemod/{daily_folder}/{quarter_folder}/results"
     os.makedirs(results_folder_path, exist_ok=True)
 
-    logging.info(f"IQ Processing started for {quarter_folder_name} folder")
+    logging.info(f"IQ Processing started for {quarter_folder} folder")
 
-    command = f"/home/noaa_gms/RFSS/Tools/processing/RFSS_classifyidentifyPCI_AWS1_AWS3_160ms_thresholdSNR_vd9/run_RFSS_classifyidentifyPCI_AWS1_AWS3_160ms_thresholdSNR_vd9.sh /usr/local/MATLAB/MATLAB_Runtime/R2023a /home/noaa_gms/RFSS/toDemod/{daily_folder_name}/{quarter_folder_name} /home/noaa_gms/RFSS/toDemod/{daily_folder_name}/results '1' '0' '5'"
+    command = f"/home/noaa_gms/RFSS/Tools/processing/RFSS_classifyidentifyPCI_AWS1_AWS3_160ms_thresholdSNR_vd9/run_RFSS_classifyidentifyPCI_AWS1_AWS3_160ms_thresholdSNR_vd9.sh /usr/local/MATLAB/MATLAB_Runtime/R2023a /home/noaa_gms/RFSS/toDemod/{daily_folder}/{quarter_folder} /home/noaa_gms/RFSS/toDemod/{daily_folder}/{quarter_folder}/results '1' '0' '5'"
     # command = f"/home/noaa_gms/RFSS/Tools/processing/RFSS_classifyidentifyPCI_AWS1_AWS3_160ms_thresholdSNR_vd9/run_RFSS_classifyidentifyPCI_AWS1_AWS3_160ms_thresholdSNR_vd9.sh /usr/local/MATLAB/MATLAB_Runtime/R2023a /home/noaa_gms/RFSS/toDemod/2024_01_13/0000-0559 /home/noaa_gms/RFSS/toDemod/2024_01_13/results '1' '0' '5'"
     logging.info(f"Executing command: {command}")
 
     process = subprocess.Popen(command, shell=True, preexec_fn=os.setsid)
 
-    # Define maximum runtime (e.g., 23 hours) - eventually this and monitor needs to be removed due to clumsiness
-    max_runtime_seconds = 12 * 3600
-
-    # Monitor the process
-    for _ in range(max_runtime_seconds):
-        if process.poll() is not None:
-            # IQ Processing in progress...
-            break
-        time.sleep(1)
-    else:
-        # Terminate the process group
-        os.killpg(os.getpgid(process.pid), signal.SIGTERM)
-        time.sleep(5)
-        if process.poll() is None:
-            os.killpg(os.getpgid(process.pid), signal.SIGKILL)
-            logging.info("IQ process group killed.")
-        else:
-            logging.info("IQ process group terminated with SIGTERM.")
-
     # Analyze results and process
-    df, total_iq_processed, pci_found_5g_count, pci_found_lte_count, total_dropped = analyze_results(daily_folder_name)
+    df, total_iq_processed, pci_found_5g_count, pci_found_lte_count, total_dropped = analyze_results(daily_folder, quarter_folder)
     logging.info(f"Total IQ files processed: {total_iq_processed}, 5G PCI found in: {pci_found_5g_count} files / LTE PCI found in: {pci_found_lte_count} files. Dropped .mat files: {total_dropped}.")
 
     send_notification(df, total_iq_processed, pci_found_5g_count, pci_found_lte_count)

@@ -6,9 +6,7 @@ import datetime
 import os 
 import logging
 from pymongo import MongoClient
-import shutil
 from scipy.io import savemat
-import re
 
 # Connection for MongoDB
 client = MongoClient('localhost', 27017)
@@ -25,9 +23,6 @@ logging.basicConfig(filename='/home/noaa_gms/RFSS/RFSS_SA.log', level=logging.IN
 # For production
 CSV_FILE_PATH = '/home/noaa_gms/RFSS/Tools/Report_Exports/schedule.csv'
 TEMP_DIR = '/home/noaa_gms/RFSS/Received/'
-REMOTE_IP = 'noaa-gms-ec2'
-REMOTE_USERNAME = 'Administrator'
-REMOTE_PATH = '/'
 RESOURCE_STRING = 'TCPIP::192.168.3.101::hislip0' 
 RM = pyvisa.ResourceManager()
 INSTR = RM.open_resource(RESOURCE_STRING, timeout = 20000)
@@ -170,7 +165,8 @@ def process_schedule():
                 quarter_folder = os.path.join(daily_folder, quarter_folder_name)
                 os.makedirs(quarter_folder, exist_ok=True)
 
-                results_folder = os.path.join(daily_folder, 'results')
+                # Create results folder in each quarterly folder - instead of daily folder
+                results_folder = os.path.join(quarter_folder, 'results')
                 os.makedirs(results_folder, exist_ok=True)
 
                 # Save I/Q data to MAT file in the Quarter Folder
