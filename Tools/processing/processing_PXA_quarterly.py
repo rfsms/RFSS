@@ -22,7 +22,7 @@ def iso_format_utc(dt):
 
 def analyze_results(daily_folder, quarter_folder):
     results_file_path = f"/home/noaa_gms/RFSS/toDemod/{daily_folder}/{quarter_folder}/results/results.csv"
-    
+   
     total_iq_processed = 0 
     total_dropped = 0
 
@@ -30,6 +30,11 @@ def analyze_results(daily_folder, quarter_folder):
     df = pd.DataFrame()
 
     try:
+        if os.path.exists(results_file_path):
+            logging.info(f"Confirmed existence of results file at {results_file_path}")
+        else:
+            logging.info(f"Results file not found at {results_file_path} before reading")
+
         # Read the CSV file
         df = pd.read_csv(results_file_path)
 
@@ -46,8 +51,9 @@ def analyze_results(daily_folder, quarter_folder):
         # Count the number of 'DROPPED' entries
         total_dropped = len(df[df["Processed/NotProcessed"] == "DROPPED"])
         
-    except FileNotFoundError:
-        logging.info(f"Results file not found at {results_file_path}")
+    except FileNotFoundError as e:
+        logging.error(f"FileNotFoundError for {results_file_path}: {str(e)}")
+        # Lets initialize vars to a default state om the even of an error and not cause the script to crash 
         pci_found_5g_count, pci_found_lte_count, total_dropped = 0, 0, 0
 
     return df, total_iq_processed, pci_found_5g_count, pci_found_lte_count, total_dropped
@@ -57,12 +63,12 @@ def get_machine_id():
     with open('/etc/machine-id', 'r') as file:
         return file.read().strip()
 
-def send_notification(df, total_iq_processed, pci_found_5g_count, pci_found_lte_count):
+def send_notification(df, total_iq_processed, pci_found_5g_count, pci_found_lte_count, total_dropped):
     machine_id = get_machine_id()
 
     # Notification to ntfy.sh
     ntfy_url = f'https://ntfy.sh/{machine_id}'
-    ntfy_message = f"Total IQ files processed: {total_iq_processed} - 5G PCI found in: {pci_found_5g_count} files / LTE PCI found in: {pci_found_lte_count} files."
+    ntfy_message = f"Total IQ files processed: {total_iq_processed}, 5G PCI found in: {pci_found_5g_count} files / LTE PCI found in: {pci_found_lte_count} files, Dropped .mat files: {total_dropped}."
     ntfy_data = {'IQ Analysis': ntfy_message}
 
     try:
@@ -166,16 +172,18 @@ def run_script():
     logging.info(f"IQ Processing started for {quarter_folder} folder")
 
     command = f"/home/noaa_gms/RFSS/Tools/processing/RFSS_classifyidentifyPCI_AWS1_AWS3_160ms_thresholdSNR_vd9/run_RFSS_classifyidentifyPCI_AWS1_AWS3_160ms_thresholdSNR_vd9.sh /usr/local/MATLAB/MATLAB_Runtime/R2023a /home/noaa_gms/RFSS/toDemod/{daily_folder}/{quarter_folder} /home/noaa_gms/RFSS/toDemod/{daily_folder}/{quarter_folder}/results '1' '0' '5'"
-    # command = f"/home/noaa_gms/RFSS/Tools/processing/RFSS_classifyidentifyPCI_AWS1_AWS3_160ms_thresholdSNR_vd9/run_RFSS_classifyidentifyPCI_AWS1_AWS3_160ms_thresholdSNR_vd9.sh /usr/local/MATLAB/MATLAB_Runtime/R2023a /home/noaa_gms/RFSS/toDemod/2024_01_13/0000-0559 /home/noaa_gms/RFSS/toDemod/2024_01_13/results '1' '0' '5'"
-    logging.info(f"Executing command: {command}")
-
+    logging.info(f"Starting MATLAB process with: {command}")
     process = subprocess.Popen(command, shell=True, preexec_fn=os.setsid)
 
-    # Analyze results and process
-    df, total_iq_processed, pci_found_5g_count, pci_found_lte_count, total_dropped = analyze_results(daily_folder, quarter_folder)
-    logging.info(f"Total IQ files processed: {total_iq_processed}, 5G PCI found in: {pci_found_5g_count} files / LTE PCI found in: {pci_found_lte_count} files. Dropped .mat files: {total_dropped}.")
+    # Wait to coomplete the process
+    process.wait()
+    logging.info("MATLAB process completed.")
 
-    send_notification(df, total_iq_processed, pci_found_5g_count, pci_found_lte_count)
+    # NOW...Analyze results and report
+    df, total_iq_processed, pci_found_5g_count, pci_found_lte_count, total_dropped = analyze_results(daily_folder, quarter_folder)
+    logging.info(f"Total IQ files processed: {total_iq_processed}, 5G PCI found in: {pci_found_5g_count} files / LTE PCI found in: {pci_found_lte_count} files, Dropped .mat files: {total_dropped}.")
+
+    send_notification(df, total_iq_processed, pci_found_5g_count, pci_found_lte_count, total_dropped)
     logging.info(f"IQ Processing terminated as expected.")
 
 run_script()
