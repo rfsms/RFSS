@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+from http.client import http
+import json
 import pyvisa
 import csv
 import time
@@ -27,6 +29,14 @@ RESOURCE_STRING = 'TCPIP::192.168.3.101::hislip0'
 RM = pyvisa.ResourceManager()
 INSTR = RM.open_resource(RESOURCE_STRING, timeout = 20000)
 DEMOD_DIR = '/home/noaa_gms/RFSS/toDemod/'
+
+def get_current_AzEl():
+    conn = http.client.HTTPConnection("192.168.4.1", 80)
+    conn.request("GET", "/min")
+    response = conn.getresponse()
+    data = json.loads(response.read())
+    conn.close()
+    return round(data['az']), round(data['el'])
 
 def handle_pause(log_message, restart_message=None, sleep_time=5, loop_completed=None):
     log_flag = True
@@ -134,6 +144,9 @@ def process_schedule():
                         }
                     schedule_run.insert_one(document)
 
+                # Get current Azimuth and Elevation
+                azimuth, elevation = get_current_AzEl()
+
                 # Intrumentation happens here
                 INSTR.write('INIT:IMM;*WAI')
                 # INSTR.write('DISP:WAV:VIEW:WIND:TRAC:Y:COUP ON')
@@ -171,7 +184,7 @@ def process_schedule():
 
                 # Save I/Q data to MAT file in the Quarter Folder
                 formatted_current_datetime = current_datetime.strftime('%Y%m%d_%H%M%S_UTC') 
-                mat_file_path = os.path.join(quarter_folder, f'{formatted_current_datetime}_{satellite_name}.mat')
+                mat_file_path = os.path.join(quarter_folder, f'{formatted_current_datetime}_{satellite_name}_AZ_{azimuth}_EL_{elevation}.mat')
                 savemat(mat_file_path, {'I_Data': i_data, 'Q_Data': q_data})
             
             # Only execute this part if the loop was not broken by the pause flag
