@@ -171,7 +171,7 @@ def run_script():
 
     logging.info(f"IQ Processing started for {quarter_folder} folder")
 
-    command = f"/home/noaa_gms/RFSS/Tools/processing/RFSS_classifyidentifyPCI_AWS1_AWS3_160ms_thresholdSNR_vd9/run_RFSS_classifyidentifyPCI_AWS1_AWS3_160ms_thresholdSNR_vd9.sh /usr/local/MATLAB/MATLAB_Runtime/R2023a /home/noaa_gms/RFSS/toDemod/{daily_folder}/{quarter_folder} /home/noaa_gms/RFSS/toDemod/{daily_folder}/{quarter_folder}/results '1' '0' '5'"
+    command = f"/home/noaa_gms/RFSS/Tools/processing/RFSS_classifyidentifyPCI_AWS1_AWS3_160ms_thresholdSNR_vd10/run_RFSS_classifyidentifyPCI_AWS1_AWS3_160ms_thresholdSNR_vd10.sh /usr/local/MATLAB/MATLAB_Runtime/R2023a /home/noaa_gms/RFSS/toDemod/{daily_folder}/{quarter_folder} /home/noaa_gms/RFSS/toDemod/{daily_folder}/{quarter_folder}/results '1' '0' '5' 'NHC'"
     logging.info(f"Starting MATLAB process with: {command}")
     process = subprocess.Popen(command, shell=True, preexec_fn=os.setsid)
 
