@@ -30,6 +30,21 @@ RM = pyvisa.ResourceManager()
 INSTR = RM.open_resource(RESOURCE_STRING, timeout = 20000)
 DEMOD_DIR = '/home/noaa_gms/RFSS/toDemod/'
 
+def opc_check(INSTR):
+    """ Check if all preceding commands are completed """
+    INSTR.write('*OPC')
+    opc_value = INSTR.query('*OPC?').strip()
+    # logging.info(f"OPC Check: {opc_value}")
+
+    # If *OPC? is not 1, enter a loop and wait for it to become 1
+    if opc_value != '1':
+        while True:
+            time.sleep(0.5)
+            opc_value = INSTR.query('*OPC?').strip()
+            print(f"Current *OPC? response: {opc_value}")
+            if opc_value == '1':
+                break
+
 def get_current_AzEl():
     conn = http.client.HTTPConnection("192.168.4.1", 80)
     conn.request("GET", "/min")
@@ -51,24 +66,13 @@ def handle_pause(log_message, restart_message=None, sleep_time=5, loop_completed
     if was_paused:
         #Resetup SpecAn
         INSTR.write("INST:SCR:SEL 'IQ Analyzer 1'")
-        # INSTR.write("INST:NSEL 8")
-        # INSTR.write("CONF:WAV")
-        # INSTR.write("INIT:CONT OFF")
-        # INSTR.write('SENS:FREQ:CENT 1702500000')
-        # INSTR.write('POW:ATT:AUTO ON')
-        # # INSTR.write('POW:ATT 0')
-        # INSTR.write('DISP:WAV:VIEW:NSEL 1')
-        # INSTR.write('POW:GAIN ON')
-        # INSTR.write('WAV:SRAT 18.75MHz')
-        # INSTR.write('WAV:SWE:TIME 160ms')
-        # INSTR.write('DISP:WAV:VIEW:WIND:TRAC:Y:COUP ON')
-        # INSTR.write("FORM:BORD SWAP")
-        # INSTR.write("FORM REAL,32")
+        opc_check(INSTR)
+        logging("Instrument after pause successful")
 
         if restart_message:
             logging.info(restart_message)
         if loop_completed is not None:
-            loop_completed[0] = False  # Use list to make it mutable
+            loop_completed[0] = False
 
     return was_paused
 
@@ -151,6 +155,7 @@ def process_schedule():
                 INSTR.write('INIT:IMM;*WAI')
                 # INSTR.write('DISP:WAV:VIEW:WIND:TRAC:Y:COUP ON')
                 data = INSTR.query_binary_values(":FETCH:WAV0?")
+                opc_check(INSTR)
 
                 # Convert to separate I and Q arrays
                 i_data = data[::2]
@@ -217,6 +222,8 @@ def main():
     INSTR.write("*RST")
     INSTR.write("*CLS")
     INSTR.write("SYST:DEF SCR")
+    opc_check(INSTR)
+    logging.info("Reset Succesful")
 
     # Setup Spectrum Analyzer
     INSTR.write("INST:NSEL 1")
@@ -233,6 +240,9 @@ def main():
     INSTR.write("TRAC2:TYPE MAXH")
     INSTR.write("DET:TRAC2 POS")
     INSTR.write("AVER:COUNT 10")
+    opc_check(INSTR)
+    logging.info("SA Setup Succesful")
+
     #Create IQ window
     INSTR.write("INST:SCR:CRE")
     INSTR.write("INST:NSEL 8")
@@ -245,6 +255,8 @@ def main():
     INSTR.write("DISP:WAV:VIEW:WIND:TRAC:Y:COUP ON")
     INSTR.write("FORM:BORD SWAP")
     INSTR.write("FORM REAL,32")
+    opc_check(INSTR)
+    logging.info("IQ Setup Succesful")
 
     try:
         process_schedule()
