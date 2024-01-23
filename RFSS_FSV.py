@@ -271,7 +271,7 @@ def main():
         logging.info("Schedule finished for the day.\n")
         # logging.info("Successfully executed process_schedule() of the main routine")
     except Exception as e:
-        logging.info(f"An error occurred: {e}")
+        logging.info(f"An error occurred in RFSS_FSV.py: {e}")
 
 if __name__ == "__main__":
     main()

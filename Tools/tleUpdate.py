@@ -32,4 +32,4 @@ try:
     print(f'Status Code: {post_response.status_code}')
     print(f'Response Content: {post_response.text}')
 except requests.RequestException as e:
-    print(f'An error occurred: {e}')
+    print(f'An error occurred in TLEUpdate.py: {e}')

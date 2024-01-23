@@ -83,17 +83,17 @@ def get_location():
             return data['gpsgr']
         
         coords = (round(float(data['lat']), 2), round(float(data['lon']), 2))    
-        if coords == (25.77, -80.38):
-            return "EL95TS"
+        if coords == (25.75, -80.38):
+            return "EL95ts (NHC)"
         elif coords == (25.73, -80.13):
-            return "EL95wr"
+            return "EL95wr (AOML)"
         elif coords == (21.35, -157.96):
-            return "BL11ai"
+            return "BL11ai (IRC)"
         else:
             return f"Coordinates: {coords}"
 
     except Exception as e:
-        return f'An error occurred checking the location: {e}'
+        return f'An error occurred in app.py getting the location: {e}'
 
 def format_time(time_tuple):
     return f"{time_tuple[0]:02d}:{time_tuple[1]:02d}:{time_tuple[2]:02d}"
@@ -303,7 +303,7 @@ def set_az_path():
         eventlet.spawn_n(set_rotor_azimuth, instr, iq_option, starting_az, ending_az, center_frequency_MHz, span_MHz, points, location, band_config)
         return json.dumps({"message": "Data capture started"}), 200
     except Exception as e:
-        return json.dumps({"message": f"An error occurred: {str(e)}"}), 500
+        return json.dumps({"message": f"An error occurred in app.py setting the AZ: {str(e)}"}), 500
 
 @app.route('/pause_schedule', methods=['POST'])
 def pause_schedule():

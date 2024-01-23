@@ -263,7 +263,7 @@ def main():
         INSTR.write("DISP:ENAB ON")
         logging.info("Schedule finished for the day.\n")
     except Exception as e:
-        logging.info(f"An error occurred: {e}")
+        logging.info(f"An error occurred in RFSS_PXA.py: {e}")
 
 if __name__ == "__main__":
     main()
