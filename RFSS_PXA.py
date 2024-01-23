@@ -9,6 +9,7 @@ import os
 import logging
 from pymongo import MongoClient
 from scipy.io import savemat
+import subprocess
 
 # Connection for MongoDB
 client = MongoClient('localhost', 27017)
@@ -29,6 +30,13 @@ RESOURCE_STRING = 'TCPIP::192.168.3.101::hislip0'
 RM = pyvisa.ResourceManager()
 INSTR = RM.open_resource(RESOURCE_STRING, timeout = 20000)
 DEMOD_DIR = '/home/noaa_gms/RFSS/toDemod/'
+
+def restart_service(service_name):
+    try:
+        subprocess.run(['sudo', 'systemctl', 'restart', service_name], check=True)
+        logging.info(f"Successfully restarted the service {service_name}.")
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Failed to restart the service {service_name}: {e}")
 
 def opc_check(INSTR):
     """ Check if all preceding commands are completed """
@@ -266,4 +274,9 @@ def main():
         logging.info(f"An error occurred in RFSS_PXA.py: {e}")
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        logging.error(f"An error occurred in RFSS_PXA.py: {e}")
+        if "Connection timed out" in str(e):
+            restart_service('RFSS.service')
