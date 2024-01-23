@@ -33,8 +33,9 @@ DEMOD_DIR = '/home/noaa_gms/RFSS/toDemod/'
 
 def restart_service():
     try:
+        logging.info("Attempting to restart RFSS.service")
         subprocess.run(['sudo', '/home/noaa_gms/RFSS/Tools/restart_RFSS.sh'], check=True)
-        logging.info("Successfully requested restart RFSS.service.")
+        logging.info(f"Successfully requested restart RFSS.service.")
     except subprocess.CalledProcessError as e:
         logging.error(f"Failed to restart the RFSS.service: {e}")
     except Exception as e:
@@ -269,15 +270,16 @@ def main():
     logging.info("IQ Setup Succesful")
 
     try:
+        # raise Exception("Test error")
         process_schedule()
         INSTR.write("DISP:ENAB ON")
         logging.info("Schedule finished for the day.\n")
     except Exception as e:
-        logging.info(f"An error occurred in RFSS_PXA.py: {e}")
+        logging.info(f"An error occurred in RFSS_PXA.py main(): {e}")
+        restart_service()
 
 if __name__ == "__main__":
     try:
         main()
     except Exception as e:
         logging.error(f"An error occurred in RFSS_PXA.py: {e}")
-        restart_service()
