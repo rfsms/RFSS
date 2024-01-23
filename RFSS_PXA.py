@@ -31,12 +31,14 @@ RM = pyvisa.ResourceManager()
 INSTR = RM.open_resource(RESOURCE_STRING, timeout = 20000)
 DEMOD_DIR = '/home/noaa_gms/RFSS/toDemod/'
 
-def restart_service(service_name):
+def restart_service():
     try:
-        subprocess.run(['sudo', 'systemctl', 'restart', service_name], check=True)
-        logging.info(f"Successfully restarted the service {service_name}.")
+        subprocess.run(['sudo', '/home/noaa_gms/RFSS/Tools/restart_RFSS.sh'], check=True)
+        logging.info("Successfully requested restart RFSS.service.")
     except subprocess.CalledProcessError as e:
-        logging.error(f"Failed to restart the service {service_name}: {e}")
+        logging.error(f"Failed to restart the RFSS.service: {e}")
+    except Exception as e:
+        logging.error(f"Unexpected error while restarting the RFSS.service: {e}")
 
 def opc_check(INSTR):
     """ Check if all preceding commands are completed """
@@ -278,5 +280,4 @@ if __name__ == "__main__":
         main()
     except Exception as e:
         logging.error(f"An error occurred in RFSS_PXA.py: {e}")
-        if "Connection timed out" in str(e):
-            restart_service('RFSS.service')
+        restart_service()
