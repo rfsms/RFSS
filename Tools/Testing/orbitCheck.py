@@ -4,19 +4,23 @@ from datetime import datetime
 
 # Load satellite TLE data
 stations_url = 'http://celestrak.com/NORAD/elements/weather.txt'
-satellites = load.tle_file(stations_url, filename='/home/noaa_gms/RFSS/Tools/Report_Exports/weather.txt')
+satellites = load.tle_file(stations_url, filename='/tmp/weather.txt')
 by_name = {sat.name: sat for sat in satellites}
 all_passes = []
 
-# Define observer location (latitude, longitude, elevation) - in this case TMTR Boulder, CO
-observer = Topos(latitude_degrees=40.131142, longitude_degrees=-105.240288, elevation_m=1693)
+# Define observer location (latitude, longitude, elevation)
+# observer = Topos(latitude_degrees=40.131142, longitude_degrees=-105.240288, elevation_m=1693) # TMTR Boulder, CO
+# observer = Topos(latitude_degrees=25.7347429, longitude_degrees=-80.1623203, elevation_m=34) # AOML
+# observer = Topos(latitude_degrees=21.3662822, longitude_degrees=-157.9624917, elevation_m=33) # IRC
+observer = Topos(latitude_degrees=25.754618, longitude_degrees=-80.383499, elevation_m=32) # NHC
 
 from datetime import datetime
 
 # Get current date for use
 current_date = datetime.now().date()
-# # Manually set the specific date you want to look at
-# current_date = datetime.strptime("2023-08-29", "%Y-%m-%d").date()
+# print(current_date)
+# Or manually set the specific date you want to look at
+# current_date = datetime.strptime("2024-01-23", "%Y-%m-%d").date()
 
 # Load time scale and generate time array
 ts = load.timescale()
