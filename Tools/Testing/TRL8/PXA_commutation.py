@@ -10,7 +10,7 @@ TEMP_DIR = ''
 
 span = 20000000
 cf = 1702500000
-points = 10001
+points = 1001
 
 def instrument_setup(PXA, RESOURCE_STRING):
     try:
