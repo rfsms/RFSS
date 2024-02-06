@@ -257,6 +257,7 @@ def main():
     #Create IQ window
     INSTR.write("INST:SCR:CRE")
     INSTR.write("INST:NSEL 8")
+    INSTR.write("INIT:CONT OFF")
     INSTR.write("CONF:WAV")
     INSTR.write("SENS:FREQ:CENT 1702500000")
     # INSTR.write("DISP:WAV:VIEW:NSEL 1")
