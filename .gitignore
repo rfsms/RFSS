@@ -28,4 +28,5 @@ Tools/Testing/TRL8/scan.log
 Tools/Testing/TRL8/TLR8_Data/*
 Tools/processing/RFSS*
 *signal-analysis.log
+config.json
 
