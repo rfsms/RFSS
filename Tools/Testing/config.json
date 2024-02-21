@@ -1,0 +1,11 @@
+{
+    "location": "AOML",
+    "resourceIP": "TCPIP::192.168.130.206::hislip0",
+    "instrument type": "PXA",
+    "bandwidth_MHz": 5,
+    "span_MHz": 20,
+    "cf_MHz": 1702.5,
+    "points": 1001,
+    "srat": "18.75MHz",
+    "measTime": "160ms"
+}
