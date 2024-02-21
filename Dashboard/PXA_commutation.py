@@ -56,23 +56,23 @@ def instrument_commutation_setup(instr, center_frequency_MHz=1702.5, span_MHz=20
         logging.info("Setting instrument to 'Spectrum Analyzer 1'")
         instr.write("INST:SCR:SEL 'Spectrum Analyzer 1'")
         instr.write("INIT:IMM;*WAI")
-        sel = instr.query("INST:SCR:SEL?").strip()
-        logging.info(f"SCR Returned: {sel}")
+        # sel = instr.query("INST:SCR:SEL?").strip()
+        # logging.info(f"SCR Returned: {sel}")
 
         logging.info(f"Setting center frequency to {center_frequency_MHz} MHz")
         instr.write(f"SENS:FREQ:CENT {center_frequency_MHz}MHz")
-        freq = instr.query("SENS:FREQ:CENT?").strip()
-        logging.info(f"CENT Returned: {freq}")
+        # freq = instr.query("SENS:FREQ:CENT?").strip()
+        # logging.info(f"CENT Returned: {freq}")
 
         logging.info(f"Setting frequency span to {span_MHz} MHz")
         instr.write(f"SENS:FREQ:SPAN {span_MHz}MHz")
-        span = instr.query("SENS:FREQ:SPAN?").strip()
-        logging.info(f"SPAN Returned: {span}")
+        # span = instr.query("SENS:FREQ:SPAN?").strip()
+        # logging.info(f"SPAN Returned: {span}")
 
         logging.info(f"Setting sweep points to {points}")
         instr.write(f"SWE:POIN {points}")
-        poi = instr.query("SWE:POIN?").strip()
-        logging.info(f"POI Returned: {poi}")
+        # poi = instr.query("SWE:POIN?").strip()
+        # logging.info(f"POI Returned: {poi}")
 
         logging.info("Exiting instrument_commutation_setup function and starting captureTrace.")
     except Exception as e:
