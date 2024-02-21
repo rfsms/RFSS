@@ -19,7 +19,7 @@ for handler in logging.root.handlers[:]:
 logging.basicConfig(filename='/home/noaa_gms/RFSS/RFSS_SA.log', level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger(__name__)
 
-RESOURCE_STRING = 'TCPIP::192.168.3.101::hislip0' 
+RESOURCE_STRING = 'TCPIP::192.168.2.101::hislip0' 
 OPTION_STRING_FORCE_RS_VISA = 'SelectVisa=rs'
 PXA = None
 FSV = None
