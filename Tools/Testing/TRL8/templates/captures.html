@@ -91,7 +91,7 @@
     <script type="text/javascript" charset="utf-8">
         let spectrogramData = [];
         let timeStamps = [];
-        let currentTitle = 'Spectrogram'; // Global variable for current title
+        let currentTitle = ''; // Global variable for current title
 
         document.addEventListener('DOMContentLoaded', function() {
             var socket = io.connect('http://' + document.domain + ':' + location.port);
@@ -107,12 +107,12 @@
             socket.on('new_data', function(data) {
                 let newData = data.data.split(',').map(Number);
                 let currentTime = new Date().toLocaleTimeString();
-                // console.log(newData, currentTime);
+                // console.log(currentTime);
 
                 spectrogramData.push(newData);
                 timeStamps.push(currentTime);
 
-                if (spectrogramData.length > 100) {
+                if (spectrogramData.length > 300) {
                     spectrogramData.shift();  
                     timeStamps.shift();     
                 }

@@ -4,13 +4,19 @@ from flask_socketio import SocketIO
 import pyvisa
 import logging
 from PXA_commutation import instrument_setup, captureTrace
+import json
+
+# Read vals from the config.json file
+config_file_path = '/home/noaa_gms/RFSS/Tools/Testing/config.json'
+with open(config_file_path, 'r') as json_file:
+    config_data = json.load(json_file)
 
 # Reset the Root Logger - this section is used to reset the root logger and then apply below configuration
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
 
 # Setup logging
-logging.basicConfig(filename='/home/its/RFSS/Tools/Testing/TRL8/scan.log', level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+logging.basicConfig(filename='/home/noaa_gms/RFSS/Tools/Testing/TRL8/scan.log', level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -21,10 +27,7 @@ app = Flask(__name__)
 socketio = SocketIO(app)
 
 shared_data = {'is_scanning': False, 'trace_data': None}
-RESOURCE_STRING = 'TCPIP::192.168.130.206::hislip0' 
-# TCPIP::192.168.3.101::hislip0
-
-# pyvisa.log_to_screen()
+RESOURCE_STRING = config_data['resourceIP']
 
 # Custom log function for SocketIO
 def log_socketio_error(event, error_info):

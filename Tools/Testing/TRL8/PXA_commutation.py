@@ -4,13 +4,21 @@ from scipy.io import savemat
 import logging
 import csv
 import os
+import json
+
+# Read vals from the config.json file
+config_file_path = '/home/its/RFSS/Tools/Testing/config.json'
+with open(config_file_path, 'r') as json_file:
+    config_data = json.load(json_file)
 
 BASE_DIR = '/home/its/RFSS/Tools/Testing/TRL8/TLR8_Data/'
 TEMP_DIR = ''
 
-span = 20000000
-cf = 1702500000
-points = 1001
+span = config_data['span_MHz'] * 1e6
+cf = config_data['cf_MHz'] * 1e6 
+points = config_data['points']
+srat = config_data['srat']
+measTime = config_data['measTime']
 
 def instrument_setup(PXA, RESOURCE_STRING):
     try:
@@ -49,10 +57,10 @@ def instrument_setup(PXA, RESOURCE_STRING):
         # PXA.write("INST:NSEL 8") # MXB
         PXA.write("INST:SEL BASIC") # MXA
         PXA.write("CONF:WAV")
-        PXA.write("SENS:FREQ:CENT 1702500000")
+        PXA.write(f"SENS:FREQ:CENT {cf}")
         PXA.write("POW:GAIN ON")
-        PXA.write("WAV:SRAT 18.75MHz")
-        PXA.write("WAV:SWE:TIME 160ms")
+        PXA.write(f"WAV:SRAT {srat}")
+        PXA.write(f"WAV:SWE:TIME {measTime}")
         PXA.write("DISP:WAV:VIEW:WIND:TRAC:Y:COUP ON")
         PXA.write("FORM:BORD SWAP")
         PXA.write("FORM REAL,32")
@@ -86,6 +94,7 @@ def captureTrace(PXA):
         trace_data_list = trace_data_clean.split(',')
 
         current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+        # print(f"Current_1: {current_time}")
         csv_filename = os.path.join(TEMP_DIR, 'trace_data.csv')
         mat_filename = os.path.join(TEMP_DIR, f'{current_time}.mat')
 
@@ -115,6 +124,7 @@ def captureTrace(PXA):
         q_data = data[1::2]
 
         current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+        # print(f"Current_2: {current_time}")
 
         # Save I/Q data to MAT file
         savemat(mat_filename, {'I_Data': i_data, 'Q_Data': q_data})
@@ -124,13 +134,3 @@ def captureTrace(PXA):
     except Exception as e:
         logging.error(f"An error occurred during captureTrace: {e}")
         return None
-    
-# def closeConnection():
-#     try:
-#         if PXA:
-#             PXA.close()
-#             logging.info('Closed the SA connection')
-#     except Exception as e:
-#         logging.error(f"An error occurred during closing the connection: {e}")
-
-
