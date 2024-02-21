@@ -26,7 +26,7 @@ logging.basicConfig(filename='/home/noaa_gms/RFSS/RFSS_SA.log', level=logging.IN
 # For production
 CSV_FILE_PATH = '/home/noaa_gms/RFSS/Tools/Report_Exports/schedule.csv'
 TEMP_DIR = '/home/noaa_gms/RFSS/Received/'
-RESOURCE_STRING = 'TCPIP::192.168.3.101::hislip0' 
+RESOURCE_STRING = 'TCPIP::192.168.2.101::hislip0' 
 RM = pyvisa.ResourceManager()
 INSTR = RM.open_resource(RESOURCE_STRING, timeout = 20000)
 DEMOD_DIR = '/home/noaa_gms/RFSS/toDemod/'
@@ -152,7 +152,7 @@ def process_schedule():
                     logging.info(f'Current scheduled row under test: {row}')
                     triggered = True
 
-                    # Insert the data into MongoDB as a single document
+                    # Insert the schedule data into MongoDB as a single document
                     document = {
                         "timestamp": datetime.datetime.utcnow(),
                         "row": row,
@@ -257,7 +257,6 @@ def main():
     #Create IQ window
     INSTR.write("INST:SCR:CRE")
     INSTR.write("INST:NSEL 8")
-    INSTR.write("INIT:CONT OFF")
     INSTR.write("CONF:WAV")
     INSTR.write("SENS:FREQ:CENT 1702500000")
     # INSTR.write("DISP:WAV:VIEW:NSEL 1")
