@@ -1,14 +1,23 @@
 import subprocess
 from datetime import datetime, timedelta, timezone
-import time
 import logging
 import requests
 import os
-import signal
 import pandas as pd
 import requests
 import json
 import glob
+
+# Read vals from the config.json file
+config_file_path = '/home/noaa_gms/RFSS/Tools/config.json'
+with open(config_file_path, 'r') as json_file:
+    config_data = json.load(json_file)
+
+# Read vars from /home/noaa_gms/RFSS/Tools/config.json
+location = config_data['location']
+remoteID = config_data['remoteID']
+snrThreshold = config_data['snrThreshold']
+numSnapshots = config_data['numSnapshots']
 
 # Reset the Root Logger
 for handler in logging.root.handlers[:]:
@@ -111,7 +120,7 @@ def send_notification(df, total_iq_processed, pci_found_5g_count, pci_found_lte_
                 "maxPowerUnits": "dBm",
                 "mode": "Operational",
                 "notifyCarrier": None,
-                "remoteID": 1002,
+                "remoteID": {remoteID},
                 "severityLevel": "warning",
                 "signalType": row["5G/LTE"],
                 "tiltAngle": 0,
@@ -171,7 +180,7 @@ def run_script():
 
     logging.info(f"IQ Processing started for {quarter_folder} folder")
 
-    command = f"/home/noaa_gms/RFSS/Tools/processing/RFSS_classifyidentifyPCI_AWS1_AWS3_160ms_thresholdSNR_vd10/run_RFSS_classifyidentifyPCI_AWS1_AWS3_160ms_thresholdSNR_vd10.sh /usr/local/MATLAB/MATLAB_Runtime/R2023a /home/noaa_gms/RFSS/toDemod/{daily_folder}/{quarter_folder} /home/noaa_gms/RFSS/toDemod/{daily_folder}/{quarter_folder}/results '1' '0' '5' 'IRC'"
+    command = f"/home/noaa_gms/RFSS/Tools/processing/RFSS_classifyidentifyPCI_AWS1_AWS3_160ms_thresholdSNR116_vd1/run_RFSS_classifyidentifyPCI_AWS1_AWS3_160ms_thresholdSNR116_vd1.sh /usr/local/MATLAB/MATLAB_Runtime/R2023a /home/noaa_gms/RFSS/toDemod/2024_02_23/0000-0559 /home/noaa_gms/RFSS/toDemod/2024_02_23/0000-0559/results '1' '0' '{snrThreshold}' '{location}' '{numSnapshots}'"
     logging.info(f"Starting MATLAB process with: {command}")
     process = subprocess.Popen(command, shell=True, preexec_fn=os.setsid)
 

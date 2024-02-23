@@ -1,6 +1,6 @@
 {
-    "location": "NHC",
-    "analyzerIP": "TCPIP::192.168.3.101::hislip0",
+    "location": "IRC",
+    "analyzerIP": "TCPIP::192.168.2.101::hislip0",
     "satController": "192.168.4.1",
     "instrumentType": "PXA",
     "bandwidth_MHz": 5,
@@ -10,5 +10,8 @@
     "srat": "18.75MHz",
     "measTime": "160ms",
     "minElevation": 5.0,
-    "sats": "38771;43689;28654;33591"
+    "sats": "38771;43689;28654;33591",
+    "remoteID": 1002,
+    "snrThreshold": 5,
+    "numSnapshots": 10
 }
