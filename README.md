@@ -10,7 +10,7 @@ Additionally, you will need to ensure you are synced in time.  Preferred way is 
 Currently, the system is designed to capture 160ms IQ samples every 6-8 seconds while a Griddy antenna attached to Yaesu G5500 rotor tracks the satellite across the sky.  The Yaesu and schedule is controlled by CSN Technologies S.A.T Controller.  All data captured from spectrum analyzer is immediately saved to local machine during pass.   
 
 
-![Alt text](image.png) test
+![Alt text](image.png)
 
 ## Repository Structure
 
