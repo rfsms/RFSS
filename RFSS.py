@@ -7,21 +7,25 @@ import csv
 import logging
 import json
 from pymongo import MongoClient
-import sys
 
-if len(sys.argv) < 2:
-    raise ValueError("Please provide either 'RFSS_FSV' or 'RFSS_PXA' as an argument.")
+# Read vals from the config.json file
+config_file_path = '/home/noaa_gms/RFSS/Tools/config.json'
+with open(config_file_path, 'r') as json_file:
+    config_data = json.load(json_file)
 
-runningModule = None
+# Read vars from /home/noaa_gms/RFSS/Tools/config.json
+minElevation = config_data['minElevation']
+satController = config_data['satController']
+runningModule = config_data['instrumentType']
 
-if sys.argv[1] == "RFSS_FSV":
+if runningModule == "FSV":
     import RFSS_FSV
     runningModule = RFSS_FSV
-elif sys.argv[1] == "RFSS_PXA":
+elif runningModule == "PXA":
     import RFSS_PXA
     runningModule = RFSS_PXA
 else:
-    raise ValueError("Invalid argument. Only 'RFSS_FSV' or 'RFSS_PXA' are accepted.")
+    raise ValueError("Invalid argument. Only 'RFSS_FSV' or 'RFSS_PXA' are accepted in config.json.")
 
 # Connect to MongoDB
 client = MongoClient('localhost', 27017)
@@ -35,20 +39,16 @@ for handler in logging.root.handlers[:]:
 # Setup logging
 logging.basicConfig(filename='/home/noaa_gms/RFSS/RFSS_SA.log', level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
-# Change this to increase/decrease schedule based on minimum elevation
-minElevation = 5.0
-
 # Check if the current time is 00:00 UTC or later, and if so, call RFSS_{SPECAN}.main()
 if datetime.datetime.utcnow().time() >= datetime.time(0, 0):
     logging.info('-----------------------------------------------------')
     logging.info('RFSS service restarted. Using current schedule.')
     runningModule.main()
 
-# Fetch report is done daily using schedule at 00:00 UTC
 def fetchReport():
     try:
         logging.info(f"Fetching report for use.")
-        conn = http.client.HTTPConnection("192.168.4.1", 80)
+        conn = http.client.HTTPConnection(satController, 80)
         conn.request("GET", "/report?a=38771;43689;28654;33591") #NOAA18 28654;NOAA19 33591;METOPB 38771;METOPC 43689
         response = conn.getresponse()
 
@@ -117,7 +117,7 @@ def fetchReport():
 
 def check_and_set_rotator():
     try:
-        conn = http.client.HTTPConnection("192.168.4.1", 80)
+        conn = http.client.HTTPConnection(satController, 80)
         
         def get_track_data():
             conn.request("GET", "/track")

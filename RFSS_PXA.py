@@ -11,6 +11,19 @@ from pymongo import MongoClient
 from scipy.io import savemat
 import subprocess
 
+# Read vals from the config.json file
+config_file_path = '/home/noaa_gms/RFSS/Tools/config.json'
+with open(config_file_path, 'r') as json_file:
+    config_data = json.load(json_file)
+
+# Read vars from /home/noaa_gms/RFSS/Tools/config.json
+analyzerIP = config_data['analyzerIP']
+satController = config_data['satController']
+span = config_data['span_MHz'] * 1e6
+cf = config_data['cf_MHz'] * 1e6 
+srat = config_data['srat']
+measTime = config_data['measTime']
+
 # Connection for MongoDB
 client = MongoClient('localhost', 27017)
 db = client['status_db']
@@ -25,10 +38,9 @@ logging.basicConfig(filename='/home/noaa_gms/RFSS/RFSS_SA.log', level=logging.IN
 
 # For production
 CSV_FILE_PATH = '/home/noaa_gms/RFSS/Tools/Report_Exports/schedule.csv'
-TEMP_DIR = '/home/noaa_gms/RFSS/Received/'
-RESOURCE_STRING = 'TCPIP::192.168.2.101::hislip0' 
+TEMP_DIR = '/home/noaa_gms/RFSS/Received/' 
 RM = pyvisa.ResourceManager()
-INSTR = RM.open_resource(RESOURCE_STRING, timeout = 20000)
+INSTR = RM.open_resource(analyzerIP, timeout = 20000)
 DEMOD_DIR = '/home/noaa_gms/RFSS/toDemod/'
 
 def restart_service():
@@ -57,7 +69,7 @@ def opc_check(INSTR):
                 break
 
 def get_current_AzEl():
-    conn = http.client.HTTPConnection("192.168.4.1", 80)
+    conn = http.client.HTTPConnection(satController, 80)
     conn.request("GET", "/min")
     response = conn.getresponse()
     data = json.loads(response.read())
@@ -227,7 +239,7 @@ def main():
     # Instrument reset/setup
     idn = INSTR.query("ID?")
     # instrument = idn.replace("Hello, I am: ", "")
-    logging.info(f"Setting Up {idn.split()} at {RESOURCE_STRING}")
+    logging.info(f"Setting Up {idn.split()} at {analyzerIP}")
     
     #Reset SpecAn
     INSTR.write("*RST")
@@ -239,12 +251,12 @@ def main():
     # Setup Spectrum Analyzer
     INSTR.write("INST:NSEL 1")
     INSTR.write("INIT:CONT OFF")
-    INSTR.write("SENS:FREQ:SPAN 20000000")
-    INSTR.write("SENS:FREQ:CENT 1702500000")
+    INSTR.write(f"SENS:FREQ:SPAN {span}")
+    INSTR.write(f"SENS:FREQ:CENT {cf}")
     INSTR.write("POW:ATT:AUTO ON")
     # INSTR.write("POW:ATT 0")
     INSTR.write("POW:GAIN ON")
-    INSTR.write("BAND 5000")
+    INSTR.write(f"BAND 5000")
     INSTR.write("DISP:WIND:TRAC:Y:RLEV -20dBm")
     INSTR.write("TRAC1:TYPE WRIT")
     INSTR.write("DET:TRAC1 NORM")
@@ -259,11 +271,11 @@ def main():
     INSTR.write("INST:NSEL 8")
     INSTR.write("INIT:CONT OFF")
     INSTR.write("CONF:WAV")
-    INSTR.write("SENS:FREQ:CENT 1702500000")
+    INSTR.write(f"SENS:FREQ:CENT {cf}")
     # INSTR.write("DISP:WAV:VIEW:NSEL 1")
     INSTR.write("POW:GAIN ON")
-    INSTR.write("WAV:SRAT 18.75MHz")
-    INSTR.write("WAV:SWE:TIME 160ms")
+    INSTR.write(f"WAV:SRAT {srat}")
+    INSTR.write(f"WAV:SWE:TIME {measTime}")
     INSTR.write("DISP:WAV:VIEW:WIND:TRAC:Y:COUP ON")
     INSTR.write("FORM:BORD SWAP")
     INSTR.write("FORM REAL,32")

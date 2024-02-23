@@ -13,13 +13,21 @@ import os
 import time
 import csv
 
+# Read vals from the config.json file
+config_file_path = '/home/noaa_gms/RFSS/Tools/config.json'
+with open(config_file_path, 'r') as json_file:
+    config_data = json.load(json_file)
+
+# Read vars from /home/noaa_gms/RFSS/Tools/config.json
+analyzerIP = config_data['analyzerIP']
+satController = config_data['satController']
+
 # Logging setup
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
 logging.basicConfig(filename='/home/noaa_gms/RFSS/RFSS_SA.log', level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger(__name__)
 
-RESOURCE_STRING = 'TCPIP::192.168.2.101::hislip0' 
 OPTION_STRING_FORCE_RS_VISA = 'SelectVisa=rs'
 PXA = None
 FSV = None
@@ -33,13 +41,13 @@ if "RFSS_PXA" in exec_start_line:
     from PXA_commutation import instrument_commutation_setup, instrument_scanning_setup, captureTrace, createSpectrogram
     SA_type = "PXA"
     RM = pyvisa.ResourceManager()
-    PXA = RM.open_resource(RESOURCE_STRING, timeout=20000)
+    PXA = RM.open_resource(analyzerIP, timeout=20000)
     logging.info("Imported PXA libraries")
 elif "RFSS_FSV" in exec_start_line:
     import RsInstrument
     from FSV_commutation import instrument_commutation_setup, instrument_scanning_setup, captureTrace, createSpectrogram, get_SpecAn_content_and_DL_locally
     SA_type = "FSV"
-    FSV = RsInstrument(RESOURCE_STRING, False, False, OPTION_STRING_FORCE_RS_VISA)
+    FSV = RsInstrument(analyzerIP, False, False, OPTION_STRING_FORCE_RS_VISA)
     logging.info("Imported FSV libraries")
 
 app = Flask(__name__)
@@ -69,7 +77,7 @@ def emit_trace_data(trace_data):
 
 def get_location():
     try:
-        conn = http.client.HTTPConnection("192.168.4.1", 80)
+        conn = http.client.HTTPConnection(satController, 80)
 
         def get_track_data():
             conn.request("GET", "/track")
@@ -135,7 +143,7 @@ def set_rotor_azimuth(instr, iq_option, starting_az, ending_az, center_frequency
     timestamp_iterations = []
 
     # print("Starting set_rotor_azimuth function")
-    conn = http.client.HTTPConnection("192.168.4.1", 80)
+    conn = http.client.HTTPConnection(satController, 80)
     
     def send_request(az):
         # logging.info(f"Sending request for azimuth: {az}")
@@ -276,7 +284,7 @@ def events():
 @app.route('/get_actual_AzEl')
 def get_actual_AzEl():
     try:
-        conn = http.client.HTTPConnection("192.168.4.1", 80)
+        conn = http.client.HTTPConnection(satController, 80)
         current_az, current_el = get_current_AzEl(conn)
         json_data = json.dumps({'actual_az': current_az, 'actual_el': current_el})
         conn.close()
@@ -312,7 +320,7 @@ def pause_schedule():
         f.write("paused")
     global is_paused
     is_paused = True
-    conn = http.client.HTTPConnection("192.168.4.1", 80)
+    conn = http.client.HTTPConnection(satController, 80)
 
     # Send a stop command to the rotor (which also commands SAT Tracker to unschedule)
     conn.request("GET", f"/cmd?a=S")
@@ -339,7 +347,7 @@ def unpause_schedule():
 
     global is_paused
     is_paused = False
-    conn = http.client.HTTPConnection("192.168.4.1", 80)
+    conn = http.client.HTTPConnection(satController, 80)
 
     # Re-enable scheduler
     conn.request("GET", "/cmd?a=B|E")
