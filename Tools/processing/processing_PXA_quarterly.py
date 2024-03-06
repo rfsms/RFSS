@@ -170,6 +170,9 @@ def run_script():
 
     # Check if there are .mat files in the last hour's folder
     mat_files = glob.glob(mat_files_path)
+    total_mat_count = len(mat_files)
+    logging.info(f"Total MAT files in {daily_folder}/{quarter_folder} folder: {total_mat_count}")
+
     if not mat_files:
         logging.info(f"No .mat files found in {quarter_folder}, skipping processing.")
         return
@@ -190,7 +193,7 @@ def run_script():
 
     # NOW...Analyze results and report
     df, total_iq_processed, pci_found_5g_count, pci_found_lte_count, total_dropped = analyze_results(daily_folder, quarter_folder)
-    logging.info(f"Total IQ files processed: {total_iq_processed}, 5G PCI found in: {pci_found_5g_count} files / LTE PCI found in: {pci_found_lte_count} files, Dropped .mat files: {total_dropped}.")
+    logging.info(f"Total MAT files: {total_mat_count}, Total IQ files processed: {total_iq_processed}, 5G PCI found in: {pci_found_5g_count} files / LTE PCI found in: {pci_found_lte_count} files, Dropped .mat files: {total_dropped}.")
 
     send_notification(df, total_iq_processed, pci_found_5g_count, pci_found_lte_count, total_dropped)
     logging.info(f"IQ Processing terminated as expected.")
