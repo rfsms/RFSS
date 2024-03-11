@@ -32,7 +32,7 @@ def iso_format_utc(dt):
 def analyze_results(daily_folder, quarter_folder):
     results_file_path = f"/home/noaa_gms/RFSS/toDemod/{daily_folder}/{quarter_folder}/results/results.csv"
    
-    total_iq_processed = 0 
+    total_mat_processed = 0 
     total_dropped = 0
 
     # Initialize an empty DataFrame
@@ -51,7 +51,7 @@ def analyze_results(daily_folder, quarter_folder):
         unique_timestamp_prefixes = df['timestamp'].str.extract(r'(\d{8}_\d{6})')[0].unique()
 
          # Count the number of unique timestamp prefixes
-        total_iq_processed = len(unique_timestamp_prefixes)
+        total_mat_processed = len(unique_timestamp_prefixes)
 
         # Count the number of entries where PCI is not -1 for both 5G and LTE
         pci_found_5g_count = len(df[(df["5G/LTE"] == "5G") & (df["PCI"] != -1)])
@@ -65,19 +65,18 @@ def analyze_results(daily_folder, quarter_folder):
         # Lets initialize vars to a default state om the even of an error and not cause the script to crash 
         pci_found_5g_count, pci_found_lte_count, total_dropped = 0, 0, 0
 
-    return df, total_iq_processed, pci_found_5g_count, pci_found_lte_count, total_dropped
-
+    return df, total_mat_processed, pci_found_5g_count, pci_found_lte_count, total_dropped
 
 def get_machine_id():
     with open('/etc/machine-id', 'r') as file:
         return file.read().strip()
 
-def send_notification(df, total_iq_processed, pci_found_5g_count, pci_found_lte_count, total_dropped):
+def send_notification(df, total_mat_processed, pci_found_5g_count, pci_found_lte_count, total_dropped):
     machine_id = get_machine_id()
 
     # Notification to ntfy.sh
     ntfy_url = f'https://ntfy.sh/{machine_id}'
-    ntfy_message = f"Total IQ files processed: {total_iq_processed}, 5G PCI found in: {pci_found_5g_count} files / LTE PCI found in: {pci_found_lte_count} files, Dropped .mat files: {total_dropped}."
+    ntfy_message = f"Total MAT files processed: {total_mat_processed}, 5G PCI found in: {pci_found_5g_count} files / LTE PCI found in: {pci_found_lte_count} files, Dropped IQ files: {total_dropped}."
     ntfy_data = {'IQ Analysis': ntfy_message}
 
     try:
@@ -170,8 +169,6 @@ def run_script():
 
     # Check if there are .mat files in the last hour's folder
     mat_files = glob.glob(mat_files_path)
-    total_mat_count = len(mat_files)
-    logging.info(f"Total MAT files in {daily_folder}/{quarter_folder} folder: {total_mat_count}")
 
     if not mat_files:
         logging.info(f"No .mat files found in {quarter_folder}, skipping processing.")
@@ -192,10 +189,10 @@ def run_script():
     logging.info("MATLAB process completed.")
 
     # NOW...Analyze results and report
-    df, total_iq_processed, pci_found_5g_count, pci_found_lte_count, total_dropped = analyze_results(daily_folder, quarter_folder)
-    logging.info(f"Total MAT files: {total_mat_count}, Total IQ files processed: {total_iq_processed}, 5G PCI found in: {pci_found_5g_count} files / LTE PCI found in: {pci_found_lte_count} files, Dropped .mat files: {total_dropped}.")
+    df, total_mat_processed, pci_found_5g_count, pci_found_lte_count, total_dropped = analyze_results(daily_folder, quarter_folder)
+    logging.info(f"Total MAT files processed: {total_mat_processed}, Number of IQ snapshots extracted per MAT File:: {numSnapshots}, Total IQs processed: {total_mat_processed*numSnapshots}, 5G PCI found in: {pci_found_5g_count} files / LTE PCI found in: {pci_found_lte_count} files, Dropped IQ files: {total_dropped}.")
 
-    send_notification(df, total_iq_processed, pci_found_5g_count, pci_found_lte_count, total_dropped)
+    send_notification(df, total_mat_processed, pci_found_5g_count, pci_found_lte_count, total_dropped)
     logging.info(f"IQ Processing terminated as expected.")
 
 run_script()
