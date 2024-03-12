@@ -19,8 +19,8 @@ with open(config_file_path, 'r') as json_file:
 # Read vars from /home/noaa_gms/RFSS/Tools/config.json
 analyzerIP = config_data['analyzerIP']
 satController = config_data['satController']
-span = config_data['span_MHz'] * 1e6
-cf = config_data['cf_MHz'] * 1e6 
+span = config_data['span_MHz']
+cf = config_data['cf_MHz']
 srat = config_data['srat']
 measTime = config_data['measTime']
 

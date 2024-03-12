@@ -16,10 +16,15 @@ with open(config_file_path, 'r') as json_file:
 # Read vars from /home/noaa_gms/RFSS/Tools/config.json
 analyzerIP = config_data['analyzerIP']
 satController = config_data['satController']
-span = config_data['span_MHz'] * 1e6
-cf = config_data['cf_MHz'] * 1e6 
+span = config_data['span_MHz'] 
+cf = config_data['cf_MHz']
 srat = config_data['srat']
 measTime = config_data['measTime']
+
+print(f"Span: {span}")
+print(f"CF: {cf}")
+print(f"SRAT: {srat}")
+print(f"measTime: {measTime}")
 
 RM = pyvisa.ResourceManager()
 INSTR = RM.open_resource(analyzerIP, timeout = 20000)
@@ -60,30 +65,30 @@ def process_schedule():
     q_data = data[1::2]
 
     metadata = {
-        'Center_Frequency': cf,
-        'Bandwidth': span,
-        'Sample_Rate': srat,
-        'Measurement_Time': measTime
+        'Center_FrequencyMHz': cf,
+        'SpanHz': span,
+        'Sample_RateHz': srat,
+        'Measurement_TimeS': measTime
     }
 
     mat_file_path = os.path.join('/home/noaa_gms/RFSS/Tools/Testing', 'test.mat')
     savemat(mat_file_path, {'I_Data': i_data, 'Q_Data': q_data, 'Metadata': metadata})
 
-    # mat_data = loadmat(mat_file_path)
-    # metadata_array = mat_data['Metadata']
-    # print(metadata_array)
+    mat_data = loadmat(mat_file_path)
+    metadata_array = mat_data['Metadata']
+    print(metadata_array)
 
-    # # Extracting individual elements from the structure
-    # center_frequency = metadata_array[0][0][0][0].item()
-    # bandwidth = metadata_array[0][0][1][0].item()
-    # sample_rate = metadata_array[0][0][2][0]
-    # measurement_time = metadata_array[0][0][3][0]
+    # Extracting individual elements from the structure
+    center_frequency = metadata_array[0][0][0][0].item()
+    span_freq = metadata_array[0][0][1][0].item()
+    sample_rate = metadata_array[0][0][2][0]
+    measurement_time = metadata_array[0][0][3][0]
 
-    # # Printing the extracted values
-    # print(f"Center Frequency (MHz): {center_frequency/1000000}")
-    # print(f"Bandwidth (MHz): {bandwidth/10000}")
-    # print(f"Sample Rate (MHz): {sample_rate[0]/100000}")
-    # print(f"Measurement Time (ms): {measurement_time[0]*1000}")
+    # Printing the extracted values
+    print(f"Center Frequency (MHz): {center_frequency/1000000}")
+    print(f"Span (MHz): {span_freq/10000}")
+    print(f"Sample Rate (MHz): {sample_rate[0]/1000000}")
+    print(f"Measurement Time (ms): {measurement_time[0]*1000}")
 
 
 def main():
