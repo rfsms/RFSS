@@ -262,7 +262,7 @@ def events():
     selected_date = request.form['date']
     selected_date_obj = datetime.datetime.strptime(selected_date, '%Y-%m-%d')
     next_day_date_obj = selected_date_obj + datetime.timedelta(days=1)
-    date_from_db_str = None  # Initialize to a default value
+    date_from_db_str = None
     location_data = get_location()
     event = collection.find_one({
         "timestamp": {
