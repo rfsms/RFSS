@@ -76,7 +76,7 @@ def send_notification(df, total_mat_processed, pci_found_5g_count, pci_found_lte
 
     # Notification to ntfy.sh
     ntfy_url = f'https://ntfy.sh/{machine_id}'
-    ntfy_message = f"Total MAT files processed: {total_mat_processed}, 5G PCI found in: {pci_found_5g_count} files / LTE PCI found in: {pci_found_lte_count} files, Dropped IQ files: {total_dropped}."
+    ntfy_message = f"Total MAT files captured: {total_mat_processed}, 5G PCI found in: {pci_found_5g_count} files / LTE PCI found in: {pci_found_lte_count} files, Total Dropped IQ files: {total_dropped}."
     ntfy_data = {'IQ Analysis': ntfy_message}
 
     try:
@@ -190,7 +190,7 @@ def run_script():
 
     # NOW...Analyze results and report
     df, total_mat_processed, pci_found_5g_count, pci_found_lte_count, total_dropped = analyze_results(daily_folder, quarter_folder)
-    logging.info(f"Total MAT files processed: {total_mat_processed}, Number of IQ snapshots extracted per MAT File:: {numSnapshots}, Total IQs processed: {total_mat_processed*numSnapshots}, 5G PCI found in: {pci_found_5g_count} files / LTE PCI found in: {pci_found_lte_count} files, Dropped IQ files: {total_dropped}.")
+    logging.info(f"Total MAT files captured: {total_mat_processed}, Number of IQ snapshots extracted per MAT File:: {numSnapshots}, Total IQs extracted: {total_mat_processed*numSnapshots}, 5G PCI found in: {pci_found_5g_count} files / LTE PCI found in: {pci_found_lte_count} files, Total Dropped IQ files: {total_dropped}.")
 
     send_notification(df, total_mat_processed, pci_found_5g_count, pci_found_lte_count, total_dropped)
     logging.info(f"IQ Processing terminated as expected.")
