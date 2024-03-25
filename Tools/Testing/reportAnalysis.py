@@ -47,7 +47,7 @@ def pci_counts(file):
 
 # Initialize PrettyTable
 table = PrettyTable()
-table.field_names = ["Directory", "Subdirectory", "MAT files", "Dropped IQ", "Processed IQ", "Valid PCI entries", "PCI counts"]
+table.field_names = ["Directory", "Subdirectory", "Unprocessed MAT files", "Total Dropped IQ", "Processed IQ", "Valid PCI entries", "PCI counts"]
 
 for upper_dir in sorted([d for d in os.listdir(root_dir) if os.path.isdir(os.path.join(root_dir, d))]):
     upper_dir_path = os.path.join(root_dir, upper_dir)
